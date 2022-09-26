@@ -25,8 +25,8 @@
   
   "Events": Folder which contains the event quest drop rates for every FGO event in the next 2 years. Also has the "Multi Event Folder."
   
-    "Multi Event Folder": when MultEvent mode is turned on in config, the program reads every single event csv in this folder and creates a big matrix.
+   "Multi Event Folder": when MultEvent mode is turned on in config, the program reads every single event csv in this folder and creates a big matrix.
     
-    "Christmas 202X": These are separated because otherwise they'd take up way too much space in the main "Events" folder.
+   "Christmas 202X": These are separated because otherwise they'd take up way too much space in the main "Events" folder.
     
-    Anatomy of Lotto Event Names: Lotto events have some extra words on the end of them, after the event name but before the "- Event Quest.csv". The number after the "D" refers to the drop bonus used in the drop rate calculations. So "D4" means that you have the CEs to get +4 lotto mats, and "D12" means you're maxed out on boosting CEs. The Christmas lottos also have a shortened material name at the end. This means that the calculations are assuming you intend to spend your lotto box tickets on that item (by placing all 3 in the Multi Event Folder, the program can work out which materials you should redeem with those tickets). Finally, the "BB" at the end means "Buyback," which means that the AP Cost for running the event quests is reduced by the average amount of apples you're expected to get back from opening boxes.
+   Anatomy of Lotto Event Names: Lotto events have some extra words on the end of them, after the event name but before the "- Event Quest.csv". The number after the "D" refers to the drop bonus used in the drop rate calculations. So "D4" means that you have the CEs to get +4 lotto mats, and "D12" means you're maxed out on boosting CEs. The Christmas lottos also have a shortened material name at the end. This means that the calculations are assuming you intend to spend your lotto box tickets on that item (by placing all 3 in the Multi Event Folder, the program can work out which materials you should redeem with those tickets). Finally, the "BB" at the end means "Buyback," which means that the AP Cost for running the event quests is reduced by the average amount of apples you're expected to get back from opening boxes.
