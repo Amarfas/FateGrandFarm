@@ -7,57 +7,81 @@ import cvxpy as cp
 class Nodes:
     def __init__( self , goals , materialListCSV ):
         self.goals = []
-        self.setGoals( goals )
+        self.interpretGoals( goals )
 
+        # Can run multiple times in case of changes in translation.
         self.matIndex = {}
         self.matDict = {}
         for i in materialListCSV:
-            self.addMatDict(i)
+            self.createMatDicts(i)
 
         self.matCount = list( self.matIndex.items() )[-1][1] +1
-        self.nodeName = []
+        self.nodeNames = []
         self.APCost = []
         self.dropMatrix = np.array([])
         self.runCap = []
 
+    # Debugging function that checks to see if the material names are in the right spot/spelled correctly.
+    # Should probably be deleted for final code.
     def checkMatNames( self , goals ):
         with open( goals , newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
             count = -2
             for i in reader:
                 count += 1
-                try: a = int(i[1])
-                except: continue
+                try: 
+                    a = int(i[1])
+                except: 
+                    continue
 
-                try: a = self.matIndex[i[0]]
-                except: print( i[0] )
+                try: 
+                    a = self.matIndex[i[0]]
+                except: 
+                    print( i[0] )
     
-    def addMatDict( self , materialListCSV ):
-        with open( materialListCSV , newline = '', encoding = 'Latin1' ) as f:
-            reader = csv.reader(f)
-            matList = next( reader )
-            matList = next( reader )
-            matList = next( reader )
-        count = -1
-        for i in matList:
-            self.matIndex.setdefault( i , count )
-            self.matDict.setdefault( count , i )
-            count += 1
-    
-    def setGoals( self , goals ):
+    # TODO: Change code so that undesired materials (Goal Quantity = 0) are skipped entirely.
+    # Also store the skipped materials so the rest of the functions and correctly assemble the matrices.
+    def interpretGoals( self , goals ):
         with open( goals , newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
             goalLine = next( reader )
+
+            # TODO: Find a better way to terminate the loop than checking for the name 'Berserker Hellfire'
             while True:
                 goalLine = next(reader)
                 if goalLine[0] == 'Berserker Hellfire':
                     self.goals.append( [int(goalLine[1])] )
                     break
-                try: self.goals.append( [int(goalLine[1])] )
-                except: self.goals.append( [0] )
-        self.goals = np.array( self.goals )
+                try: 
+                    self.goals.append( [int(goalLine[1])] )
+                except: 
+                    self.goals.append( [0] )
 
-    def addMatrices( self , addAPCost , addRunCap , addDropMatrix ):
+        self.goals = np.array( self.goals )
+    
+    def createMatDicts( self , materialListCSV ):
+        with open( materialListCSV , newline = '', encoding = 'Latin1' ) as f:
+            reader = csv.reader(f)
+            matList = next( reader )
+            matList = next( reader )
+            matList = next( reader )
+            
+        count = -1
+        for i in matList:
+            self.matIndex.setdefault( i , count )
+            self.matDict.setdefault( count , i )
+            count += 1
+
+    # TODO: There are some issues with this method of assembling matrices.
+    # The basic issue is that cvxpy analysis requires data in the form of numpy matrices, but the best way to form numpy matrices is to initialize its size.
+    # This is because vstacking numpy matrices line by line is slow, because it rewrites the entire matrix every time.
+    # ^^^ NOT CONFIRMED, maybe that's what I should do.
+    # Unfortunately, in order to initialize the size, we have to know how many lines the csv is. This apparently requires reading through the entire csv once.
+    # Since the csv's have to be read and added to the data line by line, this would be inelegant/slow.
+    # For the above reasons, I have instead opted to put the data from the csv into an array first, and then turn those arrays into a numpy matrix before stacking.
+    # This seems to have caused an issue with making a 'Run Cap' constraint, as the column matrixes are size '(X,)' rather than '(X,1)'
+    # This doesn't make sense and tells me there needs to be some changes.
+    def assembleMatrix( self , addAPCost , addRunCap , addDropMatrix ):
             if np.size( self.dropMatrix ) == 0:
                 self.APCost = np.array( addAPCost )
                 self.runCap = np.array( addRunCap )
@@ -75,29 +99,40 @@ class Nodes:
             reader = csv.reader(f)
             eventDrop = next( reader )
         
+            # Finds where the lotto material drops start in the csv, as the formatting changes for these.
+            # TODO: Change the csv formatting and delete this.
             count = 0
             materialLoc = []
             qpPivot = 0
             for i in eventDrop:
-                if i == 'Material': materialLoc.append( count )
-                if i == 'QP': qpPivot = count
+                if i == 'Material': 
+                    materialLoc.append( count )
+                if i == 'QP': 
+                    qpPivot = count
                 count += 1
-            
+
             eventAPCost = []
             eventDropMatrix = []
             eventRunCap = []
             eventDrop = next( reader )
+
+            # Interpretation of how this is supposed to read the Event Quest csv:
+            # If there is no material assigned in the first slot, skip this line.
+            # If there is no AP assigned, assume the drops listed are a continuation of the previous line and add to that.
+            # Else, start a new line of drop rate data.
             while True:
-                if eventDrop[5] == '': continue
+                if eventDrop[5] == '': 
+                    continue
                 if eventDrop[1] == '':
                     for i in materialLoc:
                         if eventDrop[i+1] != '':
                             eventDropMatrix[-1][ self.matIndex[eventDrop[i]] ] = dropWeight * float(eventDrop[i+1])
                 else:
-                    self.nodeName.append( eventName + ', ' + eventDrop[0] )
+                    self.nodeNames.append( eventName + ', ' + eventDrop[0] )
                     eventAPCost.append( float(eventDrop[1]) )
                     eventRunCap.append( eventCap )
                     eventDropMatrix.append( np.zeros( self.matCount ) )
+
                     for i in materialLoc:
                         if eventDrop[i+1] != '':
                             if i < qpPivot:
@@ -105,10 +140,12 @@ class Nodes:
                             else:
                                 eventDropMatrix[-1][ self.matIndex[eventDrop[i]] ] = round( float(eventDrop[1]) / float(eventDrop[i+1]) , 6 )
                 
-                try: eventDrop = next( reader )
-                except: break
+                try: 
+                    eventDrop = next( reader )
+                except: 
+                    break
             
-            self.addMatrices( eventAPCost , eventRunCap , eventDropMatrix )
+            self.assembleMatrix( eventAPCost , eventRunCap , eventDropMatrix )
     
     def addFreeDrop( self , freeDropCSV , lastArea ):
         with open( freeDropCSV , newline = '' , encoding = 'Latin1' ) as f:
@@ -118,34 +155,49 @@ class Nodes:
             freeAPCost = []
             freeRunCap = []
             freeDropMatrix = []
-            while True:
-                try: freeDrop = next( reader )
-                except: break
-                if freeDrop[0].find( lastArea ) >= 0: break
-                if freeDrop[2] == '' or freeDrop[2] == 'AP': continue
 
-                self.nodeName.append( freeDrop[0] + ', ' + freeDrop[1] )
+            # Interpretation of how this is supposed to read the APD csv:
+            # If the Singularity is further than the user wants to farm as defined in the config file, stop.
+            # If the line is filler because the original google sheet copies the Japanese document formatting, skip it.
+            # Else, start a new line of drop rate data.
+            while True:
+                try: 
+                    freeDrop = next( reader )
+                except: 
+                    break
+                if freeDrop[0].find( lastArea ) >= 0: 
+                    break
+                if freeDrop[2] == '' or freeDrop[2] == 'AP': 
+                    continue
+
+                self.nodeNames.append( freeDrop[0] + ', ' + freeDrop[1] )
                 freeAPCost.append( int(freeDrop[2]) )
                 freeRunCap.append( 100000 )
                 dropMatrixAdd = []
+
                 for i in freeDrop[4:(self.matCount+4)]:
-                    try: dropMatrixAdd.append( round( int(freeDrop[2]) / float(i) , 6 ) )
-                    except: dropMatrixAdd.append(0)
+                    try: 
+                        dropMatrixAdd.append( round( int(freeDrop[2]) / float(i) , 6 ) )
+                    except: 
+                        dropMatrixAdd.append(0)
                 freeDropMatrix.append( dropMatrixAdd )
             
-            self.addMatrices( freeAPCost , freeRunCap , freeDropMatrix )
+            self.assembleMatrix( freeAPCost , freeRunCap , freeDropMatrix )
     
     def multiEvent( self , multiEventFolder ):
         for i in multiEventFolder:
             self.addEventDrop(i)
         return 'Multi'
 
+# Makes it so the program works whether it's started in the 'FarmingGrandOrder' overarching directory or the 'FarmGrandOrder' folder.
+# May be unnecessary, but trying to get python file pathing to work is more annoying than I remember.
 def standardizePath():
     pathDir = ''
     if glob.glob('FarmGrandOrder') == []:
         return '..\\' + pathDir
     else: return pathDir
 
+# TODO: Decide if this even needs to be a global variable or just a class.
 def makeNote( note ):
     global endNotes
     endNotes += note + '\n'
@@ -153,8 +205,10 @@ def makeNote( note ):
 
 def planner( dropMatrix , goals , type = 'nonneg' ):
     runSize = np.size( nodes.APCost )
-    if type == 'nonneg': runs = cp.Variable( (runSize,1) , nonneg=True)
-    else: runs = cp.Variable( (runSize,1) , integer=True )
+    if type == 'nonneg': 
+        runs = cp.Variable( (runSize,1) , nonneg=True)
+    else: 
+        runs = cp.Variable( (runSize,1) , integer=True )
 
     for i in range(nodes.matCount):
         for j in dropMatrix[i]:
@@ -173,12 +227,16 @@ def planner( dropMatrix , goals , type = 'nonneg' ):
         runClean = np.zeros( (runSize,1) , dtype = int)
         count = 0
         for i in runs.value:
-            if i[0] < 0.1: runClean[count,0] = 0
-            else: runClean[count,0] = int(i[0]) + 1
+            if i[0] < 0.1: 
+                runClean[count,0] = 0
+            else: 
+                runClean[count,0] = int(i[0]) + 1
             count += 1
         return ( prob , runClean , int( nodes.APCost @ runClean ) )
     else: 
         return ( prob , runs.value , prob.value )
+
+# Maybe this should all be in a 'main' method? No clue about the etiquette there for more 'professional' programs.
 
 endNotes = ''
 pathPrefix = standardizePath()
@@ -193,7 +251,8 @@ multEvent = config['DEFAULT']['Multiple Event']
 eventCap = int( config['DEFAULT']['Event Cap'] )
 dropWeight = float(config['DEFAULT']['Drop Weight'])
 
-if lastArea == '': lastArea = 'ZZZZZ'
+if lastArea == '': 
+    lastArea = 'ZZZZZ'
 
 nodes = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' ) )
 if multEvent == 'y':
@@ -211,5 +270,5 @@ print( 'You should run:')
 count = 0
 for i in runs:
     if i > 0:
-        print( nodes.nodeName[count] + ': ' + "{:,}".format(int(i)) + ' times')
+        print( nodes.nodeNames[count] + ': ' + "{:,}".format(int(i)) + ' times')
     count += 1
