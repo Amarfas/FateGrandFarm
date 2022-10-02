@@ -7,35 +7,40 @@ import timeit
 import FarmGrandOrder as FGO
 from NodesTest import Nodes
 
+testMode = 2
+
 def checkMatrix( a , b , s = 'F' , sa = 'F' ):
     # 's = F' means 'b' is an array
     # 'sa = F' means 'a' is an array
-    count = -1
+    row = -1
     for i in a:
-        count += 1
+        row += 1
         if s == 'F': 
-            n = np.size(b[count])
+            n = np.size(b[row])
         else: 
-            n = len(b[count])
+            n = len(b[row])
         try:
-            count2 = 0
+            col = 0
             if sa == 'F': 
                 m = np.size(i)
             else: 
                 m = len(i)
 
             if m != n:
-                return 'F: ('+str(count)+','+str(count2)+'): m != n'
+                return 'F : ('+str(row)+','+str(col)+') : m != n : '+str(m)+' != '+str(n)
             for j in i:
-                if j != b[count][count2]:
-                    return 'F: ('+str(count)+','+str(count2)+'): '+str(j)+' != '+str(b[count][count2])
-                count2 += 1
+                if j != b[row][col]:
+                    if col < 54:
+                        return 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) 
+                    else:
+                        print( 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) )
+                col += 1
 
         except:
             if n != 1:
-                return 'F: ('+str(count)+',~): n != 1'
-            if i != b[count]:
-                return 'F: ('+str(count)+',~): '+str(i)+' != '+str(b[count][count2])
+                return 'F: ('+str(row)+',~): n != 1'
+            if i != b[row]:
+                return 'F: ('+str(row)+',~): '+str(i)+' != '+str(b[row][col])
     return 'T'
 
 def comparison( testNum ):
@@ -58,10 +63,9 @@ def comparison( testNum ):
 
     nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' ) )
     if multEvent == 'y':
-        a = glob.glob( pathPrefix + 'Files\\Events\\Multi Event Folder\\*' )
         nodes.multiEvent( glob.glob( pathPrefix + 'Files\\Events\\Multi Event Folder\\*' ) )
     else:
-        FGO.Nodes.addEventDrop( glob.glob( pathPrefix + 'Files\\*' + eventFind + '* - Event Quest.csv' )[0] )
+        nodes.addEventDrop( glob.glob( pathPrefix + 'Files\\*' + eventFind + '* - Event Quest.csv' )[0] )
     nodes.addFreeDrop( glob.glob( pathPrefix + 'Files\\* - APD.csv' )[0] , lastArea )
 
     nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' ) )
@@ -71,6 +75,7 @@ def comparison( testNum ):
         nodes2.addEventDrop( glob.glob( pathPrefix + 'Files\\*' + eventFind + '* - Event Quest.csv' )[0] )
     nodes2.addFreeDrop( glob.glob( pathPrefix + 'Files\\* - APD.csv' )[0] , lastArea )
 
+
     if testNum == 1:
         print( 'Nodes Names equal: ' + checkMatrix( nodes.nodeNames , nodes2.nodeNames , 'T' , 'T' ))
         print( 'AP Cost equal: ' + checkMatrix( nodes.APCost , nodes2.APCost ))
@@ -78,7 +83,7 @@ def comparison( testNum ):
     
     if testNum == 2:
         prob , runs , totalAP = FGO.planner( nodes )
-        prob2 , runs2 , totalAP2 = FGO.planner( nodes )
+        prob2 , runs2 , totalAP2 = FGO.planner( nodes2 )
 
         print( 'Run counts equal: ' + checkMatrix( runs , runs2 ) )
         if totalAP == totalAP2: 
@@ -89,4 +94,4 @@ def comparison( testNum ):
     else:
         a = 1
 
-comparison( 1 )
+comparison( testMode )
