@@ -203,7 +203,8 @@ def makeNote( note ):
     endNotes += note + '\n'
     print(note)
 
-def planner( dropMatrix , goals , type = 'nonneg' ):
+def planner( nodes , type = 'nonneg' ):
+    dropMatrix = np.transpose( nodes.dropMatrix )
     runSize = np.size( nodes.APCost )
     if type == 'nonneg': 
         runs = cp.Variable( (runSize,1) , nonneg=True)
@@ -219,7 +220,7 @@ def planner( dropMatrix , goals , type = 'nonneg' ):
                 goals[i] = 0
 
     objective = cp.Minimize( nodes.APCost @ runs )
-    constraints = [ dropMatrix @ runs >= goals ]
+    constraints = [ dropMatrix @ runs >= nodes.goals ]
     prob = cp.Problem( objective , constraints )
     prob.solve()
 
@@ -261,7 +262,7 @@ else:
     nodes.addEventDrop( glob.glob( pathPrefix + 'Files\\*' + eventFind + '* - Event Quest.csv' )[0] )
 nodes.addFreeDrop( glob.glob( pathPrefix + 'Files\\* - APD.csv' )[0] , lastArea )
 
-prob , runs , totalAP = planner( np.transpose( nodes.dropMatrix ) , nodes.goals )
+prob , runs , totalAP = planner( nodes )
 
 print( 'These results are: ' + prob.status)
 print( 'The total AP required is: ' + "{:,}".format(totalAP) )

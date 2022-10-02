@@ -1,212 +1,190 @@
-import numpy as np
-import cvxpy as cp
 import csv
 import glob
-import timeit
-import FarmGrandOrder
+import numpy as np
+import cvxpy as cp
 
-class Nodes2:
-    def __init__( self , goals , materialListCSV ):
+class Nodes:
+    def __init__( self , goals , materialListCSV , eventCap = '' ):
         self.goals = []
-        self.skipCol = []
-        with open( goals , newline = '', encoding = 'Latin1' ) as f:
-            reader = csv.reader(f)
-            goalLine = next( reader )
-            count = 0
-            while True:
-                try: goalLine = next(reader)
-                except: break
-                try: 
-                    i = int(goalLine[1])
-                    if i == 0: self.skipCol.append(count)
-                    else: self.goals.append(i)
-                except: self.skipCol.append(count)
-                count += 1
-        self.goals = np.array( self.goals )
+        self.interpretGoals( goals )
 
+        # Can run multiple times in case of changes in translation.
+        self.matIndex = {}
         self.matDict = {}
-        with open( materialListCSV , newline = '', encoding = 'Latin1' ) as f:
-            reader = csv.reader(f)
-            matList = next( reader )
-            matList = next( reader )
-            matList = next( reader )
-        count = -1
-        for i in matList:
-            self.matDict[i] = count
-            count += 1
+        for i in materialListCSV:
+            self.createMatDicts(i)
 
-        self.matCount = list( self.matDict.items() )[-1][1] +1
-        self.nodeName = []
+        self.matCount = list( self.matIndex.items() )[-1][1] +1
+        self.nodeNames = []
         self.APCost = []
         self.dropMatrix = np.array([])
-    
+        self.runCap = []
+        self.eventCap = eventCap
+
+    # Debugging function that checks to see if the material names are in the right spot/spelled correctly.
+    # Should probably be deleted for final code.
     def checkMatNames( self , goals ):
         with open( goals , newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
             count = -2
             for i in reader:
                 count += 1
-                try: a = int(i[1])
-                except: continue
+                try: 
+                    a = int(i[1])
+                except: 
+                    continue
 
-                try: a = self.matDict[i[0]]
-                except: print( i[0] )
+                try: 
+                    a = self.matIndex[i[0]]
+                except: 
+                    print( i[0] )
     
-    def eventDropLoop( self , eventDrop , materialLoc , qpPivot ):
-        dropMatrixAdd = np.zeros( self.matCount )
-        for i in materialLoc:
-            if eventDrop[i+1] != '':
-                if i < qpPivot:
-                    dropMatrixAdd[ self.matDict[eventDrop[i]] ] = float(eventDrop[i+1])
-                else:
-                    dropMatrixAdd[ self.matDict[eventDrop[i]] ] = round( int(eventDrop[1]) / float(eventDrop[i+1]) , 6 )
-        return dropMatrixAdd
+    # TODO: Change code so that undesired materials (Goal Quantity = 0) are skipped entirely.
+    # Also store the skipped materials so the rest of the functions and correctly assemble the matrices.
+    def interpretGoals( self , goals ):
+        with open( goals , newline = '', encoding = 'Latin1' ) as f:
+            reader = csv.reader(f)
+            goalLine = next( reader )
+
+            # TODO: Find a better way to terminate the loop than checking for the name 'Berserker Hellfire'
+            while True:
+                goalLine = next(reader)
+                if goalLine[0] == 'Berserker Hellfire':
+                    self.goals.append( [int(goalLine[1])] )
+                    break
+                try: 
+                    self.goals.append( [int(goalLine[1])] )
+                except: 
+                    self.goals.append( [0] )
+
+        self.goals = np.array( self.goals )
     
-    def freeDropLoop( self, freeDrop ):
-        dropMatrixAdd = []
-        for i in freeDrop[4:(self.matCount+4)]:
-            try:
-                dropMatrixAdd.append( round( int(freeDrop[2]) / float(i) , 6 ) )
-            except:
-                dropMatrixAdd.append(0)
-        return dropMatrixAdd
+    def createMatDicts( self , materialListCSV ):
+        with open( materialListCSV , newline = '', encoding = 'Latin1' ) as f:
+            reader = csv.reader(f)
+            matList = next( reader )
+            matList = next( reader )
+            matList = next( reader )
+            
+        count = -1
+        for i in matList:
+            self.matIndex.setdefault( i , count )
+            self.matDict.setdefault( count , i )
+            count += 1
+
+    # TODO: There are some issues with this method of assembling matrices.
+    # The basic issue is that cvxpy analysis requires data in the form of numpy matrices, but the best way to form numpy matrices is to initialize its size.
+    # This is because vstacking numpy matrices line by line is slow, because it rewrites the entire matrix every time.
+    # ^^^ NOT CONFIRMED, maybe that's what I should do.
+    # Unfortunately, in order to initialize the size, we have to know how many lines the csv is. This apparently requires reading through the entire csv once.
+    # Since the csv's have to be read and added to the data line by line, this would be inelegant/slow.
+    # For the above reasons, I have instead opted to put the data from the csv into an array first, and then turn those arrays into a numpy matrix before stacking.
+    # This seems to have caused an issue with making a 'Run Cap' constraint, as the column matrixes are size '(X,)' rather than '(X,1)'
+    # This doesn't make sense and tells me there needs to be some changes.
+    def assembleMatrix( self , addAPCost , addRunCap , addDropMatrix ):
+            if np.size( self.dropMatrix ) == 0:
+                self.APCost = np.array( addAPCost )
+                self.runCap = np.array( addRunCap )
+                self.dropMatrix = np.array( addDropMatrix )
+            else:
+                self.APCost = np.append( self.APCost , addAPCost )
+                self.runCap = np.append( self.runCap , addRunCap )
+                self.dropMatrix = np.vstack( ( self.dropMatrix , addDropMatrix ) )
     
-    def addEventDrop( self , eventDropCSV , eventName = 'Event' ):
+    def addEventDrop( self , eventDropCSV ):
+        start = eventDropCSV.rindex('Efficiency_ ')
+        eventName = eventDropCSV[(start+12):eventDropCSV.rindex(' - Event',start)]
+
         with open( eventDropCSV , newline = '' , encoding = 'latin1' ) as f:
             reader = csv.reader(f)
             eventDrop = next( reader )
         
+            # Finds where the lotto material drops start in the csv, as the formatting changes for these.
+            # TODO: Change the csv formatting and delete this.
             count = 0
             materialLoc = []
             qpPivot = 0
             for i in eventDrop:
-                if i == 'Material': materialLoc.append( count )
-                if i == 'QP': qpPivot = count
+                if i == 'Material': 
+                    materialLoc.append( count )
+                if i == 'QP': 
+                    qpPivot = count
                 count += 1
-            
+
             eventAPCost = []
             eventDropMatrix = []
+            eventRunCap = []
             eventDrop = next( reader )
+
+            # Interpretation of how this is supposed to read the Event Quest csv:
+            # If there is no material assigned in the first slot, skip this line.
+            # If there is no AP assigned, assume the drops listed are a continuation of the previous line and add to that.
+            # Else, start a new line of drop rate data.
             while True:
-                if eventDrop[5] == '': continue
+                if eventDrop[5] == '': 
+                    continue
                 if eventDrop[1] == '':
                     for i in materialLoc:
                         if eventDrop[i+1] != '':
-                            eventDropMatrix[-1][ self.matDict[eventDrop[i]] ] = float(eventDrop[i+1])
+                            eventDropMatrix[-1][ self.matIndex[eventDrop[i]] ] = 0.01 * float(eventDrop[i+1])
                 else:
-                    self.nodeName.append( eventName + ', ' + eventDrop[0] )
-                    eventAPCost.append( int(eventDrop[1]) )
-                    eventDropMatrix.append( self.eventDropLoop( eventDrop , materialLoc , qpPivot ) )
+                    self.nodeNames.append( eventName + ', ' + eventDrop[0] )
+                    eventAPCost.append( float(eventDrop[1]) )
+                    eventRunCap.append( self.eventCap )
+                    eventDropMatrix.append( np.zeros( self.matCount ) )
+
+                    for i in materialLoc:
+                        if eventDrop[i+1] != '':
+                            if i < qpPivot:
+                                eventDropMatrix[-1][ self.matIndex[eventDrop[i]] ] = 0.01 * float(eventDrop[i+1])
+                            else:
+                                eventDropMatrix[-1][ self.matIndex[eventDrop[i]] ] = round( float(eventDrop[1]) / float(eventDrop[i+1]) , 6 )
                 
-                try: eventDrop = next( reader )
-                except: break
+                try: 
+                    eventDrop = next( reader )
+                except: 
+                    break
             
-            if np.size( self.dropMatrix ) == 0:
-                self.APCost = np.array( eventAPCost )
-                self.dropMatrix = np.array( eventDropMatrix )
-            else:
-                self.APCost = np.append( self.APCost , eventAPCost )
-                self.dropMatrix = np.vstack( self.dropMatrix , eventDropMatrix )
+            self.assembleMatrix( eventAPCost , eventRunCap , eventDropMatrix )
     
-    def addFreeDrop( self , freeDropCSV ):
+    def addFreeDrop( self , freeDropCSV , lastArea ):
         with open( freeDropCSV , newline = '' , encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
             freeDrop = next( reader )
 
             freeAPCost = []
+            freeRunCap = []
             freeDropMatrix = []
+
+            # Interpretation of how this is supposed to read the APD csv:
+            # If the Singularity is further than the user wants to farm as defined in the config file, stop.
+            # If the line is filler because the original google sheet copies the Japanese document formatting, skip it.
+            # Else, start a new line of drop rate data.
             while True:
-                try: freeDrop = next( reader )
-                except: break
-                if freeDrop[2] == '' or freeDrop[2] == 'AP': continue
+                try: 
+                    freeDrop = next( reader )
+                except: 
+                    break
+                if freeDrop[0].find( lastArea ) >= 0: 
+                    break
+                if freeDrop[2] == '' or freeDrop[2] == 'AP': 
+                    continue
 
-                self.nodeName.append( freeDrop[0] + ', ' + freeDrop[1] )
+                self.nodeNames.append( freeDrop[0] + ', ' + freeDrop[1] )
                 freeAPCost.append( int(freeDrop[2]) )
-                freeDropMatrix.append( self.freeDropLoop( freeDrop ) )
+                freeRunCap.append( 100000 )
+                dropMatrixAdd = []
+
+                for i in freeDrop[4:(self.matCount+4)]:
+                    try: 
+                        dropMatrixAdd.append( round( int(freeDrop[2]) / float(i) , 6 ) )
+                    except: 
+                        dropMatrixAdd.append(0)
+                freeDropMatrix.append( dropMatrixAdd )
             
-            if np.size( self.dropMatrix ) == 0:
-                self.APCost = np.array( freeAPCost )
-                self.dropMatrix = np.array( freeDropMatrix )
-            else:
-                self.APCost = np.append( self.APCost , freeAPCost )
-                self.dropMatrix = np.vstack( (self.dropMatrix , freeDropMatrix) )
+            self.assembleMatrix( freeAPCost , freeRunCap , freeDropMatrix )
     
-    def getGoals( self ):
-        return self.goals
-    
-    def getMatCount( self ):
-        return self.matCount
-
-    def getNodeName( self ):
-        return self.nodeName
-    
-    def getAPCost( self ):
-        return self.APCost
-    
-    def getDropMatrix( self ):
-        return self.dropMatrix
-
-def checkMatrix( a , b , s = 'F' , sa = 'F' ):
-    count = -1
-    for i in a:
-        count += 1
-        if s == 'F': n = np.size(b[count])
-        else: n = len(b[count])
-        try:
-            count2 = 0
-            if sa == 'F': m = np.size(b[count])
-            else: m = len(i)
-            if m != n:
-                return 'F'
-            for j in i:
-                if j != b[count][count2]:
-                    return 'F'
-                count2 += 1
-        except:
-            if n != 1:
-                return 'F'
-            if i != b[count]:
-                return 'F'
-    return 'T'
-
-def comparison( testNum ):
-    eventInput = 'Eff'
-    pathPrefix = FarmGrandOrder.standardizePath()
-
-    if testNum <= 2:
-        nodes = FarmGrandOrder.Nodes( pathPrefix + 'GOALS.csv', glob.glob( pathPrefix + '* - Calc.csv' )[0] )
-        nodes.addEventDrop( glob.glob( pathPrefix + '*' + eventInput + '* - Event Quest.csv' )[0] )
-        nodes.addFreeDrop( glob.glob( pathPrefix + '* - APD.csv' )[0] )
-
-        nodes2 = Nodes2( pathPrefix + 'GOALS.csv', glob.glob( pathPrefix + '* - Calc.csv' )[0] )
-        nodes2.addEventDrop( glob.glob( pathPrefix + '*' + eventInput + '* - Event Quest.csv' )[0] )
-        nodes2.addFreeDrop( glob.glob( pathPrefix + '* - APD.csv' )[0] )
-
-        if testNum == 1:
-            print( checkMatrix( nodes.getNodeName() , nodes2.getNodeName() , 'T' , 'T' ))
-            print( checkMatrix( nodes.getAPCost() , nodes2.getAPCost() ))
-            print( checkMatrix( nodes.getDropMatrix() , nodes2.getDropMatrix() ))
-        
-        if testNum == 2:
-            runSize = np.size( nodes.getAPCost() )
-            runs = cp.Variable( (runSize,1) , nonneg=True )
-            objective = cp.Minimize( nodes.getAPCost() @ runs )
-            constraints = [ np.transpose( nodes.getDropMatrix() ) @ runs >= nodes.getGoals() ]
-            prob = cp.Problem( objective , constraints )
-            prob.solve()
-
-            runSize2 = np.size( nodes2.getAPCost() )
-            runs2 = cp.Variable( (runSize2,1) , nonneg=True )
-            objective2 = cp.Minimize( nodes2.getAPCost() @ runs2 )
-            constraints2 = [ np.transpose( nodes2.getDropMatrix() ) @ runs2 >= nodes2.getGoals() ]
-            prob2 = cp.Problem( objective2 , constraints2 )
-            prob2.solve()
-
-            if prob.value == prob2.value: print('T')
-            else: print('F')
-            print( checkMatrix( runs.value , runs2.value ) )
-    
-    else:
-        a = 1
-
-comparison( 2 )
+    def multiEvent( self , multiEventFolder ):
+        for i in multiEventFolder:
+            self.addEventDrop(i)
+        return 'Multi'
