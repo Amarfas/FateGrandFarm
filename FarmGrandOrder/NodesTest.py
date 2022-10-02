@@ -10,7 +10,7 @@ class Nodes:
 
         self.dictIDtoIndex = {}
         self.dictIndexToName = {}
-        self.createMatDicts(materialListCSV[0])
+        self.createMatDicts(materialListCSV)
 
         self.matCount = list( self.dictIDtoIndex.items() )[-7][1] + 1
         self.nodeNames = []
@@ -105,15 +105,11 @@ class Nodes:
             eventDrop = next(reader)
         
             # Finds where the lotto material drops start in the csv, as the formatting changes for these.
-            # TODO: Change the csv formatting and delete this.
-            count = 0
             materialLoc = []
-            qpPivot = 0
+            count = 0
             for i in eventDrop:
                 if i == 'ID': 
                     materialLoc.append(count)
-                if i == 'QP': 
-                    qpPivot = count
                 count += 1
 
             eventAPCost = []
@@ -140,11 +136,8 @@ class Nodes:
 
                     for i in materialLoc:
                         if eventDrop[i+2] != '':
-                            if i < qpPivot:
+                            if int(eventDrop[i]) > 0:
                                 eventDropMatrix[-1][ self.dictIDtoIndex[eventDrop[i]] ] = 0.01 * float(eventDrop[i+2])
-                            else:
-                                if int(eventDrop[i]) > 0:
-                                    eventDropMatrix[-1][ self.dictIDtoIndex[eventDrop[i]] ] = round( float(eventDrop[1]) / float(eventDrop[i+3]) , 6 )
                 
                 try: 
                     eventDrop = next(reader)

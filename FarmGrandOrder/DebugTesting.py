@@ -7,7 +7,8 @@ import timeit
 import FarmGrandOrder as FGO
 from NodesTest import Nodes
 
-testMode = 2
+testMode = [ 1 ]
+Tolerance = 0.01
 
 def checkMatrix( a , b , s = 'F' , sa = 'F' ):
     # 's = F' means 'b' is an array
@@ -29,10 +30,14 @@ def checkMatrix( a , b , s = 'F' , sa = 'F' ):
             if m != n:
                 return 'F : ('+str(row)+','+str(col)+') : m != n : '+str(m)+' != '+str(n)
             for j in i:
-                if j != b[row][col]:
-                    if col < 54:
-                        return 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) 
-                    else:
+                if m > 1:
+                    if j != b[row][col]:
+                        if col < 54 and abs(int(j) - int(b[row][col])) > Tolerance:
+                            return 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) 
+                        else:
+                            print( 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) )
+                else:
+                    if j != b[row][col]:
                         print( 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) )
                 col += 1
 
@@ -43,7 +48,7 @@ def checkMatrix( a , b , s = 'F' , sa = 'F' ):
                 return 'F: ('+str(row)+',~): '+str(i)+' != '+str(b[row])
     return 'T'
 
-def comparison( testNum ):
+def comparison( testModes ):
     print('\n')
     endNotes = ''
     pathPrefix = FGO.standardizePath()
@@ -61,37 +66,37 @@ def comparison( testNum ):
     if lastArea == '': 
         lastArea = 'ZZZZZ'
 
-    nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' ) )
+    nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
     if multEvent == 'y':
         nodes.multiEvent( glob.glob( pathPrefix + 'Files\\Events\\Multi Event Folder\\*' ) )
     else:
         nodes.addEventDrop( glob.glob( pathPrefix + 'Files\\*' + eventFind + '* - Event Quest.csv' )[0] )
     nodes.addFreeDrop( glob.glob( pathPrefix + 'Files\\* - APD.csv' )[0] , lastArea )
 
-    nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' ) )
+    nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
     if multEvent == 'y':
         nodes2.multiEvent( glob.glob( pathPrefix + 'Files\\Events\\Multi Event Folder\\*' ) )
     else:
         nodes2.addEventDrop( glob.glob( pathPrefix + 'Files\\*' + eventFind + '* - Event Quest.csv' )[0] )
     nodes2.addFreeDrop( glob.glob( pathPrefix + 'Files\\* - APD.csv' )[0] , lastArea )
 
+    for i in testModes:
+        if i == 1:
+            print( 'Nodes Names equal: ' + checkMatrix( nodes.nodeNames , nodes2.nodeNames , 'T' , 'T' ))
+            print( 'AP Cost equal: ' + checkMatrix( nodes.APCost , nodes2.APCost ))
+            print( 'Drop Matrix equal: ' + checkMatrix( nodes.dropMatrix , nodes2.dropMatrix ))
+        
+        if i == 2:
+            prob , runs , totalAP = FGO.planner( nodes )
+            prob2 , runs2 , totalAP2 = FGO.planner( nodes2 )
 
-    if testNum == 1:
-        print( 'Nodes Names equal: ' + checkMatrix( nodes.nodeNames , nodes2.nodeNames , 'T' , 'T' ))
-        print( 'AP Cost equal: ' + checkMatrix( nodes.APCost , nodes2.APCost ))
-        print( 'Drop Matrix equal: ' + checkMatrix( nodes.dropMatrix , nodes2.dropMatrix ))
-    
-    if testNum == 2:
-        prob , runs , totalAP = FGO.planner( nodes )
-        prob2 , runs2 , totalAP2 = FGO.planner( nodes2 )
-
-        print( 'Run counts equal: ' + checkMatrix( runs , runs2 ) )
-        if totalAP == totalAP2: 
-            print('Total AP equal: T')
-        else: 
-            print('Total AP equal: F')
-    
-    else:
-        a = 1
+            print( 'Run counts equal: ' + checkMatrix( runs , runs2 ) )
+            if totalAP == totalAP2: 
+                print('Total AP equal: T')
+            else: 
+                print('Total AP equal: F')
+        
+        else:
+            a = 1
 
 comparison( testMode )
