@@ -40,7 +40,7 @@ def checkMatrix( a , b , s = 'F' , sa = 'F' ):
             if n != 1:
                 return 'F: ('+str(row)+',~): n != 1'
             if i != b[row]:
-                return 'F: ('+str(row)+',~): '+str(i)+' != '+str(b[row][col])
+                return 'F: ('+str(row)+',~): '+str(i)+' != '+str(b[row])
     return 'T'
 
 def comparison( testNum ):

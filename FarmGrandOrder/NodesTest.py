@@ -9,7 +9,7 @@ class Nodes:
         self.interpretGoals(goals)
 
         self.dictIDtoIndex = {}
-        self.dictIndextoName = {}
+        self.dictIndexToName = {}
         self.createMatDicts(materialListCSV[0])
 
         self.matCount = list( self.dictIDtoIndex.items() )[-7][1] + 1
@@ -71,7 +71,7 @@ class Nodes:
 
         count = -1
         for i in matList:
-            self.dictIndextoName.setdefault( count, i )
+            self.dictIndexToName.setdefault( count, i )
             count += 1
         f.close()
 
