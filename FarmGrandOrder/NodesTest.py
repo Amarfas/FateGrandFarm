@@ -48,7 +48,7 @@ class Nodes:
                 try:
                     self.goals.append( [int(row[2])] )
                 except:
-                    self.goals.append([0])
+                    self.goals.append( [0] )
             f.close()
 
         self.goals = np.array(self.goals)
@@ -60,6 +60,7 @@ class Nodes:
             matList = next(reader)
             matList = next(reader)
             
+            # Special case for ID's less than 0, which are used to refer multiple materials (Ex. all 7 Blue, Red, or Gold Gems)
             count = 0
             for i in matList[1:]:
                 if int(i) < 0:
@@ -68,12 +69,12 @@ class Nodes:
                     self.dictIDtoIndex.setdefault( i, count )
                 count += 1
             matList = next(reader)
+            f.close()
 
-        count = -1
-        for i in matList:
+        count = 0
+        for i in matList[1:]:
             self.dictIndexToName.setdefault( count, i )
             count += 1
-        f.close()
 
     # TODO: There are some issues with this method of assembling matrices.
     # The basic issue is that cvxpy analysis requires data in the form of numpy matrices, but the best way to form numpy matrices is to initialize its size.

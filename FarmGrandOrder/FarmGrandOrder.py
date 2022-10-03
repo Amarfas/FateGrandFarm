@@ -49,7 +49,7 @@ class Nodes:
                 try:
                     self.goals.append( [int(row[2])] )
                 except:
-                    self.goals.append([0])
+                    self.goals.append( [0] )
             f.close()
 
         self.goals = np.array(self.goals)
@@ -61,6 +61,7 @@ class Nodes:
             matList = next(reader)
             matList = next(reader)
             
+            # Special case for ID's less than 0, which are used to refer multiple materials (Ex. all 7 Blue, Red, or Gold Gems)
             count = 0
             for i in matList[1:]:
                 if int(i) < 0:
@@ -70,8 +71,8 @@ class Nodes:
                 count += 1
             matList = next(reader)
 
-        count = -1
-        for i in matList:
+        count = 0
+        for i in matList[1:]:
             self.dictIndexToName.setdefault( count, i )
             count += 1
         f.close()
@@ -128,7 +129,7 @@ class Nodes:
                 if eventDrop[1] == '':
                     for i in materialLoc:
                         if eventDrop[i+2] != '':
-                            eventDropMatrix[-1][ self.dictIDtoIndex[eventDrop[i]] ] = 0.01 * float(eventDrop[i+2])
+                            eventDropMatrix[-1][ self.dictIDtoIndex[eventDrop[i]] ] =  float(eventDrop[i+2]) / 100
                 else:
                     self.nodeNames.append( eventName + ', ' + eventDrop[0] )
                     eventAPCost.append( [float(eventDrop[1])] )
@@ -138,7 +139,7 @@ class Nodes:
                     for i in materialLoc:
                         if eventDrop[i+2] != '':
                             if int(eventDrop[i]) > 0:
-                                eventDropMatrix[-1][ self.dictIDtoIndex[eventDrop[i]] ] = 0.01 * float(eventDrop[i+2])
+                                eventDropMatrix[-1][ self.dictIDtoIndex[eventDrop[i]] ] = float(eventDrop[i+2]) / 100
                 
                 try: 
                     eventDrop = next(reader)
