@@ -218,7 +218,7 @@ def planner( nodes , type = 'nonneg' ):
         else:
             if nodes.dictIndexToName[i] != '':
                 makeNote( 'Obtaining any ' + nodes.dictIndexToName[i] + ' is impossible with these restrictions.' )
-                goals[i] = 0
+                nodes.goals[i] = 0
 
     objective = cp.Minimize( APCost @ runs )
     constraints = [ dropMatrix @ runs >= nodes.goals ]
