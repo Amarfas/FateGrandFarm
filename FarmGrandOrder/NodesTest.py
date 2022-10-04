@@ -69,12 +69,12 @@ class Nodes:
                     self.dictIDtoIndex.setdefault( i, count )
                 count += 1
             matList = next(reader)
-            f.close()
 
         count = 0
         for i in matList[1:]:
             self.dictIndexToName.setdefault( count, i )
             count += 1
+        f.close()
 
     # TODO: There are some issues with this method of assembling matrices.
     # The basic issue is that cvxpy analysis requires data in the form of numpy matrices, but the best way to form numpy matrices is to initialize its size.
@@ -128,7 +128,7 @@ class Nodes:
                 if eventDrop[1] == '':
                     for i in materialLoc:
                         if eventDrop[i+2] != '':
-                            eventDropMatrix[-1][ self.dictIDtoIndex[eventDrop[i]] ] = 0.01 * float(eventDrop[i+2])
+                            eventDropMatrix[-1][ self.dictIDtoIndex[eventDrop[i]] ] =  float(eventDrop[i+2]) / 100
                 else:
                     self.nodeNames.append( eventName + ', ' + eventDrop[0] )
                     eventAPCost.append( [float(eventDrop[1])] )
@@ -138,7 +138,7 @@ class Nodes:
                     for i in materialLoc:
                         if eventDrop[i+2] != '':
                             if int(eventDrop[i]) > 0:
-                                eventDropMatrix[-1][ self.dictIDtoIndex[eventDrop[i]] ] = 0.01 * float(eventDrop[i+2])
+                                eventDropMatrix[-1][ self.dictIDtoIndex[eventDrop[i]] ] = float(eventDrop[i+2]) / 100
                 
                 try: 
                     eventDrop = next(reader)

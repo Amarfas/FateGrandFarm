@@ -3,12 +3,13 @@ import csv
 import glob
 import numpy as np
 import cvxpy as cp
-import timeit
+import time
 import FarmGrandOrder as FGO
 from NodesTest import Nodes
 
-testMode = [ 1 ]
-Tolerance = 0.01
+testMode = [ 3 ]
+tolerance = 0.01
+rep = 100
 
 def CheckMatrix( a , b , s = 'F' , sa = 'F' ):
     # 's = F' means 'b' is an array
@@ -32,7 +33,7 @@ def CheckMatrix( a , b , s = 'F' , sa = 'F' ):
             for j in i:
                 if m > 1:
                     if j != b[row][col]:
-                        if col < 54 and abs(int(j) - int(b[row][col])) > Tolerance:
+                        if col < 54 and abs(int(j) - int(b[row][col])) > tolerance:
                             return 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) 
                         else:
                             print( 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) )
@@ -97,6 +98,22 @@ def Comparison( testModes ):
                 print('Total AP equal: F')
         
         if i == 3:
-            a = 1
+            t1 = time.time()
+            for i in range(rep):
+                nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
+                BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea )
+                prob , runs , totalAP = FGO.planner( nodes )
+            t1 = ( time.time() - t1 ) / rep
+            print( 'Time1 per iter: ' + str(t1) )
+
+            t2 = time.time()
+            for i in range(rep):
+                nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
+                BuildMatrix( nodes2, multEvent, pathPrefix, eventFind, lastArea )
+                prob2 , runs2 , totalAP2 = FGO.planner( nodes2 )
+            t2 = ( time.time() - t2 ) / rep
+            print( 'Time2 per iter: ' + str(t2) )
+
+            print( 'Difference: ' + str(t2-t1) )
 
 Comparison( testMode )
