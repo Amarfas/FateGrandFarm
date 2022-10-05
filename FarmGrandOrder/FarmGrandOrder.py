@@ -16,8 +16,8 @@ class Nodes:
         self.matCount = list( self.dictIDtoIndex.items() )[-7][1] + 1
         self.nodeNames = []
         self.APCost = []
-        self.dropMatrix = np.array([])
         self.runCap = []
+        self.dropMatrix = np.array([])
         self.eventCap = eventCap
 
     # Debugging function that checks to see if the material names are in the right spot/spelled correctly.
@@ -54,28 +54,23 @@ class Nodes:
 
         self.goals = np.array(self.goals)
     
+    # Creates two dictionaries, one mapping a mat's ID to placement in Drop Matrix, and the other mapping placement in Matrix to its Name.
     def createMatDicts( self, materialListCSV ):
         with open( materialListCSV, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
-            matList = next(reader)
-            matList = next(reader)
-            matList = next(reader)
-            
-            # Special case for ID's less than 0, which are used to refer multiple materials (Ex. all 7 Blue, Red, or Gold Gems)
-            count = 0
-            for i in matList[1:]:
-                if int(i) < 0:
-                    self.dictIDtoIndex.setdefault( i, int(i) )
-                else:
-                    self.dictIDtoIndex.setdefault( i, count )
-                count += 1
-            matList = next(reader)
-
-        count = 0
-        for i in matList[1:]:
-            self.dictIndexToName.setdefault( count, i )
-            count += 1
-        f.close()
+            matID = next(reader)
+            matID = next(reader)
+            matID = next(reader)
+            matName = next(reader)
+            f.close()
+        
+        # Special case for ID's less than 0, which are used to refer multiple materials (Ex. all 7 Blue, Red, or Gold Gems)
+        for i in range(1,len(matID)):
+            if int(matID[i]) < 0:
+                self.dictIDtoIndex.setdefault( matID[i], int(matID[i]) )
+            else:
+                self.dictIDtoIndex.setdefault( matID[i], i-1 )
+            self.dictIndexToName.setdefault( i-1, matName[i] )
 
     # TODO: There are some issues with this method of assembling matrices.
     # The basic issue is that cvxpy analysis requires data in the form of numpy matrices, but the best way to form numpy matrices is to initialize its size.
@@ -117,34 +112,26 @@ class Nodes:
             eventAPCost = []
             eventDropMatrix = []
             eventRunCap = []
-            eventDrop = next(reader)
 
             # Interpretation of how this is supposed to read the Event Quest csv:
             # If there is no material assigned in the first slot, skip this line.
-            # If there is no AP assigned, assume the drops listed are a continuation of the previous line and add to that.
-            # Else, start a new line of drop rate data.
-            while True:
-                if eventDrop[5] == '': 
+            # If there is an AP assigned, assume the drops are part of a new node and start a new line of the Drop Matrix.
+            # Add drops to the last made line in the Drop Matrix.
+            for eventNode in reader:
+                if eventNode[5] == '': 
                     continue
-                if eventDrop[1] == '':
-                    for i in materialLoc:
-                        if eventDrop[i+2] != '':
-                            eventDropMatrix[-1][ self.dictIDtoIndex[eventDrop[i]] ] =  float(eventDrop[i+2]) / 100
-                else:
-                    self.nodeNames.append( eventName + ', ' + eventDrop[0] )
-                    eventAPCost.append( [float(eventDrop[1])] )
+
+                if eventNode[1] != '':
+                    self.nodeNames.append( eventName + ', ' + eventNode[0] )
+                    eventAPCost.append( [float(eventNode[1])] )
                     eventRunCap.append( [self.eventCap] )
                     eventDropMatrix.append( np.zeros( self.matCount ) )
 
-                    for i in materialLoc:
-                        if eventDrop[i+2] != '':
-                            if int(eventDrop[i]) > 0:
-                                eventDropMatrix[-1][ self.dictIDtoIndex[eventDrop[i]] ] = float(eventDrop[i+2]) / 100
-                
-                try: 
-                    eventDrop = next(reader)
-                except: 
-                    break
+                for i in materialLoc:
+                    if eventNode[i+2] != '':
+                        if int(eventNode[i]) > 0:
+                            eventDropMatrix[-1][ self.dictIDtoIndex[eventNode[i]] ] = float(eventNode[i+2]) / 100
+            f.close()
             
             self.assembleMatrix( eventAPCost, eventRunCap, eventDropMatrix )
     
@@ -161,13 +148,10 @@ class Nodes:
             # If the Singularity is further than the user wants to farm as defined in the config file, stop.
             # If the line is filler because the original google sheet copies the Japanese document formatting, skip it.
             # Else, start a new line of drop rate data.
-            while True:
-                try: 
-                    freeDrop = next(reader)
-                except: 
-                    break
+            for freeDrop in reader:
                 if freeDrop[0].find( lastArea ) >= 0: 
                     break
+
                 if freeDrop[2] == '' or freeDrop[2] == 'AP': 
                     continue
 
@@ -182,6 +166,7 @@ class Nodes:
                     except: 
                         dropMatrixAdd.append(0)
                 freeDropMatrix.append( dropMatrixAdd )
+            f.close()
             
             self.assembleMatrix( freeAPCost, freeRunCap, freeDropMatrix )
     

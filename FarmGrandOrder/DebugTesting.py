@@ -7,7 +7,7 @@ import time
 import FarmGrandOrder as FGO
 from NodesTest import Nodes
 
-testMode = [ 3 ]
+testMode = [ 1, 2 ]
 tolerance = 0.01
 rep = 100
 
@@ -95,7 +95,7 @@ def Comparison( testModes ):
             if totalAP == totalAP2: 
                 print('Total AP equal: T')
             else: 
-                print('Total AP equal: F')
+                print('Total AP equal: F: '+str(totalAP)+' != '+str(totalAP2))
         
         if i == 3:
             t1 = time.time()
