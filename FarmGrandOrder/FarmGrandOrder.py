@@ -7,13 +7,14 @@ import cvxpy as cp
 class Nodes:
     def __init__( self , goals , materialListCSV , eventCap = '' ):
         self.goals = []
+        self.matCount = 0
+        self.indexConvert = []
         self.interpretGoals(goals)
 
         self.dictIDtoIndex = {}
         self.dictIndexToName = {}
         self.createMatDicts(materialListCSV)
 
-        self.matCount = list( self.dictIDtoIndex.items() )[-7][1] + 1
         self.nodeNames = []
         self.APCost = []
         self.runCap = []
@@ -45,11 +46,21 @@ class Nodes:
             reader = csv.reader(f)
             readLine = next(reader)
 
+            count = 0
             for row in reader:
                 try:
                     self.goals.append( [int(row[2])] )
                 except:
                     self.goals.append( [0] )
+                
+                if row[0] == '-6':
+                    self.matCount = count + 1
+                    for i in range(23):
+                        self.indexConvert.append(count)
+                else:
+                    self.indexConvert.append(count)
+                    count += 1
+
             f.close()
 
         self.goals = np.array(self.goals)
@@ -66,11 +77,13 @@ class Nodes:
         
         # Special case for ID's less than 0, which are used to refer multiple materials (Ex. all 7 Blue, Red, or Gold Gems)
         for i in range(1,len(matID)):
+            convertedIndex = self.indexConvert[i-1]
+
             if int(matID[i]) < 0:
                 self.dictIDtoIndex.setdefault( matID[i], int(matID[i]) )
             else:
-                self.dictIDtoIndex.setdefault( matID[i], i-1 )
-            self.dictIndexToName.setdefault( i-1, matName[i] )
+                self.dictIDtoIndex.setdefault( matID[i], convertedIndex )
+            self.dictIndexToName.setdefault( convertedIndex, matName[i] )
 
     # TODO: There are some issues with this method of assembling matrices.
     # The basic issue is that cvxpy analysis requires data in the form of numpy matrices, but the best way to form numpy matrices is to initialize its size.
@@ -155,16 +168,26 @@ class Nodes:
                 if freeDrop[2] == '' or freeDrop[2] == 'AP': 
                     continue
 
+                nodeAP = int(freeDrop[2])
                 self.nodeNames.append( freeDrop[0] + ', ' + freeDrop[1] )
-                freeAPCost.append( [int(freeDrop[2])] )
+                freeAPCost.append( [nodeAP] )
                 freeRunCap.append( [100000] )
                 dropMatrixAdd = []
 
-                for i in freeDrop[4:(self.matCount+4)]:
+                for i in freeDrop[4:(self.matCount+3)]:
                     try: 
-                        dropMatrixAdd.append( round( int(freeDrop[2]) / float(i) , 6 ) )
+                        dropMatrixAdd.append( round( nodeAP / float(i) , 6 ) )
                     except: 
                         dropMatrixAdd.append(0)
+                
+                addXP = 0
+                for i in freeDrop[(self.matCount+3):(self.matCount+18)]:
+                    try:
+                        addXP += round( nodeAP / float(i) , 6 )
+                    except:
+                        addXP += 0
+                dropMatrixAdd.append(addXP)
+
                 freeDropMatrix.append( dropMatrixAdd )
             f.close()
             

@@ -7,9 +7,27 @@ import time
 import FarmGrandOrder as FGO
 from NodesTest import Nodes
 
-testMode = [ 1, 2 ]
+testModes = [ 1, 2 ]
 tolerance = 0.01
 rep = 100
+
+def CheckMatrix2( a , b ):
+    row = -1
+    for i in a:
+        row += 1
+        col = 0
+
+        addXP = 0
+        for j in i:
+            if col < 94:
+                if j != b[row][col]:
+                    print( 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) )
+                col += 1
+            else:
+                addXP += j
+        if addXP != b[row][col]:
+            print( 'F: ('+str(row)+','+str(col)+') ; XP: '+str(addXP)+' != '+str(b[row][col]) )
+    return 'T/F'
 
 def CheckMatrix( a , b , s = 'F' , sa = 'F' ):
     # 's = F' means 'b' is an array
@@ -39,7 +57,7 @@ def CheckMatrix( a , b , s = 'F' , sa = 'F' ):
                             print( 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) )
                 else:
                     if j != b[row][col]:
-                        print( 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) )
+                        print( 'F: ('+str(row)+','+str(col)+') '+nodes.nodeNames[row]+': '+str(j)+' != '+str(b[row][col]) )
                 col += 1
 
         except:
@@ -57,63 +75,61 @@ def BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea ):
     nodes.addFreeDrop( glob.glob( pathPrefix + 'Files\\* - APD.csv' )[0] , lastArea )
 
 
-def Comparison( testModes ):
-    print('\n')
-    endNotes = ''
-    pathPrefix = FGO.standardizePath()
 
-    config = configparser.ConfigParser()
-    config.read( pathPrefix + 'config\\farmgo_config.ini' )
+print('\n')
+endNotes = ''
+pathPrefix = FGO.standardizePath()
 
-    eventUse = config['DEFAULT']['Use Event']
-    eventFind = config['DEFAULT']['Event Name']
-    lastArea = config['DEFAULT']['Last Area']
-    multEvent = config['DEFAULT']['Multiple Event']
-    eventCap = int( config['DEFAULT']['Event Cap'] )
-    dropWeight = float(config['DEFAULT']['Drop Weight'])
+config = configparser.ConfigParser()
+config.read( pathPrefix + 'config\\farmgo_config.ini' )
 
-    if lastArea == '': 
-        lastArea = 'ZZZZZ'
+eventUse = config['DEFAULT']['Use Event']
+eventFind = config['DEFAULT']['Event Name']
+lastArea = config['DEFAULT']['Last Area']
+multEvent = config['DEFAULT']['Multiple Event']
+eventCap = int( config['DEFAULT']['Event Cap'] )
+dropWeight = float(config['DEFAULT']['Drop Weight'])
 
-    nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
-    BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea )
+if lastArea == '': 
+    lastArea = 'ZZZZZ'
 
-    nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
-    BuildMatrix( nodes2, multEvent, pathPrefix, eventFind, lastArea )
+nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
+BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea )
 
-    for i in testModes:
-        if i == 1:
-            print( 'Nodes Names equal: ' + CheckMatrix( nodes.nodeNames , nodes2.nodeNames , 'T' , 'T' ))
-            print( 'AP Cost equal: ' + CheckMatrix( nodes.APCost , nodes2.APCost ))
-            print( 'Drop Matrix equal: ' + CheckMatrix( nodes.dropMatrix , nodes2.dropMatrix ))
-        
-        if i == 2:
+nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
+BuildMatrix( nodes2, multEvent, pathPrefix, eventFind, lastArea )
+
+for i in testModes:
+    if i == 1:
+        print( 'Nodes Names equal: ' + CheckMatrix( nodes.nodeNames , nodes2.nodeNames , 'T' , 'T' ))
+        print( 'AP Cost equal: ' + CheckMatrix( nodes.APCost , nodes2.APCost ))
+        print( 'Drop Matrix equal: ' + CheckMatrix( nodes.dropMatrix , nodes2.dropMatrix ))
+    
+    if i == 2:
+        prob , runs , totalAP = FGO.planner( nodes )
+        prob2 , runs2 , totalAP2 = FGO.planner( nodes2 )
+
+        print( 'Run counts equal: ' + CheckMatrix( runs , runs2 ) )
+        if totalAP == totalAP2: 
+            print('Total AP equal: T')
+        else: 
+            print('Total AP equal: F: '+str(totalAP)+' != '+str(totalAP2))
+    
+    if i == 3:
+        t1 = time.time()
+        for i in range(rep):
+            nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
+            BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea )
             prob , runs , totalAP = FGO.planner( nodes )
+        t1 = ( time.time() - t1 ) / rep
+        print( 'Time1 per iter: ' + str(t1) )
+
+        t2 = time.time()
+        for i in range(rep):
+            nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
+            BuildMatrix( nodes2, multEvent, pathPrefix, eventFind, lastArea )
             prob2 , runs2 , totalAP2 = FGO.planner( nodes2 )
+        t2 = ( time.time() - t2 ) / rep
+        print( 'Time2 per iter: ' + str(t2) )
 
-            print( 'Run counts equal: ' + CheckMatrix( runs , runs2 ) )
-            if totalAP == totalAP2: 
-                print('Total AP equal: T')
-            else: 
-                print('Total AP equal: F: '+str(totalAP)+' != '+str(totalAP2))
-        
-        if i == 3:
-            t1 = time.time()
-            for i in range(rep):
-                nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
-                BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea )
-                prob , runs , totalAP = FGO.planner( nodes )
-            t1 = ( time.time() - t1 ) / rep
-            print( 'Time1 per iter: ' + str(t1) )
-
-            t2 = time.time()
-            for i in range(rep):
-                nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
-                BuildMatrix( nodes2, multEvent, pathPrefix, eventFind, lastArea )
-                prob2 , runs2 , totalAP2 = FGO.planner( nodes2 )
-            t2 = ( time.time() - t2 ) / rep
-            print( 'Time2 per iter: ' + str(t2) )
-
-            print( 'Difference: ' + str(t2-t1) )
-
-Comparison( testMode )
+        print( 'Difference: ' + str(t2-t1) )
