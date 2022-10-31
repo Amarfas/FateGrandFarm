@@ -9,8 +9,10 @@ class Nodes:
         self.goals = []
         self.matCount = 0
         self.indexConvert = []
+        self.lottoIndex = [[i for i in range(80,87)],[i for i in range(73,80)],[i for i in range(66,73)],[i for i in range(59,66)],[i for i in range(52,59)]]
         self.interpretGoals(goals)
 
+        self.hellfireStart = 0
         self.dictIDtoIndex = {}
         self.dictIndexToName = {}
         self.createMatDicts(materialListCSV)
@@ -52,15 +54,14 @@ class Nodes:
                     self.goals.append( [int(row[2])] )
                 except:
                     self.goals.append( [0] )
-                
+
                 if row[0] == '-6':
                     self.matCount = count + 1
-                    for i in range(23):
+                    for i in range(15):
                         self.indexConvert.append(count)
                 else:
                     self.indexConvert.append(count)
                     count += 1
-
             f.close()
 
         self.goals = np.array(self.goals)
@@ -77,13 +78,13 @@ class Nodes:
         
         # Special case for ID's less than 0, which are used to refer multiple materials (Ex. all 7 Blue, Red, or Gold Gems)
         for i in range(1,len(matID)):
-            convertedIndex = self.indexConvert[i-1]
-
-            if int(matID[i]) < 0:
-                self.dictIDtoIndex.setdefault( matID[i], int(matID[i]) )
-            else:
+            try:
+                convertedIndex = self.indexConvert[i-1]
                 self.dictIDtoIndex.setdefault( matID[i], convertedIndex )
-            self.dictIndexToName.setdefault( convertedIndex, matName[i] )
+                self.dictIndexToName.setdefault( convertedIndex, matName[i] )
+            except:
+                self.dictIDtoIndex.setdefault( matID[i], int(matID[i]) )
+        self.hellfireStart = int(matID[i-13])
 
     # TODO: There are some issues with this method of assembling matrices.
     # The basic issue is that cvxpy analysis requires data in the form of numpy matrices, but the best way to form numpy matrices is to initialize its size.
@@ -131,7 +132,7 @@ class Nodes:
             # If there is an AP assigned, assume the drops are part of a new node and start a new line of the Drop Matrix.
             # Add drops to the last made line in the Drop Matrix.
             for eventNode in reader:
-                if eventNode[5] == '': 
+                if materialLoc[0] == '': 
                     continue
 
                 if eventNode[1] != '':
@@ -142,8 +143,16 @@ class Nodes:
 
                 for i in materialLoc:
                     if eventNode[i+2] != '':
-                        if int(eventNode[i]) > 0:
-                            eventDropMatrix[-1][ self.dictIDtoIndex[eventNode[i]] ] = float(eventNode[i+2]) / 100
+                        matID = [int(eventNode[i])]
+                        dropRate = float(eventNode[i+2]) / 100
+                        if matID[0] > self.hellfireStart:
+                            dropRate *= 3
+
+                        if matID[0] < 0:
+                            matID = self.lottoIndex[matID[0]]
+                        for j in matID:
+                            eventDropMatrix[-1][ self.dictIDtoIndex[str(j)] ] += dropRate
+
             f.close()
             
             self.assembleMatrix( eventAPCost, eventRunCap, eventDropMatrix )
@@ -176,16 +185,24 @@ class Nodes:
 
                 for i in freeDrop[4:(self.matCount+3)]:
                     try: 
-                        dropMatrixAdd.append( round( nodeAP / float(i) , 6 ) )
+                        dropMatrixAdd.append( nodeAP / float(i) )
                     except: 
                         dropMatrixAdd.append(0)
                 
                 addXP = 0
-                for i in freeDrop[(self.matCount+3):(self.matCount+18)]:
+
+                for i in freeDrop[(self.matCount+3):(self.matCount+10)]:
                     try:
-                        addXP += round( nodeAP / float(i) , 6 )
+                        addXP += nodeAP / float(i)
                     except:
                         addXP += 0
+    
+                for i in freeDrop[(self.matCount+11):(self.matCount+18)]:
+                    try:
+                        addXP += 3 * nodeAP / float(i)
+                    except:
+                        addXP += 0
+
                 dropMatrixAdd.append(addXP)
 
                 freeDropMatrix.append( dropMatrixAdd )

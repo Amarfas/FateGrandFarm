@@ -11,24 +11,6 @@ testModes = [ 1, 2 ]
 tolerance = 0.01
 rep = 100
 
-def CheckMatrix2( a , b ):
-    row = -1
-    for i in a:
-        row += 1
-        col = 0
-
-        addXP = 0
-        for j in i:
-            if col < 94:
-                if j != b[row][col]:
-                    print( 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) )
-                col += 1
-            else:
-                addXP += j
-        if addXP != b[row][col]:
-            print( 'F: ('+str(row)+','+str(col)+') ; XP: '+str(addXP)+' != '+str(b[row][col]) )
-    return 'T/F'
-
 def CheckMatrix( a , b , s = 'F' , sa = 'F' ):
     # 's = F' means 'b' is an array
     # 'sa = F' means 'a' is an array
@@ -52,9 +34,9 @@ def CheckMatrix( a , b , s = 'F' , sa = 'F' ):
                 if m > 1:
                     if j != b[row][col]:
                         if col < 54 and abs(int(j) - int(b[row][col])) > tolerance:
-                            return 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) 
+                            return 'F: ('+str(row)+','+str(col)+') '+nodes.nodeNames[row]+': '+str(j)+' != '+str(b[row][col])
                         else:
-                            print( 'F: ('+str(row)+','+str(col)+'): '+str(j)+' != '+str(b[row][col]) )
+                            print( 'F: ('+str(row)+','+str(col)+') '+nodes.nodeNames[row]+': '+str(j)+' != '+str(b[row][col]) )
                 else:
                     if j != b[row][col]:
                         print( 'F: ('+str(row)+','+str(col)+') '+nodes.nodeNames[row]+': '+str(j)+' != '+str(b[row][col]) )
