@@ -11,7 +11,6 @@ class Nodes:
         self.lottoIndex = [[87],[i for i in range(80,87)],[i for i in range(73,80)],[i for i in range(66,73)],[i for i in range(59,66)],[i for i in range(52,59)]]
         self.interpretGoals(goals)
 
-        self.hellfireStart = 0
         self.dictIDtoIndex = {}
         self.dictIndexToName = {}
         self.createMatDicts(materialListCSV)
@@ -20,6 +19,7 @@ class Nodes:
         self.APCost = []
         self.runCap = []
         self.dropMatrix = np.array([])
+        self.hellfireRange = [94,100]
         self.eventCap = eventCap
 
     # Debugging function that checks to see if the material names are in the right spot/spelled correctly.
@@ -39,7 +39,7 @@ class Nodes:
                     a = self.dictIDtoIndex[i[0]]
                 except: 
                     print(i[0])
-    
+
     # TODO: Change code so that undesired materials (Goal Quantity = 0) are skipped entirely.
     # Also store the skipped materials so the rest of the functions and correctly assemble the matrices.
     def interpretGoals( self, goals ):
@@ -50,11 +50,11 @@ class Nodes:
             count = 0
             for row in reader:
                 try:
-                    self.goals.append( [int(row[2])] )
+                    self.goals.append( [int(row[1])] )
                 except:
                     self.goals.append( [0] )
 
-                if row[0] == '-6':
+                if row[0] == 'Saber Blaze':
                     self.matCount = count + 1
                     for i in range(15):
                         self.indexConvert.append(count)
@@ -83,7 +83,6 @@ class Nodes:
                 self.dictIndexToName.setdefault( convertedIndex, matName[i] )
             except:
                 self.dictIDtoIndex.setdefault( matID[i], int(matID[i]) )
-        self.hellfireStart = int(matID[i-13])
 
     # TODO: There are some issues with this method of assembling matrices.
     # The basic issue is that cvxpy analysis requires data in the form of numpy matrices, but the best way to form numpy matrices is to initialize its size.
@@ -144,7 +143,7 @@ class Nodes:
                     if eventNode[i+2] != '':
                         matID = [int(eventNode[i])]
                         dropRate = float(eventNode[i+2]) / 100
-                        if matID[0] > self.hellfireStart:
+                        if matID[0] >= self.hellfireRange[0] and matID[0] <= self.hellfireRange[1]:
                             dropRate *= 3
 
                         if matID[0] < 0:

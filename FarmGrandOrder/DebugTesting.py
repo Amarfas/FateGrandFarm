@@ -7,6 +7,10 @@ import time
 import FarmGrandOrder as FGO
 from NodesTest import Nodes
 
+# Mode 1: Check if Node Names, AP Costs, and Drop Matrices are equal.
+# Mode 2: Check if Planner outputs are similar or the same.
+# Mode 3: Compare run times, with below 'rep' count.
+
 testModes = [ 1, 2 ]
 tolerance = 0.01
 rep = 100
@@ -59,7 +63,6 @@ def BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea ):
 
 
 print('\n')
-endNotes = ''
 pathPrefix = FGO.standardizePath()
 
 config = configparser.ConfigParser()
@@ -69,16 +72,22 @@ eventUse = config['DEFAULT']['Use Event']
 eventFind = config['DEFAULT']['Event Name']
 lastArea = config['DEFAULT']['Last Area']
 multEvent = config['DEFAULT']['Multiple Event']
-eventCap = int( config['DEFAULT']['Event Cap'] )
+try:
+    eventCap = int( config['DEFAULT']['Event Cap'] )
+except:
+    eventCap = ''
+removeZeros = config['DEFAULT']['Remove Zeros']
 dropWeight = float(config['DEFAULT']['Drop Weight'])
+
+debug = FGO.Debug
 
 if lastArea == '': 
     lastArea = 'ZZZZZ'
 
-nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
+nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] , removeZeros )
 BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea )
 
-nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
+nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] , removeZeros )
 BuildMatrix( nodes2, multEvent, pathPrefix, eventFind, lastArea )
 
 for i in testModes:
@@ -88,8 +97,8 @@ for i in testModes:
         print( 'Drop Matrix equal: ' + CheckMatrix( nodes.dropMatrix , nodes2.dropMatrix ))
     
     if i == 2:
-        prob , runs , totalAP = FGO.planner( nodes )
-        prob2 , runs2 , totalAP2 = FGO.planner( nodes2 )
+        prob , runs , totalAP = FGO.planner( nodes , debug )
+        prob2 , runs2 , totalAP2 = FGO.planner( nodes2 , debug )
 
         print( 'Run counts equal: ' + CheckMatrix( runs , runs2 ) )
         if totalAP == totalAP2: 
@@ -102,7 +111,7 @@ for i in testModes:
         for i in range(rep):
             nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
             BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea )
-            prob , runs , totalAP = FGO.planner( nodes )
+            prob , runs , totalAP = FGO.planner( nodes , debug )
         t1 = ( time.time() - t1 ) / rep
         print( 'Time1 per iter: ' + str(t1) )
 
@@ -110,7 +119,7 @@ for i in testModes:
         for i in range(rep):
             nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
             BuildMatrix( nodes2, multEvent, pathPrefix, eventFind, lastArea )
-            prob2 , runs2 , totalAP2 = FGO.planner( nodes2 )
+            prob2 , runs2 , totalAP2 = FGO.planner( nodes2 , debug )
         t2 = ( time.time() - t2 ) / rep
         print( 'Time2 per iter: ' + str(t2) )
 
