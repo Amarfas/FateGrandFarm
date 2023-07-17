@@ -9,7 +9,7 @@ class Nodes:
         self.goals = []
         self.matCount = 0
         self.indexConvert = []
-        self.lottoIndex = [[i for i in range(80,87)],[i for i in range(73,80)],[i for i in range(66,73)],[i for i in range(59,66)],[i for i in range(52,59)]]
+        self.lottoIndex = [[87],[i for i in range(80,87)],[i for i in range(73,80)],[i for i in range(66,73)],[i for i in range(59,66)],[i for i in range(52,59)]]
         self.interpretGoals(goals)
 
         self.hellfireStart = 0
@@ -189,21 +189,15 @@ class Nodes:
                     except: 
                         dropMatrixAdd.append(0)
                 
-                addXP = 0
-
-                for i in freeDrop[(self.matCount+3):(self.matCount+10)]:
+                dropMatrixAdd.append(0)
+                XPMult = 1
+                for i in range(self.matCount+3,self.matCount+18):
+                    if i == self.matCount + 10:
+                        XPMult = 3
                     try:
-                        addXP += nodeAP / float(i)
+                        dropMatrixAdd[-1] += XPMult * nodeAP / float(freeDrop[i])
                     except:
-                        addXP += 0
-    
-                for i in freeDrop[(self.matCount+11):(self.matCount+18)]:
-                    try:
-                        addXP += 3 * nodeAP / float(i)
-                    except:
-                        addXP += 0
-
-                dropMatrixAdd.append(addXP)
+                        dropMatrixAdd[-1] += 0
 
                 freeDropMatrix.append( dropMatrixAdd )
             f.close()

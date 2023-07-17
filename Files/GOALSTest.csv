@@ -1,6 +1,6 @@
 !! Bronze Materials,,
-1,Proof of Hero,0
-2,Evil Bone,0
+1,Proof of Hero,101
+2,Evil Bone,4000
 3,Dragon Fang,384
 4,Void's Dust,1853
 5,Fool's Chain,1038
@@ -15,12 +15,12 @@
 13,Seed of Yggdrasil,577
 14,Ghost Lantern,69
 15,Octuplet Crystal,0
-16,Serpent Jewel,0
-17,Phoenix Feather,0
-18,Eternal Gear,0
-19,Forbidden Page,0
-20,Homunculus Baby,0
-21,Meteor Horseshoes,0
+16,Serpent Jewel,356
+17,Phoenix Feather,756
+18,Eternal Gear,12
+19,Forbidden Page,532
+20,Homunculus Baby,3256
+21,Meteor Horseshoes,212
 22,Great Knight Medal,1841
 23,Shell of Reminiscense,1624
 24,Refined Magatama,2106
@@ -35,7 +35,7 @@
 33,Scale of Fantasy,2176
 !! Gold Materials,,
 34,Claw of Chaos,476
-35,Heart of the Foreign God,0
+35,Heart of the Foreign God,12
 36,Dragon's Reverse Scale,317
 37,Spirit Root,776
 38,Warhorse's Young Horn,166
@@ -44,7 +44,7 @@
 41,Lamp of Evil-Sealing,499
 42,Scarab of Wisdom,538
 43,Primordial Lanugo,828
-44,Cursed Beast Gallstone,0
+44,Cursed Beast Gallstone,156
 45,Mysterious Divine Wine,484
 46,Reactor Core of Dawn,1357
 47,Tsukumo Mirror,1382
@@ -53,58 +53,44 @@
 50,Fruit of Eternity,1553
 51,Flaming Oni Lantern Plant,1230
 !! Blue Gems,,
-52,Gem of Saber,0
-53,Gem of Archer,0
-54,Gem of Lancer,0
-55,Gem of Rider,0
-56,Gem of Caster,0
-57,Gem of Assassin,0
-58,Gem of Berserker,0
+52,Gem of Saber,76
+53,Gem of Archer,2523
+54,Gem of Lancer,653
+55,Gem of Rider,355
+56,Gem of Caster,2412
+57,Gem of Assassin,1234
+58,Gem of Berserker,234
 !! Red Gems,,
-59,Magic Gem of Saber,0
-60,Magic Gem of Archer,0
-61,Magic Gem of Lancer,0
-62,Magic Gem of Rider,0
-63,Magic Gem of Caster,0
-64,Magic Gem of Assassin,0
-65,Magic Gem of Berserker,0
+59,Magic Gem of Saber,1543
+60,Magic Gem of Archer,213
+61,Magic Gem of Lancer,132
+62,Magic Gem of Rider,142
+63,Magic Gem of Caster,1344
+64,Magic Gem of Assassin,3211
+65,Magic Gem of Berserker,1232
 !! Gold Gems,,
 66,Secret Gem of Saber,470
-67,Secret Gem of Archer,0
-68,Secret Gem of Lancer,0
-69,Secret Gem of Rider,0
+67,Secret Gem of Archer,432
+68,Secret Gem of Lancer,213
+69,Secret Gem of Rider,532
 70,Secret Gem of Caster,107
-71,Secret Gem of Assassin,0
-72,Secret Gem of Berserker,0
+71,Secret Gem of Assassin,567
+72,Secret Gem of Berserker,856
 !! Silver Statues,,
-73,Saber Piece,0
-74,Archer Piece,0
-75,Lancer Piece,0
-76,Rider Piece,0
-77,Caster Piece,0
-78,Assassin Piece,0
-79,Berserker Piece,0
+73,Saber Piece,65
+74,Archer Piece,73
+75,Lancer Piece,65
+76,Rider Piece,34
+77,Caster Piece,67
+78,Assassin Piece,43
+79,Berserker Piece,56
 !! Gold Statues,,
-80,Saber Monument,0
-81,Archer Monument,0
-82,Lancer Monument,0
-83,Rider Monument,0
-84,Caster Monument,0
-85,Assassin Monument,0
-86,Berserker Monument,0
+80,Saber Monument,34
+81,Archer Monument,67
+82,Lancer Monument,89
+83,Rider Monument,67
+84,Caster Monument,89
+85,Assassin Monument,43
+86,Berserker Monument,56
 !! 4* EXP,,
-87,Saber Blaze,0
-88,Archer Blaze,0
-89,Lancer Blaze,0
-90,Rider Blaze,0
-91,Caster Blaze,0
-92,Assassin Blaze,0
-93,Berserker Blaze,0
-!! 5* EXP,,
-94,Saber Hellfire,0
-95,Archer Hellfire,0
-96,Lancer Hellfire,0
-97,Rider Hellfire,0
-98,Caster Hellfire,0
-99,Assassin Hellfire,0
-100,Berserker Hellfire,0
+-6,EXP,100
