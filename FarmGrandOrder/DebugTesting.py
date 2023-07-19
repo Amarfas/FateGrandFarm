@@ -14,6 +14,7 @@ from NodesTest import Nodes
 testModes = [ 1, 2 ]
 tolerance = 0.01
 rep = 100
+goalstest = 'test2'
 
 def CheckMatrix( a , b , s = 'F' , sa = 'F' ):
     # 's = F' means 'b' is an array
@@ -68,26 +69,23 @@ pathPrefix = FGO.standardizePath()
 config = configparser.ConfigParser()
 config.read( pathPrefix + 'config\\farmgo_config.ini' )
 
-eventUse = config['DEFAULT']['Use Event']
-eventFind = config['DEFAULT']['Event Name']
-lastArea = config['DEFAULT']['Last Area']
-multEvent = config['DEFAULT']['Multiple Event']
-try:
-    eventCap = int( config['DEFAULT']['Event Cap'] )
-except:
-    eventCap = ''
-removeZeros = config['DEFAULT']['Remove Zeros']
-dropWeight = float(config['DEFAULT']['Drop Weight'])
+debug = FGO.Debug( pathPrefix )
 
-debug = FGO.Debug
+eventUse = debug.config('Use Event')
+eventFind = debug.config('Event Name')
+lastArea = debug.config('Last Area')
+multEvent = debug.config('Multiple Event')
+eventCap = debug.config('Event Cap' ,'int')
+removeZeros = debug.config('Remove Zeros')
+dropWeight = debug.config('Drop Weight', 'float')
 
 if lastArea == '': 
     lastArea = 'ZZZZZ'
 
-nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] , removeZeros )
+nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS' + goalstest + '.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] , removeZeros )
 BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea )
 
-nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] , removeZeros )
+nodes2 = Nodes( pathPrefix + 'Files\\GOALS' + goalstest + '.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] , removeZeros )
 BuildMatrix( nodes2, multEvent, pathPrefix, eventFind, lastArea )
 
 for i in testModes:

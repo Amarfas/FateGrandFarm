@@ -8,13 +8,13 @@ class Nodes:
     def __init__( self , goals , materialListCSV , removeZeros = 'n' ):
         self.matCount = 0
         self.matTotal = 0
-        self.IDtoSkip = {}
-        self.indextoSkip = {}
+        self.skipID = {}
+        self.skipDataIndex = {}
         self.removeZeros = removeZeros
 
         self.goals = []
-        self.dictIDtoIndex = {}
-        self.dictIndexToName = {}
+        self.IDtoIndex = {}
+        self.indexToName = {}
         self.lottoIndex = [[],[],[],[],[],[]]
         self.interpretMats( goals, materialListCSV )
 
@@ -49,9 +49,9 @@ class Nodes:
             debug.errorWarning( 'Does not seem to be the start of '+ error +'. GOALS CSV may need to be updated.' )
         return -1 * ( gaps - 2 ) 
 
-    # TODO: Change code so that undesired materials (Goal Quantity = 0) are skipped entirely.
-    # Also store the skipped materials so the rest of the functions and correctly assemble the matrices.
-    # Creates two dictionaries, one mapping a mat's ID to placement in Drop Matrix, and the other mapping placement in Matrix to its Name.
+    # Creates four dictionaries, one mapping a Material's ID to placement in Drop Matrix, one mapping placement in Matrix to its Name,
+    # one interprating whether a Material's calculation should be skipped by its ID, and another interprating by its placement in the data matrix.
+    # Also transforms the data in the GOALS csv into a computable matrix.
     def interpretMats( self, goals, materialListCSV ):
         with open( materialListCSV, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
@@ -82,9 +82,9 @@ class Nodes:
                 if matGoal == 0 and self.removeZeros == 'y':
                     skip = True
                 
-                self.indextoSkip[count] = skip
+                self.skipDataIndex[count] = skip
                 count += 1
-                self.IDtoSkip[ int(matID[count]) ] = skip
+                self.skipID[ int(matID[count]) ] = skip
 
                 if change == True:
                     change = False
@@ -104,31 +104,31 @@ class Nodes:
                 else:
                     self.goals.append( [matGoal] )
                     
-                    self.dictIDtoIndex.setdefault( matID[count], index )
-                    self.dictIndexToName.setdefault( index, matName[count] )
+                    self.IDtoIndex.setdefault( matID[count], index )
+                    self.indexToName.setdefault( index, matName[count] )
                     index += 1
             f.close()
 
-        if self.dictIndexToName[index-1] == 'Saber Blaze':
-            self.dictIndexToName[index-1] = 'Class Blaze'
+        if self.indexToName[index-1] == 'Saber Blaze':
+            self.indexToName[index-1] = 'Class Blaze'
 
         self.matCount = index
         self.matTotal = count
         if matGoal == 0 and self.removeZeros == 'y':
             skip = True
         for i in range(15):
-            self.indextoSkip[count] = skip
+            self.skipDataIndex[count] = skip
             count += 1
-            self.IDtoSkip[ int(matID[count]) ] = skip
-            self.dictIDtoIndex.setdefault( matID[count], self.matCount-1 )
+            self.skipID[ int(matID[count]) ] = skip
+            self.IDtoIndex.setdefault( matID[count], self.matCount-1 )
         
-        self.IDtoSkip[-6] = skip
+        self.skipID[-6] = skip
         for i in range(-5,0):
             if self.lottoIndex[i] == []:
                 skip = True
             else:
                 skip = False
-            self.IDtoSkip[i] = skip
+            self.skipID[i] = skip
         
         self.goals = np.array(self.goals)
 
@@ -190,7 +190,7 @@ class Nodes:
                 for i in materialLoc:
                     if eventNode[i+2] != '':
                         matID = [int(eventNode[i])]
-                        if self.IDtoSkip[matID[0]]:
+                        if self.skipID[matID[0]]:
                             continue
 
                         dropRate = float(eventNode[i+2]) / 100
@@ -200,13 +200,13 @@ class Nodes:
                         if matID[0] < 0:
                             matID = self.lottoIndex[matID[0]]
                         for j in matID:
-                            eventDropMatrix[-1][ self.dictIDtoIndex[str(j)] ] += dropRate
+                            eventDropMatrix[-1][ self.IDtoIndex[str(j)] ] += dropRate
 
             f.close()
             
             self.assembleMatrix( eventAPCost, eventRunCap, eventDropMatrix )
     
-    def addFreeDrop( self, freeDropCSV, lastArea ):
+    def addFreeDrop( self, freeDropCSV, lastArea = 'ZZZZ' ):
         with open( freeDropCSV, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
             freeDrop = next(reader)
@@ -232,18 +232,36 @@ class Nodes:
                 freeRunCap.append( [100000] )
                 dropMatrixAdd = []
 
-                count = -1
-                for i in freeDrop[4:(self.matTotal+4)]:
-                    count += 1
-                    if not self.indextoSkip[count]:
+                if self.removeZeros == 'y':
+                    count = -1
+                    for i in freeDrop[4:(self.matTotal+4)]:
+                        count += 1
+                        if not self.skipDataIndex[count]:
+                            try: 
+                                dropMatrixAdd.append( nodeAP / float(i) )
+                            except:
+                                dropMatrixAdd.append(0)
+                    
+                    if not self.skipDataIndex[count+1]:
+                        XPMult = 1
+                        for i in range(self.matTotal+4,self.matCount+18):
+                            if i == self.matCount + 10:
+                                XPMult = 3
+                            try:
+                                dropMatrixAdd[-1] += XPMult * nodeAP / float(freeDrop[i])
+                            except:
+                                dropMatrixAdd[-1] += 0
+                
+                else:
+                    for i in freeDrop[4:(self.matCount+3)]:
                         try: 
                             dropMatrixAdd.append( nodeAP / float(i) )
-                        except:
+                        except: 
                             dropMatrixAdd.append(0)
-                
-                if not self.indextoSkip[count+1]:
+                    
+                    dropMatrixAdd.append(0)
                     XPMult = 1
-                    for i in range(self.matTotal+4,self.matCount+18):
+                    for i in range(self.matCount+3,self.matCount+18):
                         if i == self.matCount + 10:
                             XPMult = 3
                         try:
@@ -269,18 +287,50 @@ def standardizePath():
         return '..\\' + pathDir
     else: return pathDir
 
-# TODO: Decide if this even needs to be a global variable or just a class.
+# Compiles statements to be included in the Debug output text file.
 class Debug:
-    def __init__( self , config = '' ):
+    def __init__( self , pathPrefix ):
         self.error = ''
-        self.config = config
+        self.configNotes = 'The Path Prefix is: ' + pathPrefix + '\n'
         self.endNotes = ''
-        self.notifications = 'y'
+
+        self.notifications = True
+        self.notifications = self.config('Notifications', 'bool')
     
     def errorWarning( self , note ):
+        note = '!! ' + note
         if self.notifications == 'y':
             print(note)
         self.error += note + '\n'
+
+    def config( self , key , type = '' , section = 'DEFAULT' ):
+        keyValue = config[section][key]
+
+        if type == 'int':
+            try:
+                keyValue = int(keyValue)
+            except:
+                self.errorWarning( 'Configuration "' + key + '" was not a number.')
+                keyValue = 'False'
+
+        if type == 'float':
+            try:
+                keyValue = float(keyValue)
+            except:
+                self.errorWarning( 'Configuration "' + key + '" was not a number.')
+                keyValue = 'False'
+
+        if type == 'bool':
+            x = keyValue.lower()
+            if x == '1' or x == 'true' or x == 't' or x == 'yes' or x == 'y' or x == 'on':
+                keyValue = True
+            else:
+                if x == '0' or x == 'false' or x == 'f' or x == 'no' or x == 'n' or x == 'off':
+                    self.errorWarning( 'Configuration "' + key + '" was not a yes or no/true or false.')
+                keyValue = False
+    
+        self.configNotes += key + ' = ' + str(keyValue)
+        return keyValue
 
     def makeNote( self , note ):
         if self.notifications == 'y':
@@ -323,25 +373,20 @@ def planner( nodes , notes , type = 'nonneg' ):
         return ( prob , runs.value , prob.value )
 
 # Maybe this should all be in a 'main' method? No clue about the etiquette there for more 'professional' programs.
-
 pathPrefix = standardizePath()
 
 config = configparser.ConfigParser()
 config.read( pathPrefix + 'config\\farmgo_config.ini' )
 
-eventUse = config['DEFAULT']['Use Event']
-eventFind = config['DEFAULT']['Event Name']
-lastArea = config['DEFAULT']['Last Area']
-multEvent = config['DEFAULT']['Multiple Event']
-try:
-    eventCap = int( config['DEFAULT']['Event Cap'] )
-except:
-    eventCap = ''
-removeZeros = config['DEFAULT']['Remove Zeros']
-dropWeight = float(config['DEFAULT']['Drop Weight'])
-notifications = config['DEFAULT']['Notifications']
+debug = Debug( pathPrefix )
 
-debug = Debug()
+eventUse = debug.config('Use Event')
+eventFind = debug.config('Event Name')
+lastArea = debug.config('Last Area')
+multEvent = debug.config('Multiple Event')
+eventCap = debug.config('Event Cap' ,'int')
+removeZeros = debug.config('Remove Zeros')
+dropWeight = debug.config('Drop Weight', 'float')
 
 if lastArea == '': 
     lastArea = 'ZZZZZ'
