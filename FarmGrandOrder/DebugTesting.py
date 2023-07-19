@@ -11,10 +11,10 @@ from NodesTest import Nodes
 # Mode 2: Check if Planner outputs are similar or the same.
 # Mode 3: Compare run times, with below 'rep' count.
 
-testModes = [ 1, 2 ]
+testModes = [ 1, 2, 3 ]
 tolerance = 0.01
 rep = 100
-goalstest = 'test2'
+goalstest = ''
 
 def CheckMatrix( a , b , s = 'F' , sa = 'F' ):
     # 's = F' means 'b' is an array
@@ -54,14 +54,9 @@ def CheckMatrix( a , b , s = 'F' , sa = 'F' ):
                 return 'F: ('+str(row)+',~): '+str(i)+' != '+str(b[row])
     return 'T'
 
-def BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea ):
-    if multEvent == 'y':
-        nodes.multiEvent( glob.glob( pathPrefix + 'Files\\Events\\Multi Event Folder\\*' ) )
-    else:
-        nodes.addEventDrop( glob.glob( pathPrefix + 'Files\\*' + eventFind + '* - Event Quest.csv' )[0] )
+def BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea, debug ):
+    nodes.multiEvent( pathPrefix + 'Files\\' , debug , eventFind , multEvent )
     nodes.addFreeDrop( glob.glob( pathPrefix + 'Files\\* - APD.csv' )[0] , lastArea )
-
-
 
 print('\n')
 pathPrefix = FGO.standardizePath()
@@ -71,22 +66,19 @@ config.read( pathPrefix + 'config\\farmgo_config.ini' )
 
 debug = FGO.Debug( pathPrefix )
 
-eventUse = debug.config('Use Event')
+eventUse = debug.config('Use Event', 'bool')
 eventFind = debug.config('Event Name')
 lastArea = debug.config('Last Area')
-multEvent = debug.config('Multiple Event')
+multEvent = debug.config('Multiple Event', 'bool')
 eventCap = debug.config('Event Cap' ,'int')
-removeZeros = debug.config('Remove Zeros')
+removeZeros = debug.config('Remove Zeros', 'bool')
 dropWeight = debug.config('Drop Weight', 'float')
 
-if lastArea == '': 
-    lastArea = 'ZZZZZ'
-
 nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS' + goalstest + '.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] , removeZeros )
-BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea )
+BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea, debug )
 
 nodes2 = Nodes( pathPrefix + 'Files\\GOALS' + goalstest + '.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] , removeZeros )
-BuildMatrix( nodes2, multEvent, pathPrefix, eventFind, lastArea )
+BuildMatrix( nodes2, multEvent, pathPrefix, eventFind, lastArea, debug )
 
 for i in testModes:
     if i == 1:
@@ -108,7 +100,7 @@ for i in testModes:
         t1 = time.time()
         for i in range(rep):
             nodes = FGO.Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
-            BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea )
+            BuildMatrix( nodes, multEvent, pathPrefix, eventFind, lastArea, debug )
             prob , runs , totalAP = FGO.planner( nodes , debug )
         t1 = ( time.time() - t1 ) / rep
         print( 'Time1 per iter: ' + str(t1) )
@@ -116,7 +108,7 @@ for i in testModes:
         t2 = time.time()
         for i in range(rep):
             nodes2 = Nodes( pathPrefix + 'Files\\GOALS.csv' , glob.glob( pathPrefix + 'Files\\* - Calc.csv' )[0] )
-            BuildMatrix( nodes2, multEvent, pathPrefix, eventFind, lastArea )
+            BuildMatrix( nodes2, multEvent, pathPrefix, eventFind, lastArea, debug )
             prob2 , runs2 , totalAP2 = FGO.planner( nodes2 , debug )
         t2 = ( time.time() - t2 ) / rep
         print( 'Time2 per iter: ' + str(t2) )

@@ -4,17 +4,15 @@ import numpy as np
 import cvxpy as cp
 
 class Nodes:
-    def __init__( self , goals , materialListCSV , removeZeros = 'n' ):
+    def __init__( self, goals, materialListCSV, removeZeros = False ):
         self.matCount = 0
         self.matTotal = 0
-        self.IDtoSkip = {}
-        self.indextoSkip = {}
+        self.skipDataIndex = {}
         self.removeZeros = removeZeros
 
         self.goals = []
-        self.dictIDtoIndex = {}
-        self.dictIndexToName = {}
-        self.lottoIndex = [[],[],[],[],[],[]]
+        self.IDtoIndex = {-1: [], -2: [], -3: [], -4: [], -5: [], -6: []}
+        self.indexToName = {}
         self.interpretMats( goals, materialListCSV )
 
         self.nodeNames = []
@@ -23,34 +21,11 @@ class Nodes:
         self.dropMatrix = np.array([])
         self.hellfireRange = [94,100]
 
-    def lottoIndexInit( self , gaps , currentMaterial ):
-        error = ''
-        if gaps == 3:
-            if currentMaterial != 'Gem of Saber':
-                error = 'Blue Gems'
-        if gaps == 4:
-            if currentMaterial != 'Magic Gem of Saber':
-                error = 'Red Gems'
-        if gaps == 5:
-            if currentMaterial != 'Secret Gem of Saber':
-                error = 'Gold Gems'
-        if gaps == 6:
-            if currentMaterial != 'Saber Piece':
-                error = 'Statues'
-        if gaps == 7:
-            if currentMaterial != 'Saber Monument':
-                error = 'Monuments'
-        if gaps == 8:
-            if currentMaterial != 'Saber Blaze':
-                error = 'XP'
-        
-        if error != '':
-            debug.errorWarning( 'Does not seem to be the start of '+ error +'. GOALS CSV may need to be updated.' )
-        return -1 * ( gaps - 2 ) 
-
-    # TODO: Change code so that undesired materials (Goal Quantity = 0) are skipped entirely.
-    # Also store the skipped materials so the rest of the functions and correctly assemble the matrices.
-    # Creates two dictionaries, one mapping a mat's ID to placement in Drop Matrix, and the other mapping placement in Matrix to its Name.
+    # Creates three dictionaries, 'IDtoIndex' maps a Material's ID to placement in Drop Matrix, or notes that it should be skipped with a 'T' value.
+    # 'indexToName' maps placement in Drop Matrix to the corresponding Material's name.
+    # 'skipDataIndex' maps whether or not an entry in the Free Drop Matrix should be skipped.
+    # Also transforms the data in the GOALS csv into a computable column matrix.
+    # count is generally incremented before 'matID' and 'matName' because the 0th index is not the start of the relevant values.
     def interpretMats( self, goals, materialListCSV ):
         with open( materialListCSV, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
@@ -66,11 +41,13 @@ class Nodes:
 
             count = 0
             index = 0
-            gaps = 0
-
-            lottoIndexPointer = 0
-            change = False
             skip = False
+
+            gaps = 0
+            gapDetected = False
+            gapErrors = [[0],['Seed of Yggdrasil','Silver Mats'],['Claw of Chaos','Gold Mats'], 
+                         ['Gem of Saber','Blue Gems'], ['Magic Gem of Saber','Red Gems'], ['Secret Gem of Saber','Gold Gems'],
+                         ['Saber Piece','Statues'], ['Saber Monument', 'Monuments'], ['Saber Blaze','XP']]
 
             for row in reader:
                 try:
@@ -78,56 +55,59 @@ class Nodes:
                 except:
                     matGoal = 0
                 
-                if matGoal == 0 and self.removeZeros == 'y':
+                # Flag whether or not to remove this material from the Drop Matrix.
+                if matGoal == 0 and self.removeZeros:
                     skip = True
                 
-                self.indextoSkip[count] = skip
+                self.skipDataIndex[count] = skip
                 count += 1
-                self.IDtoSkip[ int(matID[count]) ] = skip
 
-                if change == True:
-                    change = False
-                    lottoIndexPointer = self.lottoIndexInit( gaps , row[0] )
+                # Warns if the number of Materials (and thus their gaps between Materials) in the GOALs and Material List CSVs do not line up.
+                if gapDetected:
+                    gapDetected = False
+                    if row[0] != gapErrors[gaps][0]:
+                        debug.errorWarning( 'Does not seem to be the start of '+ gapErrors[gaps][1] +'. GOALS CSV may need to be updated.' )
 
+                # Flags a gap between Material groups to be evaluated next iteration.
                 if row[0][0:2] == '!!':
                     gaps += 1
-                    change = True
+                    gapDetected = True
                     if matName[count] != '':
                         debug.errorWarning( 'Gaps between materials in GOALS and the Material List/Calc CSVs do not align. One may need to be updated.' )
                 else:
-                    if lottoIndexPointer < 0 and not skip:
-                        self.lottoIndex[lottoIndexPointer].append( matID[count] )
+                    if gaps > 2 and not skip:
+                        self.IDtoIndex[ 2-gaps ].append( int(matID[count]) )
 
                 if skip == True:
                     skip = False
+                    self.IDtoIndex.setdefault( int(matID[count]), 'T' )
                 else:
                     self.goals.append( [matGoal] )
-                    
-                    self.dictIDtoIndex.setdefault( matID[count], index )
-                    self.dictIndexToName.setdefault( index, matName[count] )
+                    self.IDtoIndex.setdefault( int(matID[count]), index )
+                    self.indexToName.setdefault( index, matName[count] )
                     index += 1
             f.close()
 
-        if self.dictIndexToName[index-1] == 'Saber Blaze':
-            self.dictIndexToName[index-1] = 'Class Blaze'
-
-        self.matCount = index
         self.matTotal = count
-        if matGoal == 0 and self.removeZeros == 'y':
+        self.matCount = index
+        index -= 1
+
+        # 'Saber Blaze' index will be used in place of all XP drops.
+        if self.indexToName[index] == 'Saber Blaze':
+            self.indexToName[index] = 'Class Blaze'
+
+        if matGoal == 0 and self.removeZeros:
             skip = True
+            index = 'T'
         for i in range(15):
-            self.indextoSkip[count] = skip
+            self.skipDataIndex[count] = skip
             count += 1
-            self.IDtoSkip[ int(matID[count]) ] = skip
-            self.dictIDtoIndex.setdefault( matID[count], self.matCount-1 )
+            self.IDtoIndex.setdefault( int(matID[count]), index )
         
-        self.IDtoSkip[-6] = skip
-        for i in range(-5,0):
-            if self.lottoIndex[i] == []:
-                skip = True
-            else:
-                skip = False
-            self.IDtoSkip[i] = skip
+        # Notes that negative Mat IDs should be skipped if the entry is empty.
+        for i in range(-6,0):
+            if self.IDtoIndex[i] == []:
+                self.IDtoIndex[i] = 'T'
         
         self.goals = np.array(self.goals)
 
@@ -152,9 +132,13 @@ class Nodes:
                 self.runCap = np.vstack(( self.runCap, addRunCap ))
                 self.dropMatrix = np.vstack(( self.dropMatrix, addDropMatrix ))
     
-    def addEventDrop( self, eventDropCSV, eventCap = '' ):
+    def addEventDrop( self, eventDropCSV, debug, multEvent, eventCap = '' ):
         start = eventDropCSV.rindex('Efficiency_ ')
         eventName = eventDropCSV[(start+12):eventDropCSV.rindex(' - Event',start)]
+
+        if not multEvent:
+            debug.fileName = eventName
+        debug.makeNote( eventName + '\n' )
 
         with open( eventDropCSV, newline = '', encoding = 'latin1' ) as f:
             reader = csv.reader(f)
@@ -188,19 +172,20 @@ class Nodes:
 
                 for i in materialLoc:
                     if eventNode[i+2] != '':
-                        matID = [int(eventNode[i])]
-                        if self.IDtoSkip[matID[0]]:
+                        matID = int(eventNode[i])
+                        if self.IDtoIndex[matID] == 'T':
                             continue
 
                         dropRate = float(eventNode[i+2]) / 100
-                        if matID[0] >= self.hellfireRange[0] and matID[0] <= self.hellfireRange[1]:
+                        if matID >= self.hellfireRange[0] and matID <= self.hellfireRange[1]:
                             dropRate *= 3
 
-                        if matID[0] < 0:
-                            matID = self.lottoIndex[matID[0]]
+                        if matID < 0:
+                            matID = self.IDtoIndex[matID]
+                        else:
+                            matID = [matID]
                         for j in matID:
-                            eventDropMatrix[-1][ self.dictIDtoIndex[str(j)] ] += dropRate
-
+                            eventDropMatrix[-1][ self.IDtoIndex[j] ] += dropRate
             f.close()
             
             self.assembleMatrix( eventAPCost, eventRunCap, eventDropMatrix )
@@ -213,6 +198,13 @@ class Nodes:
             freeAPCost = []
             freeRunCap = []
             freeDropMatrix = []
+
+            for i in range(len(freeDrop)):
+                if freeDrop[i] == 'Bronze Material':
+                    matStart = i
+                if freeDrop[i] == 'Blaze':
+                    matEnd = i+1
+                    break
 
             # Interpretation of how this is supposed to read the APD csv:
             # If the Singularity is further than the user wants to farm as defined in the config file, stop.
@@ -231,37 +223,17 @@ class Nodes:
                 freeRunCap.append( [100000] )
                 dropMatrixAdd = []
 
-                if self.removeZeros == 'y':
-                    count = -1
-                    for i in freeDrop[4:(self.matTotal+4)]:
-                        count += 1
-                        if not self.indextoSkip[count]:
-                            try: 
-                                dropMatrixAdd.append( nodeAP / float(i) )
-                            except:
-                                dropMatrixAdd.append(0)
-                    
-                    if not self.indextoSkip[count+1]:
-                        XPMult = 1
-                        for i in range(self.matTotal+4,self.matCount+18):
-                            if i == self.matCount + 10:
-                                XPMult = 3
-                            try:
-                                dropMatrixAdd[-1] += XPMult * nodeAP / float(freeDrop[i])
-                            except:
-                                dropMatrixAdd[-1] += 0
-                
-                else:
-                    for i in freeDrop[4:(self.matCount+3)]:
+                for i in range(matStart,matEnd):
+                    if not self.skipDataIndex[i-matStart]:
                         try: 
-                            dropMatrixAdd.append( nodeAP / float(i) )
-                        except: 
+                            dropMatrixAdd.append( nodeAP / float(freeDrop[i]) )
+                        except:
                             dropMatrixAdd.append(0)
-                    
-                    dropMatrixAdd.append(0)
+                
+                if not self.skipDataIndex[i-matStart]:
                     XPMult = 1
-                    for i in range(self.matCount+3,self.matCount+18):
-                        if i == self.matCount + 10:
+                    for i in range(matEnd,matEnd+14):
+                        if i == matEnd + 6:
                             XPMult = 3
                         try:
                             dropMatrixAdd[-1] += XPMult * nodeAP / float(freeDrop[i])
@@ -273,7 +245,16 @@ class Nodes:
             
             self.assembleMatrix( freeAPCost, freeRunCap, freeDropMatrix )
     
-    def multiEvent( self, multiEventFolder, eventCap = '' ):
-        for i in multiEventFolder:
-            self.addEventDrop( i , eventCap )
-        return 'Multi'
+    def multiEvent( self, path, debug, eventFind, multEvent, eventCap = '' ):
+        if multEvent:
+            debug.fileName = 'Multi'
+            debug.makeNote( 'The Events included in this analysis are:\n' )
+            eventFolder = glob.glob( path + 'Events\\Multi Event Folder\\*' )
+        else:
+            debug.make( 'The Event included in this analysis is: ')
+            eventFolder = glob.glob( path + '*' + eventFind + '* - Event Quest.csv' )
+
+        for event in eventFolder:
+            self.addEventDrop( event , debug , multEvent, eventCap )
+        
+        debug.makeNote('\n')
