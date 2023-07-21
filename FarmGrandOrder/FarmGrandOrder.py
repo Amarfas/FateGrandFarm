@@ -156,15 +156,19 @@ class Nodes:
 
         with open( eventDropCSV, newline = '', encoding = 'latin1' ) as f:
             reader = csv.reader(f)
-            eventDrop = next(reader)
         
             # Finds where the lotto material drops start in the csv, as the formatting changes for these.
             materialLoc = []
-            count = 0
-            for i in eventDrop:
-                if i == 'ID': 
-                    materialLoc.append(count)
-                count += 1
+            while materialLoc == []:
+                try:
+                    eventDrop = next(reader)
+                except:
+                    debug.errorWarning( 'Sheet does not have columns labeled "ID".' )
+                count = 0
+                for i in eventDrop:
+                    if i == 'ID': 
+                        materialLoc.append(count)
+                    count += 1
 
             eventAPCost = []
             eventDropMatrix = []
@@ -207,18 +211,27 @@ class Nodes:
     def addFreeDrop( self, freeDropCSV, lastArea ):
         with open( freeDropCSV, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
-            freeDrop = next(reader)
 
+            # Find the starting index of the Materials and where the XP starts.
+            matStart = 0
+            matEnd = 0
+            while matEnd == 0:
+                try:
+                    freeDrop = next(reader)
+                except:
+                    debug.errorWarning( 'Sheet does not have a column labeled as referencing "Monument" mats.' )
+                for i in range(len(freeDrop)):
+                    if freeDrop[i].find('Bronze') >= 0:
+                        matStart = i
+                    if freeDrop[i].find('Monument') >= 0:
+                        matEnd = i+9
+                        break
+            if matStart == 0:
+                debug.errorWarning( 'Sheet does not have a column labeled as referencing "Bronze" mats.' )
+            
             freeAPCost = []
             freeRunCap = []
             freeDropMatrix = []
-
-            for i in range(len(freeDrop)):
-                if freeDrop[i] == 'Bronze Material':
-                    matStart = i
-                if freeDrop[i] == 'Blaze':
-                    matEnd = i+1
-                    break
 
             # Interpretation of how this is supposed to read the APD csv:
             # If the Singularity is further than the user wants to farm as defined in the config file, stop.
