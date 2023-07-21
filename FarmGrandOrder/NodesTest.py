@@ -11,22 +11,66 @@ class Nodes:
         self.removeZeros = removeZeros
 
         self.goals = []
-        self.IDtoIndex = {-1: [], -2: [], -3: [], -4: [], -5: [], -6: []}
+        self.IDtoIndex = {-1: [], -2: [], -3: [], -4: [], -5: [], -6: 'T'}
         self.indexToName = {}
-        self.interpretMats( goals, materialListCSV )
+        self.interpretCSVs( goals, materialListCSV )
 
         self.nodeNames = []
         self.APCost = []
         self.runCap = []
         self.dropMatrix = np.array([])
-        self.hellfireRange = [94,100]
+        self.hellfireRange = [9700000,500]
+    
+    # Interpret the Materials by groups between their gaps.
+    def interpretGroup( self, reader, matID, matName, count, index, gaps, error ):
+        row = next(reader)
+        if row[0] != error[0]:
+            debug.errorWarning( 'Does not seem to be the start of '+ error[1] +'. GOALS and/or Material List CSVs may need to be updated.' )
+        
+        while row[0][0:2] != '!!':
+            try:
+                matGoal = int(row[1])
+            except:
+                matGoal = 0
+            
+            # Flag whether or not to remove this material from the Drop Matrix.
+            skip = self.removeZeros and (matGoal == 0)
+            self.skipDataIndex[count] = skip
+
+            count += 1
+            row = next(reader)
+            
+            if skip:
+                self.IDtoIndex.setdefault( int(matID[count]), 'T' )
+            else:
+                self.goals.append( [matGoal] )
+                self.IDtoIndex.setdefault( int(matID[count]), index )
+                self.indexToName.setdefault( index, matName[count] )
+                index += 1
+
+                if gaps > 2:
+                    self.IDtoIndex[2-gaps].append( int(matID[count]) )
+
+        self.skipDataIndex[count] = self.removeZeros
+        count += 1
+        if not self.removeZeros:
+            self.goals.append([0])
+            self.indexToName.setdefault( index, '' )
+            index += 1
+
+        # Notes that negative Mat IDs should be skipped if the entry is empty.
+        if gaps > 2:
+            if self.IDtoIndex[2-gaps] == []:
+                self.IDtoIndex[2-gaps] = 'T'
+        
+        return reader, count, index
 
     # Creates three dictionaries, 'IDtoIndex' maps a Material's ID to placement in Drop Matrix, or notes that it should be skipped with a 'T' value.
     # 'indexToName' maps placement in Drop Matrix to the corresponding Material's name.
     # 'skipDataIndex' maps whether or not an entry in the Free Drop Matrix should be skipped.
     # Also transforms the data in the GOALS csv into a computable column matrix.
     # count is generally incremented before 'matID' and 'matName' because the 0th index is not the start of the relevant values.
-    def interpretMats( self, goals, materialListCSV ):
+    def interpretCSVs( self, goals, materialListCSV ):
         with open( materialListCSV, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
             matID = next(reader)
@@ -37,78 +81,46 @@ class Nodes:
         
         with open( goals, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
-            readLine = next(reader)
+            row = next(reader)
 
             count = 0
             index = 0
-            skip = False
 
-            gaps = 0
-            gapDetected = False
-            gapErrors = [[0],['Seed of Yggdrasil','Silver Mats'],['Claw of Chaos','Gold Mats'], 
+            # Warn if the gaps between Material groups do not line up.
+            errors = [['Proof of Hero', 'Bronze Mats'],['Seed of Yggdrasil','Silver Mats'],['Claw of Chaos','Gold Mats'], 
                          ['Gem of Saber','Blue Gems'], ['Magic Gem of Saber','Red Gems'], ['Secret Gem of Saber','Gold Gems'],
-                         ['Saber Piece','Statues'], ['Saber Monument', 'Monuments'], ['Saber Blaze','XP']]
+                         ['Saber Piece','Statues'], ['Saber Monument', 'Monuments']]
 
-            for row in reader:
-                try:
-                    matGoal = int(row[1])
-                except:
-                    matGoal = 0
-                
-                # Flag whether or not to remove this material from the Drop Matrix.
-                if matGoal == 0 and self.removeZeros:
-                    skip = True
-                
-                self.skipDataIndex[count] = skip
-                count += 1
+            for gaps in range(8):
+                reader, count, index = self.interpretGroup( reader, matID, matName, count, index, gaps, errors[gaps] )
 
-                # Warns if the number of Materials (and thus their gaps between Materials) in the GOALs and Material List CSVs do not line up.
-                if gapDetected:
-                    gapDetected = False
-                    if row[0] != gapErrors[gaps][0]:
-                        debug.errorWarning( 'Does not seem to be the start of '+ gapErrors[gaps][1] +'. GOALS CSV may need to be updated.' )
-
-                # Flags a gap between Material groups to be evaluated next iteration.
-                if row[0][0:2] == '!!':
-                    gaps += 1
-                    gapDetected = True
-                    if matName[count] != '':
-                        debug.errorWarning( 'Gaps between materials in GOALS and the Material List/Calc CSVs do not align. One may need to be updated.' )
-                else:
-                    if gaps > 2 and not skip:
-                        self.IDtoIndex[ 2-gaps ].append( int(matID[count]) )
-
-                if skip == True:
-                    skip = False
-                    self.IDtoIndex.setdefault( int(matID[count]), 'T' )
-                else:
-                    self.goals.append( [matGoal] )
-                    self.IDtoIndex.setdefault( int(matID[count]), index )
-                    self.indexToName.setdefault( index, matName[count] )
-                    index += 1
+            row = next(reader)
+            if row[0] != 'Saber Blaze':
+                debug.errorWarning( 'Does not seem to be the start of XP. GOALS and/or Material List CSVs may need to be updated.' )
+            
+            try:
+                matGoal = int(row[1])
+            except:
+                matGoal = 0
             f.close()
-
-        self.matTotal = count
-        self.matCount = index
-        index -= 1
-
+        
         # 'Saber Blaze' index will be used in place of all XP drops.
-        if self.indexToName[index] == 'Saber Blaze':
-            self.indexToName[index] = 'Class Blaze'
-
-        if matGoal == 0 and self.removeZeros:
-            skip = True
+        self.matCount = index
+        skip = self.removeZeros and (matGoal == 0)
+        if skip:
             index = 'T'
-        for i in range(15):
+        else:
+            self.goals.append( [matGoal] )
+            self.IDtoIndex[-6] = [ int(matID[count+1]) ]
+            self.indexToName.setdefault( index, 'Class Blaze' )
+            self.matCount += 1
+
+        for i in range(16):
             self.skipDataIndex[count] = skip
             count += 1
             self.IDtoIndex.setdefault( int(matID[count]), index )
         
-        # Notes that negative Mat IDs should be skipped if the entry is empty.
-        for i in range(-6,0):
-            if self.IDtoIndex[i] == []:
-                self.IDtoIndex[i] = 'T'
-        
+        self.matTotal = count
         self.goals = np.array(self.goals)
 
     # TODO: There are some issues with this method of assembling matrices.
@@ -177,7 +189,7 @@ class Nodes:
                             continue
 
                         dropRate = float(eventNode[i+2]) / 100
-                        if matID >= self.hellfireRange[0] and matID <= self.hellfireRange[1]:
+                        if matID >= self.hellfireRange[0] and matID % self.hellfireRange[1] == 0:
                             dropRate *= 3
 
                         if matID < 0:

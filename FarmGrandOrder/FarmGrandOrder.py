@@ -21,7 +21,7 @@ class Nodes:
         self.APCost = []
         self.runCap = []
         self.dropMatrix = np.array([])
-        self.hellfireRange = [94,100]
+        self.hellfireRange = [9700000,500]
     
     # Interpret the Materials by groups between their gaps.
     def interpretGroup( self, reader, matID, matName, count, index, gaps, error ):
@@ -191,7 +191,7 @@ class Nodes:
                             continue
 
                         dropRate = float(eventNode[i+2]) / 100
-                        if matID >= self.hellfireRange[0] and matID <= self.hellfireRange[1]:
+                        if matID >= self.hellfireRange[0] and matID % self.hellfireRange[1] == 0:
                             dropRate *= 3
 
                         if matID < 0:
@@ -321,7 +321,7 @@ class Debug:
             if x == '1' or x == 'true' or x == 't' or x == 'yes' or x == 'y' or x == 'on':
                 keyValue = True
             else:
-                if x == '0' or x == 'false' or x == 'f' or x == 'no' or x == 'n' or x == 'off':
+                if not (x == '0' or x == 'false' or x == 'f' or x == 'no' or x == 'n' or x == 'off'):
                     self.errorWarning( 'Configuration "' + key + '" was not yes or no/true or false.')
                 keyValue = False
     
