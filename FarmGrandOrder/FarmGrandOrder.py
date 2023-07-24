@@ -147,8 +147,8 @@ class Nodes:
                 self.dropMatrix = np.vstack(( self.dropMatrix, addDropMatrix ))
     
     def addEventDrop( self, eventDropCSV, debug, multEvent, eventCap = '' ):
-        start = eventDropCSV.rindex('Efficiency_ ')
-        eventName = eventDropCSV[(start+12):eventDropCSV.rindex(' - Event',start)]
+        start = eventDropCSV.rindex('Efficiency ')+len('Efficiency ')
+        eventName = eventDropCSV[(start):eventDropCSV.rindex(' - Event',start)]
 
         if not multEvent:
             debug.fileName = eventName

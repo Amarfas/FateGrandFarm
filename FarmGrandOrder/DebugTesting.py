@@ -10,15 +10,20 @@ from NodesTest import Nodes
 # Mode 1: Check if Node Names, AP Costs, and Drop Matrices are equal.
 # Mode 2: Check if Planner outputs are similar or the same.
 # Mode 3: Compare run times, with below 'rep' count.
+# 'tolerance' defines the minimum difference that will break the matrix comparison
+# 'tolerance2' defines the maximum difference that'll be ignored in matrix comparisons
 
-testModes = [ 1, 2, 3 ]
+testModes = [ 1, 2 ]
 tolerance = 0.01
+tolerance2 = 0
 rep = 100
 goalstest = ''
 
 def CheckMatrix( a , b , s = 'F' , sa = 'F' ):
     # 's = F' means 'b' is an array
     # 'sa = F' means 'a' is an array
+
+    flag = False
     row = -1
     for i in a:
         row += 1
@@ -38,13 +43,18 @@ def CheckMatrix( a , b , s = 'F' , sa = 'F' ):
             for j in i:
                 if m > 1:
                     if j != b[row][col]:
-                        if col < 54 and abs(int(j) - int(b[row][col])) > tolerance:
+                        dif = abs(float(j) - float(b[row][col]))
+                        if col < 54 and dif > tolerance:
                             return 'F: ('+str(row)+','+str(col)+') '+nodes.nodeNames[row]+': '+str(j)+' != '+str(b[row][col])
                         else:
-                            print( 'F: ('+str(row)+','+str(col)+') '+nodes.nodeNames[row]+': '+str(j)+' != '+str(b[row][col]) )
+                            if dif > tolerance2:
+                                print( 'F: ('+str(row)+','+str(col)+') '+nodes.nodeNames[row]+': '+str(j)+' != '+str(b[row][col]) )
+                                flag = True
+
                 else:
                     if j != b[row][col]:
                         print( 'F: ('+str(row)+','+str(col)+') '+nodes.nodeNames[row]+': '+str(j)+' != '+str(b[row][col]) )
+                        flag = True
                 col += 1
 
         except:
@@ -52,6 +62,8 @@ def CheckMatrix( a , b , s = 'F' , sa = 'F' ):
                 return 'F: ('+str(row)+',~): n != 1'
             if i != b[row]:
                 return 'F: ('+str(row)+',~): '+str(i)+' != '+str(b[row])
+    if flag:
+        return 'F'
     return 'T'
 
 def BuildMatrix( ver ):
