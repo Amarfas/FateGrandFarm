@@ -188,7 +188,6 @@ class RunCaps():
         self.config_caps = { 'Event':[debug.note_config('Event Cap' ,'int')],
                             'Raid':[debug.note_config('Raid Cap' ,'int')],
                             'Bleach':[debug.note_config('Bleach Cap' ,'int')] }
-
         self.node_info = []
 
     def determine_event_caps( self, event_node ):
@@ -232,10 +231,97 @@ class RunCaps():
             else:
                 cap = self.config_caps.get(node_key)
 
-            self.node_info.append([ true_name, node_type, group_num, cap, group_count ])
+            self.node_info.append([ true_name, node_type, group_num, group_count, cap ])
     
     def evaluate_group_info( self, prev_group, true_name, node_group, group_count, node_caps = False ):
         if node_group != prev_group:
             self.add_group_info( true_name, node_group, group_count, node_caps )
             return prev_group, 1
         return node_group, group_count + 1
+    
+    def build_run_cap_matrix(self):
+        # [ true_name, group, #, count, cap ]
+        name_tracker = []
+        run_cap = []
+
+        row = 1
+        col = 0
+        node_add = 0
+        for i in self.node_info:
+            start = col
+            col += i[3]
+            node_add += i[3]
+
+            if i[4] != None:
+                if name_tracker == []:
+                    name_tracker.append(i[0:3])
+                    run_cap.append([i[4][0]])
+
+                    run_matrix = np.zeros((1,col))
+                    run_matrix[0][start:col] = 1
+                else:
+                    run_matrix = np.hstack(( run_matrix, np.zeros(( row, node_add )) ))
+
+                    row_find = 0
+                    for j in name_tracker:
+                        if i[0:2] == j[0:2]:
+                            break
+                        row_find += 1
+                    else:
+                        name_tracker.append(i[0:3])
+                        run_cap.append([i[4][0]])
+                        row += 1
+
+                        run_matrix = np.vstack(( run_matrix, np.zeros((1,col)) ))
+                        row_find = -1
+
+                    run_matrix[row_find][start:col] = 1
+
+                node_add = 0
+
+        if node_add > 0:
+            run_matrix = np.hstack(( run_matrix, np.zeros(( row, node_add )) ))
+
+        return [ run_matrix, np.array(run_cap) ]
+    
+    def build_run_cap_matrix_test(self):
+        # [ true_name, group, #, count, cap ]
+        name_tracker = []
+        run_cap = []
+
+        row = 1
+        col = 0
+        node_add = 0
+        for i in self.node_info:
+            start = col
+            col += i[3]
+            node_add += i[3]
+
+            if i[4] != None:
+                if name_tracker == []:
+                    name_tracker.append(i[0:3])
+                    run_cap.append([i[4][0]])
+
+                    run_matrix = np.zeros((1,col))
+                    run_matrix[0][start:col] = 1
+                else:
+                    run_matrix = np.hstack(( run_matrix, np.zeros(( row, node_add )) ))
+
+                    row_find = 0
+                    for j in name_tracker:
+                        if i[0:2] == j[0:2]:
+                            break
+                        row_find += 1
+                    else:
+                        name_tracker.append(i[0:3])
+                        run_cap.append([i[4][0]])
+                        row += 1
+
+                        run_matrix = np.vstack(( run_matrix, np.zeros((1,col)) ))
+                        row_find = -1
+
+                    run_matrix[row_find][start:col] = 1
+
+                node_add = 0
+
+        return [ run_matrix, np.array(run_cap) ]

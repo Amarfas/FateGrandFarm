@@ -4,11 +4,9 @@ import numpy as np
 import Interpret as Inter
 
 class Nodes:
-    def __init__( self, run_caps ):
+    def __init__(self):
         self.node_names = []
         self.AP_costs = []
-        self.run_caps = run_caps
-        self.node_info = []
         self.drop_matrix = np.array([])
         self.hellfire_range = [9700000,500]
 
@@ -29,29 +27,9 @@ class Nodes:
                 self.drop_matrix = np.array( add_drop_matrix )
             else:
                 self.AP_costs = np.vstack(( self.AP_costs, add_AP_cost ))
-                self.drop_matrix = np.vstack(( self.drop_matrix, add_drop_matrix ))
-    
-    def add_group_info( self, true_name, node_group, caps, node_count ):
-        try:
-            node_type, group_num = node_group.split(' ')
-        except:
-            node_type = node_group
-            group_num = 'None'
+                self.drop_matrix = np.vstack(( self.drop_matrix, add_drop_matrix )) 
 
-        if node_type == 'Event' or node_type == 'Lotto':
-            type_cap = caps[0]
-        else:
-            if node_type == 'Raid':
-                type_cap = caps[1]
-            else:
-                if node_type == 'Bleach':
-                    type_cap = caps[2]
-                else:
-                    type_cap = None
-
-        self.node_info.append([ true_name, node_type, group_num, type_cap, node_count ])
-    
-    def add_event_drop( self, event_drop_CSV, debug: Inter.Debug, mat_count, ID_to_index, multi_event ):
+    def add_event_drop( self, event_drop_CSV, run_caps: Inter.RunCaps, debug: Inter.Debug, mat_count, ID_to_index, multi_event ):
         start = event_drop_CSV.rindex('Efficiency ')+len('Efficiency ')
         event_name = event_drop_CSV[(start):event_drop_CSV.rindex(' - Event',start)]
 
@@ -64,26 +42,8 @@ class Nodes:
             event_node = next(reader)
 
             event_true_name = event_node[2]
-            event_caps = self.run_caps
-            event_cap_mod = []
-            cap_add = False
-            for i in event_node:
-                if i == 'Event Run Caps:':
-                    cap_add = True
-                if i == 'Raid Run Caps:':
-                    if event_cap_mod != []:
-                        event_caps[0] = event_cap_mod
-                        event_cap_mod = []
+            event_caps = run_caps.determine_event_caps(event_node)
 
-                if cap_add:
-                    try:
-                        event_cap_mod.append(int(i))
-                    except:
-                        a = 1
-            if event_cap_mod != []:
-                event_caps[1] = event_cap_mod
-
-            # Finds where the lotto material drops start in the csv, as the formatting changes for these.
             mat_locations = []
             while mat_locations == []:
                 try:
@@ -107,15 +67,13 @@ class Nodes:
             # If there is an AP assigned, assume the drops are part of a new node and start a new line of the Drop Matrix.
             # Add drops to the last made line in the Drop Matrix.
             for event_node in reader:
-                if event_node[ mat_locations[0] ] == '' or event_node[1] == '': 
-                    continue
+                try:
+                    float(event_node[1])
+                    if not bool(event_node[mat_locations[0]].strip()):
+                        continue
+                except ValueError: continue
                 
-                if node_group != event_node[3]:
-                    if node_group != False:
-                        self.add_group_info( event_true_name, node_group, event_caps, group_count )
-                    node_group = event_node[3]
-                    group_count = 0
-                group_count += 1
+                node_group, group_count = run_caps.evaluate_group_info( event_node[3], event_true_name, node_group, group_count, event_caps )
 
                 self.node_names.append( event_name + ', ' + event_node[0] )
                 event_AP_cost.append( [float(event_node[1])] )
@@ -139,10 +97,10 @@ class Nodes:
                             event_drop_matrix[-1][ ID_to_index[j] ] += dropRate
             f.close()
             
-            self.add_group_info( event_true_name, node_group, event_caps, group_count )
+            run_caps.add_group_info( event_true_name, node_group, group_count, event_caps )
             self.assemble_matrix( event_AP_cost, event_drop_matrix )
-
-    def multi_event( self, path, debug: Inter.Debug, event_find, mat_count, ID_to_index, multi_event ):
+    
+    def multi_event( self, path, run_caps, debug: Inter.Debug, event_find, mat_count, ID_to_index, multi_event ):
         if multi_event:
             debug.file_name = 'Multi'
             debug.make_note( 'The Events included in this analysis are:\n' )
@@ -152,11 +110,11 @@ class Nodes:
             eventFolder = glob.glob( path + '*' + event_find + '* - Event Quest.csv' )
 
         for event in eventFolder:
-            self.add_event_drop( event, debug, mat_count, ID_to_index, multi_event )
+            self.add_event_drop( event, run_caps, debug, mat_count, ID_to_index, multi_event )
         
         debug.make_note('\n')
     
-    def add_free_drop( self, free_drop_CSV, last_area, debug: Inter.Debug, skip_data_index ):
+    def add_free_drop( self, free_drop_CSV, run_caps: Inter.RunCaps, last_area, debug: Inter.Debug, skip_data_index ):
         with open( free_drop_CSV, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
 
@@ -181,7 +139,7 @@ class Nodes:
             free_drop_matrix = []
 
             node_group = False
-            node_group_count = 0
+            group_count = 0
 
             # Interpretation of how this is supposed to read the APD csv:
             # If the Singularity is further than the user wants to farm as defined in the config file, stop.
@@ -194,12 +152,7 @@ class Nodes:
                 if free_drop[2] == '' or free_drop[2] == 'AP': 
                     continue
 
-                if node_group != free_drop[3]:
-                    if node_group != False:
-                        self.add_group_info( 'Free Quests', node_group, self.run_caps, node_group_count )
-                    node_group = free_drop[3]
-                    node_group_count = 0
-                node_group_count += 1
+                node_group, group_count = run_caps.evaluate_group_info( free_drop[3], 'Free Quests', node_group, group_count )
 
                 node_AP = int(free_drop[2])
                 self.node_names.append( free_drop[0] + ', ' + free_drop[1] )
@@ -226,5 +179,5 @@ class Nodes:
                 free_drop_matrix.append( drop_matrix_add )
             f.close()
             
-            self.add_group_info( 'Free Quests', node_group, self.run_caps, node_group_count )
+            run_caps.add_group_info( 'Free Quests', node_group, group_count )
             self.assemble_matrix( free_AP_cost, free_drop_matrix )

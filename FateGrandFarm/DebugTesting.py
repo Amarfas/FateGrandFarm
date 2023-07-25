@@ -15,7 +15,7 @@ from Planner import planner
 # 'tolerance' defines the minimum difference that will break the matrix comparison
 # 'tolerance2' defines the maximum difference that'll be ignored in matrix comparisons
 
-test_modes = [ 1, 2, 3 ]
+test_modes = [ 4 ]
 tolerance = 0.01
 tolerance2 = 0
 rep = 100
@@ -105,7 +105,7 @@ for i in test_modes:
         print( 'Nodes Names equal: ' + check_matrix( nodes.node_names, nodes_test.node_names, 'T', 'T' ))
         print( 'AP Cost equal: ' + check_matrix( nodes.AP_costs, nodes_test.AP_costs ))
         print( 'Drop Matrix equal: ' + check_matrix( nodes.drop_matrix, nodes_test.drop_matrix ))
-        print( 'Cap Info Matrix equal: ' + check_matrix( run_caps.node_info, nodes_test.node_info ))
+        #print( 'Cap Info Matrix equal: ' + check_matrix( run_caps.node_info, nodes_test.node_info ))
     
     if i == 2:
         prob , runs , total_AP = planner( nodes, debug, input_data )
@@ -138,3 +138,9 @@ for i in test_modes:
             print( '   Time2 per iter: ' + str(t2) )
 
             print( ' Difference x1,000: ' + str(1000*(t2-t1)) )
+    
+    if i == 4:
+        run_cap_matrix1 = run_caps.build_run_cap_matrix()
+        run_cap_matrix2 = run_caps.build_run_cap_matrix_test()
+        print( 'Run Matrix equal: ' + check_matrix( run_cap_matrix1[0], run_cap_matrix2[0] ))
+        print( 'Run Matrix equal: ' + check_matrix( run_cap_matrix1[1], run_cap_matrix2[1] ))

@@ -5,7 +5,7 @@ import time
 import Interpret as Inter
 from Nodes import Nodes
 
-def planner( nodes: Nodes, debug: Inter.Debug, input_data: Inter.InputData, type = 'nonneg' ):
+def planner( nodes: Nodes, debug: Inter.Debug, input_data: Inter.InputData, run_cap_matrix = False, type = 'nonneg' ):
     drop_matrix = np.transpose( nodes.drop_matrix )
     AP_costs = np.transpose( nodes.AP_costs )
     run_size = np.size( AP_costs )
@@ -24,6 +24,9 @@ def planner( nodes: Nodes, debug: Inter.Debug, input_data: Inter.InputData, type
 
     objective = cp.Minimize( AP_costs @ runs )
     constraints = [ drop_matrix @ runs >= input_data.goals ]
+    if run_cap_matrix:
+        constraints.append( run_cap_matrix[0] @ runs <= run_cap_matrix[1] )
+
     prob = cp.Problem( objective , constraints )
     prob.solve()
 
