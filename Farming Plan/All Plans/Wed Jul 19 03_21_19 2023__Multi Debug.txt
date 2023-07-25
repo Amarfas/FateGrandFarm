@@ -1,0 +1,43 @@
+__Configurations:
+The Path Prefix is: 
+Notifications = True
+Use Event = True
+Event Name = 
+Last Area = 
+Multiple Event = True
+Event Cap = False
+Remove Zeros = True
+Drop Weight = 0.01
+
+The Events included in this analysis are:
+15 Bespectacled
+Battle in NY Rerun -D12-BB
+Case Files Rerun
+Christmas 2022 -D12-Bell-BB
+Christmas 2022 -D12-Spirit-BB
+Christmas 2022 -D12-Tear-BB
+Christmas 2023 -D12-Claw-BB
+Christmas 2023 -D12-Feath-BB
+Christmas 2023 -D12-Steel-BB
+Grail Live Collab
+Grand Nero Fest -D12-BB
+GUDAGUDA Close Call
+GUDAGUDA Yamatai
+Halloween 2023
+Hunting 10
+Hunting 11
+Hunting 12
+Imaginary Scramble
+Learn with Manga Collab
+Little Big Tengu
+Nanmei Yumihari
+Saber Wars 2 Rerun
+Sea Monster Crisis
+Slapstick Museum
+Summer 2022 Rerun
+Summer 2023
+Summer 2024
+Tunguska Sanctuary
+Valentines 2023
+Valentines 2024
+
