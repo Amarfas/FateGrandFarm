@@ -4,8 +4,10 @@ import glob
 import numpy as np
 import cvxpy as cp
 import time
-import FateGrandFarm as FGF
-from NodesTest import Nodes
+import Interpret as Inter
+from Nodes import Nodes
+from NodesTest import Nodes as NodesTest
+from Planner import planner
 
 # Mode 1: Check if Node Names, AP Costs, and Drop Matrices are equal.
 # Mode 2: Check if Planner outputs are similar or the same.
@@ -17,7 +19,7 @@ test_modes = [ 1, 2 ]
 tolerance = 0.01
 tolerance2 = 0
 rep = 100
-goals_test = ''
+goals_debug = 'Test2'
 
 def check_matrix( a , b , s = 'F' , sa = 'F' ):
     # 's = F' means 'b' is an array
@@ -67,44 +69,42 @@ def check_matrix( a , b , s = 'F' , sa = 'F' ):
     return 'T'
 
 def build_matrix( ver ):
-    if ver == 'FarmGrandOrder':
-        nodes = FGF.Nodes( path_prefix + 'Files\\GOALS' + goals_test + '.csv', glob.glob( path_prefix + 'Files\\* - Calc.csv' )[0] , run_caps, debug, remove_zeros )
-        nodes.multi_event( path_prefix + 'Files\\', debug, event_find, multi_event )
-        nodes.add_free_drop( glob.glob( path_prefix + 'Files\\* - APD.csv' )[0], last_area, debug )
+    if ver == 'Nodes':
+        nodes = Nodes(run_caps)
+        nodes.multi_event( path_prefix + 'Files\\', debug, event_find, data_input.mat_count, data_input.ID_to_index, multi_event )
+        nodes.add_free_drop( glob.glob( path_prefix + 'Files\\* - APD.csv' )[0] , last_area, debug, data_input.skip_data_index )
     if ver == 'NodesTest':
-        nodes = Nodes( path_prefix + 'Files\\GOALS' + goals_test + '.csv', glob.glob( path_prefix + 'Files\\* - Calc.csv' )[0], run_caps, debug, remove_zeros )
-        nodes.multi_event( path_prefix + 'Files\\' , debug, event_find, multi_event )
-        nodes.add_free_drop( glob.glob( path_prefix + 'Files\\* - APD.csv' )[0], last_area, debug )
+        nodes = NodesTest(run_caps)
+        nodes.multi_event( path_prefix + 'Files\\' , debug, event_find, data_input.mat_count, data_input.ID_to_index, multi_event )
+        nodes.add_free_drop( glob.glob( path_prefix + 'Files\\* - APD.csv' )[0], last_area, debug, data_input.skip_data_index )
     return nodes
 
 print('\n')
-path_prefix = FGF.standardize_path()
+path_prefix = Inter.standardize_path()
 
-config = configparser.ConfigParser()
-config.read( path_prefix + 'config\\farmgo_config.ini' )
+debug = Inter.Debug( path_prefix )
 
-debug = FGF.Debug( path_prefix )
+event_use = debug.note_config('Use Event', 'bool')
+event_find = debug.note_config('Event Name')
+last_area = debug.note_config('Last Area')
+multi_event = debug.note_config('Multiple Event', 'bool')
+run_caps = [ [debug.note_config('Event Cap' ,'int')], [debug.note_config('Raid Cap' ,'int')], debug.note_config('Bleach Cap' ,'int') ]
+remove_zeros = debug.note_config('Remove Zeros', 'bool')
+drop_weight = debug.note_config('Drop Weight', 'float')
 
-event_use = debug.config('Use Event', 'bool')
-event_find = debug.config('Event Name')
-last_area = debug.config('Last Area')
-multi_event = debug.config('Multiple Event', 'bool')
-run_caps = [ [debug.config('Event Cap' ,'int')], [debug.config('Raid Cap' ,'int')], debug.config('Bleach Cap' ,'int') ]
-remove_zeros = debug.config('Remove Zeros', 'bool')
-drop_weight = debug.config('Drop Weight', 'float')
-
-nodes = build_matrix('FarmGrandOrder')
-nodes2 = build_matrix('NodesTest')
+data_input = Inter.InputData( path_prefix + 'Files\\GOALS' + goals_debug + '.csv', glob.glob( path_prefix + 'Files\\* - Calc.csv' )[0], debug, remove_zeros )
+nodes = build_matrix('Nodes')
+nodes_test = build_matrix('NodesTest')
 
 for i in test_modes:
     if i == 1:
-        print( 'Nodes Names equal: ' + check_matrix( nodes.node_names, nodes2.node_names, 'T', 'T' ))
-        print( 'AP Cost equal: ' + check_matrix( nodes.AP_costs, nodes2.AP_costs ))
-        print( 'Drop Matrix equal: ' + check_matrix( nodes.drop_matrix, nodes2.drop_matrix ))
+        print( 'Nodes Names equal: ' + check_matrix( nodes.node_names, nodes_test.node_names, 'T', 'T' ))
+        print( 'AP Cost equal: ' + check_matrix( nodes.AP_costs, nodes_test.AP_costs ))
+        print( 'Drop Matrix equal: ' + check_matrix( nodes.drop_matrix, nodes_test.drop_matrix ))
     
     if i == 2:
-        prob , runs , total_AP = FGF.planner( nodes, debug )
-        prob2 , runs2 , total_AP2 = FGF.planner( nodes2, debug )
+        prob , runs , total_AP = planner( nodes, debug, data_input )
+        prob2 , runs2 , total_AP2 = planner( nodes_test, debug, data_input )
 
         print( 'Run counts equal: ' + check_matrix( runs, runs2 ) )
         if total_AP == total_AP2: 
@@ -115,16 +115,16 @@ for i in test_modes:
     if i == 3:
         t1 = time.time()
         for i in range(rep):
-            nodes = build_matrix('FarmGrandOrder')
-            prob , runs , total_AP = FGF.planner( nodes, debug )
+            nodes = build_matrix('Nodes')
+            prob , runs , total_AP = planner( nodes, debug, data_input )
         t1 = ( time.time() - t1 ) / rep
-        print( 'Time1 per iter: ' + str(t1) )
+        print( 'Time per iter: ' + str(t1) )
 
         t2 = time.time()
         for i in range(rep):
-            nodes2 = build_matrix('NodesTest')
-            prob2 , runs2 , total_AP2 = FGF.planner( nodes2, debug )
+            nodes_test = build_matrix('NodesTest')
+            prob2 , runs2 , total_AP2 = planner( nodes_test, debug, data_input )
         t2 = ( time.time() - t2 ) / rep
-        print( 'Time2 per iter: ' + str(t2) )
+        print( 'TimeTest per iter: ' + str(t2) )
 
         print( 'Difference: ' + str(t2-t1) )
