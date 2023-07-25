@@ -2,7 +2,7 @@ import csv
 import glob
 import numpy as np
 import cvxpy as cp
-from FateGrandFarm import Debug
+import Interpret as Inter
 
 class Nodes:
     def __init__( self, goals, material_list_CSV, run_caps, debug, remove_zeros = False ):
@@ -19,12 +19,12 @@ class Nodes:
         self.node_names = []
         self.AP_costs = []
         self.run_caps = run_caps
-        self.cap_info = np.array([])
+        self.cap_info = []
         self.drop_matrix = np.array([])
         self.hellfire_range = [9700000,500]
     
     # Interpret the Materials by groups between their gaps.
-    def interpret_group( self, reader, mat_ID, mat_name, count, index, gaps, error, debug ):
+    def interpret_group( self, reader, mat_ID, mat_name, count, index, gaps, error, debug: Inter.Debug ):
         row = next(reader)
         if row[0] != error[0]:
             debug.error_warning( 'Does not seem to be the start of '+ error[1] +'. GOALS and/or Material List CSVs may need to be updated.' )
@@ -72,7 +72,7 @@ class Nodes:
     # 'skipDataIndex' maps whether or not an entry in the Free Drop Matrix should be skipped.
     # Also transforms the data in the GOALS csv into a computable column matrix.
     # count is generally incremented before 'matID' and 'matName' because the 0th index is not the start of the relevant values.
-    def interpret_CSVs( self, goals_CSV, material_list_CSV, debug ):
+    def interpret_CSVs( self, goals_CSV, material_list_CSV, debug: Inter.Debug ):
         with open( material_list_CSV, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
             mat_IDs = next(reader)
@@ -162,13 +162,9 @@ class Nodes:
                 else:
                     type_cap = 'None'
 
-        add_info = [ true_name, node_type, group_num, type_cap, node_count ]
-        if np.size( self.cap_info ) == 0:
-            self.cap_info = np.array( add_info, dtype = object )
-        else:
-            self.cap_info = np.vstack(( self.cap_info, add_info ))
+        self.cap_info.append([ true_name, node_type, group_num, type_cap, node_count ])
     
-    def add_event_drop( self, event_drop_CSV, debug, multi_event ):
+    def add_event_drop( self, event_drop_CSV, debug: Inter.Debug, multi_event ):
         start = event_drop_CSV.rindex('Efficiency ')+len('Efficiency ')
         event_name = event_drop_CSV[(start):event_drop_CSV.rindex(' - Event',start)]
 
@@ -259,7 +255,7 @@ class Nodes:
             self.add_cap_info( event_true_name, node_group, event_caps, node_group_count )
             self.assemble_matrix( event_AP_cost, event_drop_matrix )
     
-    def add_free_drop( self, free_drop_CSV, last_area, debug ):
+    def add_free_drop( self, free_drop_CSV, last_area, debug: Inter.Debug ):
         with open( free_drop_CSV, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
 
@@ -332,13 +328,13 @@ class Nodes:
             self.add_cap_info( 'Free Quests', node_group, self.run_caps, node_group_count )
             self.assemble_matrix( free_AP_cost, free_drop_matrix )
     
-    def multi_event( self, path, debug, event_find, multi_event ):
+    def multi_event( self, path, debug: Inter.Debug, event_find, multi_event ):
         if multi_event:
             debug.file_name = 'Multi'
             debug.make_note( 'The Events included in this analysis are:\n' )
             eventFolder = glob.glob( path + 'Events\\Multi Event Folder\\*' )
         else:
-            debug.make( 'The Event included in this analysis is: ')
+            debug.make_note( 'The Event included in this analysis is: ')
             eventFolder = glob.glob( path + '*' + event_find + '* - Event Quest.csv' )
 
         for event in eventFolder:
