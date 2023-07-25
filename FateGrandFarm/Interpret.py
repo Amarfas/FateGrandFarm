@@ -2,7 +2,6 @@ import configparser
 import csv
 import glob
 import numpy as np
-import cvxpy as cp
 
 # Makes it so the program works whether it's started in the 'FarmingGrandOrder' overarching directory or the 'FarmGrandOrder' folder.
 def standardize_path():
@@ -183,3 +182,63 @@ class InputData:
         
         self.mat_total = count
         self.goals = np.array(self.goals)
+
+class RunCaps():
+    def __init__( self, debug: Debug ):
+        self.config_caps = { 'Event':[debug.note_config('Event Cap' ,'int')],
+                            'Raid':[debug.note_config('Raid Cap' ,'int')],
+                            'Bleach':[debug.note_config('Bleach Cap' ,'int')] }
+
+        self.node_info = []
+
+    def determine_event_caps( self, event_node ):
+        event_caps = self.config_caps
+        new_cap = []
+        cap_read = False
+        for i in event_node:
+            if i.find('Run Cap') >= 0:
+                if i.find('Event') >= 0:
+                    if cap_read == 'Raid' and new_cap != []:
+                        event_caps[cap_read] = new_cap
+                    cap_read = 'Event'
+                if i.find('Raid') >= 0:
+                    if cap_read == 'Event' and new_cap != []:
+                        event_caps[cap_read] = new_cap
+                    cap_read = 'Raid'
+                new_cap = []
+            
+            if cap_read:
+                try:
+                    new_cap.append(int(i))
+                except ValueError: pass
+
+        if new_cap != []:
+            event_caps[cap_read] = new_cap
+        
+        return event_caps
+    
+    def add_group_info( self, true_name, node_group, group_count, node_caps = False ):
+        if node_group:
+            try:
+                node_type, group_num = node_group.split(' ')
+            except ValueError:
+                node_type = node_group
+                group_num = 'None'
+
+            if node_type == 'Lotto':
+                node_key = 'Event'
+            else:
+                node_key = node_type
+            
+            if node_caps:
+                cap = node_caps.get(node_key)
+            else:
+                cap = self.config_caps.get(node_key)
+
+            self.node_info.append([ true_name, node_type, group_num, cap, group_count ])
+    
+    def evaluate_group_info( self, prev_group, true_name, node_group, group_count, node_caps = False ):
+        if node_group != prev_group:
+            self.add_group_info( true_name, node_group, group_count, node_caps )
+            return prev_group, 1
+        return node_group, group_count + 1
