@@ -214,7 +214,7 @@ class RunCaps():
         return event_caps
     
     def add_group_info( self, true_name, node_group, group_count, node_caps = False ):
-        if node_group:
+        if node_group and group_count > 0:
             try:
                 node_type, group_num = node_group.split(' ')
             except ValueError:
@@ -233,11 +233,11 @@ class RunCaps():
 
             self.node_info.append([ true_name, node_type, group_num, group_count, cap ])
     
-    def evaluate_group_info( self, prev_group, true_name, node_group, group_count, node_caps = False ):
+    def evaluate_group_info( self, add_data, prev_group, true_name, node_group, group_count, node_caps = False ):
         if node_group != prev_group:
             self.add_group_info( true_name, node_group, group_count, node_caps )
-            return prev_group, 1
-        return node_group, group_count + 1
+            return prev_group, add_data
+        return node_group, group_count + add_data
     
     def build_run_cap_matrix(self):
         # [ true_name, group, #, count, cap ]
@@ -323,5 +323,8 @@ class RunCaps():
                     run_matrix[row_find][start:col] = 1
 
                 node_add = 0
+        
+        if node_add > 0:
+            run_matrix = np.hstack(( run_matrix, np.zeros(( row, node_add )) ))
 
         return [ run_matrix, np.array(run_cap) ]

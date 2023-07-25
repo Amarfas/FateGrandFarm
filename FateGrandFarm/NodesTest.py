@@ -73,7 +73,7 @@ class Nodes:
                         continue
                 except ValueError: continue
                 
-                node_group, group_count = run_caps.evaluate_group_info( event_node[3], event_true_name, node_group, group_count, event_caps )
+                node_group, group_count = run_caps.evaluate_group_info( True, event_node[3], event_true_name, node_group, group_count, event_caps )
 
                 self.node_names.append( event_name + ', ' + event_node[0] )
                 event_AP_cost.append( [float(event_node[1])] )
@@ -152,7 +152,7 @@ class Nodes:
                 if free_drop[2] == '' or free_drop[2] == 'AP': 
                     continue
 
-                node_group, group_count = run_caps.evaluate_group_info( free_drop[3], 'Free Quests', node_group, group_count )
+                node_group, group_count = run_caps.evaluate_group_info( True, free_drop[3], 'Free Quests', node_group, group_count )
 
                 node_AP = int(free_drop[2])
                 self.node_names.append( free_drop[0] + ', ' + free_drop[1] )

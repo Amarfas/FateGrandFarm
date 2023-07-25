@@ -4,11 +4,13 @@ import numpy as np
 import Interpret as Inter
 
 class Nodes:
-    def __init__(self):
+    def __init__( self, remove_zeros = False ):
         self.node_names = []
         self.AP_costs = []
         self.drop_matrix = np.array([])
         self.hellfire_range = [9700000,500]
+
+        self.remove_zeros = remove_zeros
 
     # TODO: There are some issues with this method of assembling matrices.
     # The basic issue is that cvxpy analysis requires data in the form of numpy matrices, but the best way to form numpy matrices is to initialize its size.
@@ -22,12 +24,13 @@ class Nodes:
 
     # FIXED SIZE PROBLEM: rest should still be looked into.
     def assemble_matrix( self, add_AP_cost, add_drop_matrix ):
-            if np.size( self.drop_matrix ) == 0:
-                self.AP_costs = np.array( add_AP_cost )
-                self.drop_matrix = np.array( add_drop_matrix )
-            else:
-                self.AP_costs = np.vstack(( self.AP_costs, add_AP_cost ))
-                self.drop_matrix = np.vstack(( self.drop_matrix, add_drop_matrix )) 
+            if add_drop_matrix != []:
+                if np.size( self.drop_matrix ) == 0:
+                    self.AP_costs = np.array( add_AP_cost )
+                    self.drop_matrix = np.array( add_drop_matrix )
+                else:
+                    self.AP_costs = np.vstack(( self.AP_costs, add_AP_cost ))
+                    self.drop_matrix = np.vstack(( self.drop_matrix, add_drop_matrix )) 
 
     def add_event_drop( self, event_drop_CSV, run_caps: Inter.RunCaps, debug: Inter.Debug, mat_count, ID_to_index, multi_event ):
         start = event_drop_CSV.rindex('Efficiency ')+len('Efficiency ')
@@ -73,11 +76,11 @@ class Nodes:
                         continue
                 except ValueError: continue
                 
-                node_group, group_count = run_caps.evaluate_group_info( event_node[3], event_true_name, node_group, group_count, event_caps )
-
-                self.node_names.append( event_name + ', ' + event_node[0] )
-                event_AP_cost.append( [float(event_node[1])] )
-                event_drop_matrix.append( np.zeros( mat_count ) )
+                event_drop_add = np.zeros( mat_count )
+                if self.remove_zeros:
+                    add_data = False
+                else:
+                    add_data = True
 
                 for i in mat_locations:
                     if event_node[i+2] != '':
@@ -94,7 +97,14 @@ class Nodes:
                         else:
                             mat_ID = [mat_ID]
                         for j in mat_ID:
-                            event_drop_matrix[-1][ ID_to_index[j] ] += dropRate
+                            add_data = True
+                            event_drop_add[ ID_to_index[j] ] += dropRate
+                
+                node_group, group_count = run_caps.evaluate_group_info( add_data, event_node[3], event_true_name, node_group, group_count, event_caps )
+                if add_data:
+                    self.node_names.append( event_name + ', ' + event_node[0] )
+                    event_AP_cost.append( [float(event_node[1])] )
+                    event_drop_matrix.append( event_drop_add )
             f.close()
             
             run_caps.add_group_info( event_true_name, node_group, group_count, event_caps )
@@ -152,18 +162,19 @@ class Nodes:
                 if free_drop[2] == '' or free_drop[2] == 'AP': 
                     continue
 
-                node_group, group_count = run_caps.evaluate_group_info( free_drop[3], 'Free Quests', node_group, group_count )
-
                 node_AP = int(free_drop[2])
-                self.node_names.append( free_drop[0] + ', ' + free_drop[1] )
-                free_AP_cost.append( [node_AP] )
                 drop_matrix_add = []
+                if self.remove_zeros:
+                    add_data = False
+                else:
+                    add_data = True
 
                 for i in range(mat_start,mat_end):
                     if not skip_data_index[i-mat_start]:
-                        try: 
+                        try:
+                            add_data = True
                             drop_matrix_add.append( node_AP / float(free_drop[i]) )
-                        except:
+                        except ValueError:
                             drop_matrix_add.append(0)
                 
                 if not skip_data_index[i-mat_start]:
@@ -172,11 +183,16 @@ class Nodes:
                         if i == mat_end + 6:
                             XP_mult = 3
                         try:
+                            add_data = True
                             drop_matrix_add[-1] += XP_mult * node_AP / float(free_drop[i])
-                        except:
+                        except ValueError:
                             drop_matrix_add[-1] += 0
-
-                free_drop_matrix.append( drop_matrix_add )
+                
+                node_group, group_count = run_caps.evaluate_group_info( add_data, free_drop[3], 'Free Quests', node_group, group_count )
+                if add_data:
+                    self.node_names.append( free_drop[0] + ', ' + free_drop[1] )
+                    free_AP_cost.append( [node_AP] )
+                    free_drop_matrix.append( drop_matrix_add )
             f.close()
             
             run_caps.add_group_info( 'Free Quests', node_group, group_count )

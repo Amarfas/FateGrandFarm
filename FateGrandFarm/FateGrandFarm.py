@@ -15,12 +15,12 @@ multi_event = debug.note_config('Multiple Event', 'bool')
 remove_zeros = debug.note_config('Remove Zeros', 'bool')
 drop_weight = debug.note_config('Drop Weight', 'float')
 
-goals_debug = 'Test'
+goals_debug = ''
 
 input_data = Inter.InputData( path_prefix + 'Files\\GOALS' + goals_debug + '.csv', glob.glob( path_prefix + 'Files\\* - Calc.csv' )[0], debug, remove_zeros )
 run_caps = Inter.RunCaps(debug)
 
-nodes = Nodes()
+nodes = Nodes(remove_zeros)
 nodes.multi_event( path_prefix + 'Files\\', run_caps, debug, event_find, input_data.mat_count, input_data.ID_to_index, multi_event )
 nodes.add_free_drop( glob.glob( path_prefix + 'Files\\* - APD.csv' )[0], run_caps, last_area, debug, input_data.skip_data_index )
 
