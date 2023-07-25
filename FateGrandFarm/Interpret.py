@@ -196,16 +196,13 @@ class RunCaps():
         new_cap = []
         cap_read = False
         for i in event_node:
-            if i.find('Run Cap') >= 0:
-                if i.find('Event') >= 0:
-                    if cap_read == 'Raid' and new_cap != []:
-                        event_caps[cap_read] = new_cap
-                    cap_read = 'Event'
-                if i.find('Raid') >= 0:
-                    if cap_read == 'Event' and new_cap != []:
-                        event_caps[cap_read] = new_cap
+            if i == 'Event Run Caps:':
+                cap_read = 'Event'
+            if i == 'Raid Run Caps:':
+                if new_cap != []:
+                    event_caps[cap_read] = new_cap
                     cap_read = 'Raid'
-                new_cap = []
+                    new_cap = []
             
             if cap_read:
                 try:
