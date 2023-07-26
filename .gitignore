@@ -1,6 +1,9 @@
 # Ignore 'OLD Files' folder
 OLD Files
 
+# Ignore .vscode configurations used for readability.
+.vscode
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

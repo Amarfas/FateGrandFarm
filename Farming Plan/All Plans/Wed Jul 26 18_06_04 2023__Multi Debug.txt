@@ -1,0 +1,34 @@
+__Configurations:
+The Path Prefix is: ..\
+Notifications = True
+Use Event = True
+Event Name = 
+Last Area = 
+Multiple Event = True
+Remove Zeros = True
+Drop Weight = 0.01
+Event Cap = 1000
+Raid Cap = 1000
+Bleach Cap = 10
+
+The Events included in this analysis are:
+Battle in NY 2024 -D12
+Case Files
+Christmas 2023 -D12-Claw
+Christmas 2023 -D12-Feath
+Christmas 2023 -D12-Steel
+Grand Nero Fest -D12
+GUDAGUDA Close Call
+GUDAGUDA Yamatai
+Halloween 2023
+Hunting 11
+Hunting 12
+Learn with Manga Collab
+Nanmei Yumihari
+Sea Monster Crisis
+Summer 2023
+Summer 2024
+Tunguska Sanctuary
+Valentines 2024
+White Day 2024
+

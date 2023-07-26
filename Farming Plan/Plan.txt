@@ -1,41 +1,38 @@
 These results are: optimal
-The total AP required is: 1,168,846
+The total AP required is: 1,258,870
 You should run:
-Battle in NY 2024 -D12, Main: Space: 2,068 times
-Battle in NY 2024 -D12, Finals: Isle: 1,005 times
-Case Files, Barbatos: 69 times
-Christmas 2023 -D12-Claw, Cheese: 49 times
-Christmas 2023 -D12-Claw, Noodle: 1,235 times
-Christmas 2023 -D12-Claw, Tidying Up: 676 times
-Christmas 2023 -D12-Feath, Cheese: 49 times
-Christmas 2023 -D12-Feath, Noodle: 1,744 times
-Christmas 2023 -D12-Feath, Tidying Up: 1,030 times
-Christmas 2023 -D12-Steel, Cheese: 49 times
-Christmas 2023 -D12-Steel, Noodle: 2,913 times
-Christmas 2023 -D12-Steel, Tidying Up: 1,666 times
-Grand Nero Fest -D12, Semis: Champ: 1,895 times
-Halloween 2023, Csejte Cinderella: Big Yawn: 667 times
-Halloween 2023, Strange Hut: 3,138 times
-Hunting 12, Kelpie: 240 times
-Hunting 12, Soul Eater: 258 times
-Summer 2023, Japanese Archeological Site: 715 times
-Summer 2023, Seabed Cavern: 808 times
-Summer 2023, Clouded Mountain: 1,937 times
-Summer 2023, Caribbean FINAL: 1,423 times
-Tunguska Sanctuary, AM602-Ivan: Raid 1: 529 times
-Tunguska Sanctuary, Strange Retainer: III: 2,130 times
-Tunguska Sanctuary, Beast IV: Raid 4: 2,534 times
-Training Grounds, Archer: Intermed: 92 times
-Training Grounds, Lancer: Advance: 64 times
-Training Grounds, Berserker: Extre: 66 times
-Training Grounds, Berserker: Nov: 27 times
-Training Grounds, Rider: Novice: 63 times
-Training Grounds, Caster: Novice: 103 times
-Training Grounds, Assassin: Nov: 69 times
-Training Grounds, Saber: Novice: 123 times
-Babylonia, Northern Hill: 319 times
-Salem, Whateley Residence: 4,511 times
-Olympus, Underground Structure: 1,068 times
-Traum, Valley District: 2,164 times
-Traum, Xanten Tower: 201 times
-Bleached Earth, Russia: 55 times
+Battle in NY 2024 -D12, Main: Space: 1,394 times
+Battle in NY 2024 -D12, Finals: Space: 607 times
+Case Files, Fake Rhongomyniad: 1,208 times
+Christmas 2023 -D12-Claw, Tidying Up: 1,051 times
+Christmas 2023 -D12-Steel, Tidying Up: 950 times
+Grand Nero Fest -D12, Semis: Champ: 1,436 times
+Grand Nero Fest -D12, Finals: Champ: 565 times
+GUDAGUDA Close Call, Talasigo Hvy Tower: Hidden: 2,000 times
+GUDAGUDA Yamatai, Tempest Nobu: 271 times
+Halloween 2023, Strange Hut: 1,853 times
+Hunting 11, Hermit Crab: 547 times
+Hunting 11, Alraune: 821 times
+Hunting 11, Wyvern: 633 times
+Hunting 12, Soul Eater: 432 times
+Hunting 12, Cerberus: 732 times
+Summer 2023, Clouded Mountain: 26 times
+Summer 2023, Caribbean FINAL: 1,975 times
+Summer 2024, Arctic Tower: Infiltrate: 2,000 times
+Tunguska Sanctuary, Beast IV: Raid 4: 2,001 times
+Shinjuku, Shinjuku Station: 4,024 times
+Anastasia, Yaga Smolensk: 238 times
+Anastasia, Rebel Stronghold: 1,006 times
+Anastasia, Yaga Moscow: 3,399 times
+SIN, Prison Camp: 263 times
+Yugakshetra, Eastern Flower Garden: 1,892 times
+Atlantis, Deimos Island: 1,162 times
+Olympus, God Destroyer Alliance Base: 3,002 times
+Olympus, Hanging Gardens: 1,283 times
+Ancient Kyoto, Rokujou Street: 1,649 times
+Ancient Kyoto, Sanjou San-bou: 2,394 times
+Avalon le Fae, Misty Coast: 649 times
+Traum, Middle-Forest: 10 times
+Traum, Sirmium: 1,761 times
+Bleached Earth, Russia: 11 times
+Paper Moon, Build Depart. HQ: 1,451 times
