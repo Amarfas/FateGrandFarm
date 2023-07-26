@@ -1,9 +1,0 @@
-These results are: optimal
-The total AP required is: 194,279
-You should run:
-Hunting 11, Chimera: 721 times
-Hunting 12, Wyvern: 134 times
-Hunting 12, Garuda: 7 times
-Tunguska Sanctuary, Beast IV: Raid 4: 2,509 times
-Traum, Valley District: 2,448 times
-Traum, Restor. Dom Base: 388 times

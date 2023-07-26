@@ -28,4 +28,4 @@ run_cap_matrix = run_caps.build_run_cap_matrix()
 prob , runs , total_AP = Plan.planner( nodes, debug, input_data, run_cap_matrix )
 
 output = Plan.Output( path_prefix, debug )
-output.print_out( prob.status, runs, total_AP, nodes.node_names )
+output.print_out( prob.status, runs, total_AP, nodes.node_names, debug )
