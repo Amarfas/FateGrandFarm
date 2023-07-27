@@ -4,6 +4,9 @@ OLD Files
 # Ignore .vscode configurations used for readability.
 .vscode
 
+# Ignore GOALSTest#.csv files
+GOALSTest*.csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
