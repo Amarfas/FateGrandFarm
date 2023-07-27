@@ -1,4 +1,5 @@
 import glob
+import os
 import numpy as np
 import cvxpy as cp
 import time
@@ -52,16 +53,17 @@ class Output:
         print( text )
         return text + '\n'
 
-    def file_creation( self, fileName, text ):
+    def file_creation( self, file_name, text ):
         specific = time.ctime(time.time()).replace(':','_') + '__' + self.debug.file_name + ' '
-        planFolder = self.path_prefix
-        allPlanFolder = planFolder + 'Former Plans\\' + specific
+        plan_folder = self.path_prefix
+        former_plans = plan_folder + 'Former Plans\\' + specific + file_name
 
-        with open( planFolder + fileName, 'w') as f:
+        with open( plan_folder + file_name, 'w') as f:
             f.write(text)
             f.close()
         
-        with open( allPlanFolder + fileName, 'w') as f:
+        os.makedirs(os.path.dirname(former_plans), exist_ok=True)
+        with open( former_plans, 'w') as f:
             f.write(text)
             f.close()
 
