@@ -19,7 +19,7 @@ test_modes = [ 1 , 2 ]
 tolerance = 0.01
 tolerance2 = 0
 rep = 100
-goals_debug = 'Test2'
+goals_debug = ''
 
 def check_matrix( a, b ,s = 'F' ,sa = 'F', matrix = False ):
     # 's = F' means 'b' is an array

@@ -7,7 +7,7 @@ With the variety of Materials in the game, some of which don't help any of the S
 
 The executable only works for Windows. If you use another Operating System (or run into other problems), look into the 'Troubleshooting' section below to find out what you need for the Python program.
 
-*Note: As the linear programming algorithms can only compute averages, the actual number of runs required to reach your goal may be highly variable for a low number of Materials required.
+*Note: As the linear programming algorithms can only compute averages, the actual number of runs required to reach your goal may be highly variable for a low number of Materials required.*
 
 ## How to Use
   1. Open 'GOALS.csv', and input the number number of Materials you desire next to the corresponding Material. XP cards are all condensed into one. Save.
@@ -15,7 +15,7 @@ The executable only works for Windows. If you use another Operating System (or r
   3. Open 'fgf_config.ini' and change any settings you want.
   4. Run 'Fate Grand Farm.exe'
 
-For more details on how to configure the analysis or upkeep the program, scroll down to the 'Set Up' section.
+For more details on how to configure the analysis or upkeep the program, scroll down to the 'Set Up' section. This is mostly helpful for creating Event specific Run Caps.
 
 ## How to Read the Output
 The analysis is output in a 'Farming Plan.txt' and a 'Debug.txt' file (replacing any previous files), with an extra copy put into the 'Former Plans' folder (not replaced).
