@@ -6,7 +6,7 @@ import numpy as np
 # Makes it so the program works whether it's started in the 'FarmingGrandOrder' overarching directory or the 'FarmGrandOrder' folder.
 def standardize_path():
     pathDir = ''
-    if glob.glob('Fate Grand Farm') == []:
+    if glob.glob('Code') == []:
         return '..\\' + pathDir
     return pathDir
 
