@@ -7,7 +7,7 @@ With the variety of Materials in the game, some of which don't help any of the S
 
 The executable only works for Windows. If you use another Operating System (or run into other problems), look into the 'Troubleshooting' section below to find out what you need for the Python program.
 
-*Note: As the linear programming algorithms can only compute averages, the actual number of runs required to reach your goal may be highly variable for a low number of Materials required.
+*Note: As the linear programming algorithms can only compute averages, the actual number of runs required to reach your goal may be highly variable for a low number of Materials required.*
 
 ## How to Use
   1. Open 'GOALS.csv', and input the number number of Materials you desire next to the corresponding Material. XP cards are all condensed into one. Save.
