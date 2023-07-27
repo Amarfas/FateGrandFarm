@@ -1,32 +1,56 @@
-# Screw It, I'll describe the basics: Anatomy of the repo atm
+# Fate/Grand Farm
 
-## FarmGrandOrder
-  This folder contains the workhorse python code, FarmGrandOrder.py.
-  
-  There are also 2 other python for potential testing/debugging, "Nodes.py" and "NodesTest.py". "NodesTest.py" is meant to run debugging programs to see if potential changes to the Nodes Class will change the output matrix or run slower. This isn't quite complete yet, and probably needs to be updated. "Nodes.py" was originally meant to house the changed Nodes Class for the comparisons that "NodesTest.py" did, but I think I just started putting those changes in "NodesTest.py," so right now it's not important.
-  
-  My cache is in there and I don't think it's supposed to be. Should probably just delete it, I don't know what kind of problems having my computer's cache in there causes when trying to run the program.
+## Introduction
+'Fate/Grand Farm' is a Python program which uses linear programming to help players in the mobile game 'Fate/Grand Order.'
 
-## config
-  This folder contains the config file which FarmGrandOrder.py reads to know what it should do. Work in progress.
+With the variety of Materials in the game, some of which don't help any of the Servants you rolled, it can be difficult to optimally plan your farming route. Even if you plan the best route for farming Free Quests, Events can offer much better drop rates. Surely with all the open-sourced drop data for Events and NA being 2 years behind JP, there has to be a better way to reach your farming goals? That's what this program is for! Input your Material farming goals, select which Events you want to analyze, possibly change some configurations if you're into that, press that exe button, and have the next 2 years of your grinding life dictated to you by a machine!
 
-## Files
-  This folder contains all the csv's atm which FarmGrandOrder reads to do its analysis. The weird names for most of the csv's is caused by google sheets. That's just the names sheets gave them when I downloaded the files, and I'm keeping them as is for simplicity.
-  
-  "GOALS.csv": where you're supposed to put your mat farming goals. Currently my own goals (I think, my other sheet might have been bugged and this needs to get fixed).
-  
-  "GOALSRandom.csv": a relately arbitrary list that needs all materials. Could be used for testing whether the outputs work properly or not.
-  
-  "Efficiency_ - APD.csv": used so the main program knows the drop rate of every Singularity/Lost Belt free quest.
-  
-  "Efficiency_ - Calc.csv": used so the main program can use material names to put values in the proper spot on the matrix when reading event free quest data.
-  
-  "Efficiency_ Hunting 9 PER - Event Quest.csv": drop rates for a random event quest, currently being read if the 'config' isn't on MultEvent mode.
-  
-  "Events": Folder which contains the event quest drop rates for every FGO event in the next 2 years. Also has the "Multi Event Folder."
-  
-   "Multi Event Folder": when MultEvent mode is turned on in config, the program reads every single event csv in this folder and creates a big matrix.
-    
-   "Christmas 202X": These are separated because otherwise they'd take up way too much space in the main "Events" folder.
-    
-   Anatomy of Lotto Event Names: Lotto events have some extra words on the end of them, after the event name but before the "- Event Quest.csv". The number after the "D" refers to the drop bonus used in the drop rate calculations. So "D4" means that you have the CEs to get +4 lotto mats, and "D12" means you're maxed out on boosting CEs. The Christmas lottos also have a shortened material name at the end. This means that the calculations are assuming you intend to spend your lotto box tickets on that item (by placing all 3 in the Multi Event Folder, the program can work out which materials you should redeem with those tickets). Finally, the "BB" at the end means "Buyback," which means that the AP Cost for running the event quests is reduced by the average amount of apples you're expected to get back from opening boxes.
+The executable only works for Windows. If you use another Operating System (or run into other problems), look into the 'Troubleshooting' section below to find out what you need for the Python program.
+
+*Note: As the linear programming algorithms can only compute averages, the actual number of runs required to reach your goal may be highly variable for a low number of Materials required.
+
+## How to Use
+  1. Open 'GOALS.csv', and input the number number of Materials you desire next to the corresponding Material. XP cards are all condensed into one. Save.
+  2. Move/copy all Event '.csv's in the 'Events List' folder you want to be included in the analysis to the 'Events Farm' folder.
+  3. Open 'fgf_config.ini' and change any settings you want.
+  4. Run 'Fate Grand Farm.exe'
+
+For more details on how to configure the analysis or upkeep the program, scroll down to the 'Set Up' section.
+
+## How to Read the Output
+The analysis is output in a 'Farming Plan.txt' and a 'Debug.txt' file (replacing any previous files), with an extra copy put into the 'Former Plans' folder (not replaced).
+
+For the most part, 'Farming Plan' is self explanatory. The first line should say that the results are 'optimal,' and the next line gives the Total AP for the plan. For each line in the following analysis; the 1st entry is the name of the Event/Singularity/Lost Belt, the 2nd entry is the Quest name, and the 3rd entry is the suggested number of times it should be run. The Event name is determined by the name of the corresponding '.csv' file, minus the trailing ' - Event Quest' at the end.
+
+'Debug' contains all the information to properly understand the context for the corresponding 'Farming Plan.' This includes all the errors that came up, configurations, the Events included, and Lotto drop rate boosts.
+
+## Troubleshooting
+This was programmed in Python 3.9, and the necessary libraries are: [NumPy](https://numpy.org/), [SciPy](https://scipy.org/), and [CVXPY](https://www.cvxpy.org/).
+
+It is suggested you download [Anaconda.](https://www.anaconda.com/) You may need to add the 'conda-forge' channel to find CVXPY.
+
+When all necessary modules are installed, go into the 'Code' folder and run 'Fate_Grand_Farm.py'.
+
+## Set Up
+### 'Events List' Folder
+Contains the drop rate data for a bunch of Events in '.csv' format. Lotto Events have their own folders to not clog up list. For Lotto events, '-D#' describes the Drop Rate Bonus used in the analysis, as the Materials obtained from corresponding boxes are essentially added to each node's drop rate table. Any truncated Material name after 'D#-' is the Material you are supposed to grab with the ticket from the Lotto box. For example, 'Christmas 2023 -D12-Claw - Event Quest' is a file for the drop rate table of all 'Christmas 2023' quests, assuming that you have a +12 Drop Rate Bonus from Event CEs, and that you are grabbing Claws of Chaos from any tickets you get from boxes from those runs. It is suggested you put a '.csv' for each ticket Material in the 'Events Farm' folder, as extra data won't confuse the analysis and will instead help you determine what Materials to grab with the ticket.
+
+### Configuring Your Own Event CSV
+To generate your own '.csv's, you can go to my ['FGO Efficiency' google sheet](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/), go to the menu bar, and select 'File' -> 'Make a Copy'. Once you have your own copy, you can go to the 'Event Quest' tab, input any configurations you wants, then go to the sheet's menu bar, and select 'File' -> 'Download' -> 'Comma Separated Values (.csv)'. You can then give the '.csv' file a descriptive name (assuming you did not already rename the google sheet), and put the file into the 'Events Farm' folder. Note that if the file name starts with 'FGO Efficiency' or ends with ' - Free Quest', those parts will be ignored when the Event is named in the output 'Farming Plan.'
+
+What configurations on the 'Event Quest' tab are relevant for 'Fate/Grand Farm'? Obviously you must select the Event you want analyzed in A1. Then for lotto Events, you can specify an Event wide Drop Rate Bonus in E1 or any quest specific values in the same column. You can also determine if you want box apple AP 'Buyback' to affect the AP values of the quests, and also input 'Event' and 'Raid Run Caps' for this specific Event.
+
+Worth noting that this program only actually reads the (hidden in C1) 'Actual Event Name,' whether or not there's 'Buyback,' the 'Event' and 'Raid Run Caps,' and for each Event Quest its, its AP, its type, the Drop Rate Bonus (read value is hidden in F column by default but included if the Event wide value is input into E1), and the (hidden) ID and drop rate for each Material dropped. Material IDs are used so translation changes don't affect the program. None of the values for Efficiency in the document are relevant for this program, so any other settings in the 'Mat' do not affect the analysis. The 'Actual Event Name' is a constant for multiple entries of the same event, so that the program recognizes that 'Christmas 2023 w/ Claw' and 'Christmas 2023 w/ Feather' are actually the same for determining Run Caps.
+
+On configuring the Run Caps, any readable entry to the right of the corresponding Run Cap type overwrites the value in 'FGF_config' for that specific Event. For Run Cap values read in the Event '.csv,' 'Event' and 'Lotto' Type quests both treated as 'Event' quests. The multiple entries for Run Caps are relevant for quests with numbered Types (like 'Lotto 1', 'Lotto 2', etc). If there is only one readable value given, that Run Cap will be applied separately to EACH of 'Lotto 1' and 'Lotto 2'. If two or more readable values are given, the 1st will be applied to 'Lotto 1' and the 2nd applied to 'Lotto 2.' If there are more numbered Types than entries, the Run Caps will be cycled through for later numbers. So if only two values are given, 'Lotto 3' will use the 1st Run Cap. If there are three or more values, 'Lotto 3' will use the 3rd Run Cap. 'Raids' work the same.
+
+### Upkeep and Making Your Own CSVs
+Similar to how the 'Event Quest' tab from my ['FGO Efficiency' google sheet](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) was used to produce the relevant Event '.csv's, the 'APD' and 'Calc' '.csv' files in the 'Data Files' Folder
+
+What follows is a lengthy description of how the 'APD', 'Calc', and 'Event' '.csv's are read by FGF ('Fate/Grand Farm') in case you wanted to make your own from scratch rather than downloading the corresponding file from the google sheet, you could also just read the Python code.
+
+The 'Calc' file is found by locating a file ending in 'Calc.csv'. It is read alongside 'GOALS.csv'. FGF looks at the 3rd row for the ID of each Material and the 4th row for their name. It starts on the 2nd column of those lines (it assumes that's where 'Proof of Hero' is) and reads alongside 'GOALs', matching each Material goal to its corresponding Material ID and name. Order matters. There is a blank entry between each of Bronze mats, Silver mats, Gold mats, Blue Gems, Red Gems, Gold Gems, Statues, Monuments, Blazes, and Hellfires. These are all relevant to make sure the GOALS and Free Quest data all line up. It recognizes skips by the lines starting with '!!' in 'GOALS.csv'. All the Blazes and Hellfires entries are read and pointed to the final index in the drop data.
+
+The 'APD' file is found by locating a file ending 'APD.csv', and is used to gather 'Free Quest' drop rates. FGF recognizes where the data starts by skipping rows until it finds a cell with a string that has the word 'Bronze' in it.  It designates that column as the starting point of the Bronze Materials, and searches for a cell with a string that has the word 'Monument' in it. It assumes the start of the XP cards ('Blazes') are 8 columns past that. FGF then reads row by row, skipping all rows where the 3rd column are either blank ('') or 'AP', and finally stops when either rows run out or a cell with a string containing the value set by 'Last Area' in 'FGF_config.ini' is found. If 'Last Area' is blank, it looks for 'ZZZZZ' in vain. On each read row, the 1st column is read as the singularity name, the 2nd as the quest name, the 3rd as the AP value, and the 4th as the type of quest. It then starts reading starting from the column determined by 'Bronze', adding the Material drop rate to the corresponding index by taking the AP (in the 3rd column) and diving by the APD value. Having the same order as 'Calc' and "GOALS' matters. Once 9 columns past 'Monument' is reached, it adds every cell past that to the last index, tripling the drop rate once it is 15 entries past 'Monument' (as Hellfires are 3x as good as Blazes).
+
+Some details of how the 'Event' files are read described in the 'Configuring Your Own Event CSV' section. FGF reads the 3rd cell in the first row as the 'Actual Event Name', then goes along the row until it finds a cell with 'Event Run Caps:'. After that cell, it uses every integer it reads to replace the 'Event' and 'Lotto Cap's in 'fgf_config.ini', until it finds a cell with 'Raid Run Caps:'. It then uses every integer it reads to replace the 'Raid Cap' in 'fgf_config.ini' until the row ends. It then skips rows until it finds one with a cell containing 'ID'. It notes every column/cell containing 'ID' in that row. It then goes row by row, skipping ones whose 2nd cell are not floats, or whose cells in the first column found using 'ID' are blank (''). If a row is read, it reads the 1st column as the quest name, the 2nd as the AP, and the 4th as the type of quest. and then goes to each column on the 'ID' list. It reads the value 2 cells to the right of each 'ID' as the drop rate for that ID, and if it is not empty it adds the drop rate to the index corresponding to the 'ID'.
