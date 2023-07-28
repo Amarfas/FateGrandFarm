@@ -1,21 +1,26 @@
 # Fate/Grand Farm
 
-## Introduction
-'Fate/Grand Farm' is a Python program which uses linear programming to help players in the mobile game 'Fate/Grand Order.'
+<p align="center">
+  <img width="200" src="https://i.imgur.com/7efNMgy.png?1">
+</p>
 
-With the variety of Materials in the game, some of which don't help any of the Servants you rolled, it can be difficult to optimally plan your farming route. Even if you plan the best route for farming Free Quests, Events can offer much better drop rates. Surely with all the open-sourced drop data for Events and NA being 2 years behind JP, there has to be a better way to reach your farming goals? That's what this program is for! Input your Material farming goals, select which Events you want to analyze, possibly change some configurations if you're into that, press that exe button, and have the next 2 years of your grinding life dictated to you by a machine!
+Fate/Grand Farm is a Python program designed to aid players in the mobile game 'Fate/Grand Order' by utilizing linear programming to create optimal farming plans for Materials.
+
+## Introduction
+
+With the variety of Materials in the game, some of which don't help any of the Servants you rolled, it can be difficult to optimally plan your farming route. Even if you plan the best route for farming Free Quests, Events can offer much better drop rates. With readily available open-sourced data for Events, and the global version lagging 2 years behind the Japanese version, there has to be a better way to reach your farming goals? This is where Fate/Grand Farm comes to your rescue! Input your farming goals, select which Events you want to analyze, possibly change some configurations if you're into that, press that exe button, and have the next 2 years of your grinding life dictated to you by a machine!
 
 The executable only works for Windows. If you use another Operating System (or run into other problems), look into the 'Troubleshooting' section below to find out what you need for the Python program.
 
 *Note: As the linear programming algorithms can only compute averages, the actual number of runs required to reach your goal may be highly variable for a low number of Materials required.*
 
 ## How to Use
-  1. Open 'GOALS.csv', and input the number number of Materials you desire next to the corresponding Material. XP cards are all condensed into one. Save.
-  2. Move/copy all Event '.csv's in the 'Events List' folder you want to be included in the analysis to the 'Events Farm' folder.
-  3. Open 'fgf_config.ini' and change any settings you want.
-  4. Run 'Fate Grand Farm.exe'
+  1. Open 'GOALS.csv', and input the number of Materials you desire next to the corresponding Material. XP cards are all condensed into one entry. Save.
+  2. Move/copy all Event '.csv's in the 'Events List' folder to the 'Events Farm' folder that you want to be included in the analysis.
+  3. Open 'fgf_config.ini' and change any settings you want. Save.
+  4. Run 'Fate_Grand_Farm.exe'
 
-For more details on how to configure the analysis or upkeep the program, scroll down to the 'Set Up' section. This is mostly helpful for creating Event specific Run Caps.
+For more details on how configuring the analysis or mangaging/uppeeking Event data, scroll down to the 'Set Up' section. This is mostly helpful for creating Event specific Run Caps.
 
 ## How to Read the Output
 The analysis is output in a 'Farming Plan.txt' and a 'Debug.txt' file (replacing any previous files), with an extra copy put into the 'Former Plans' folder (not replaced).
