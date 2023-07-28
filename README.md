@@ -20,7 +20,7 @@ The executable only works for Windows. If you use another Operating System (or r
   3. Open 'fgf_config.ini' and change any settings you want. Save.
   4. Run 'Fate_Grand_Farm.exe'
 
-For more details on how configuring the analysis or mangaging/uppeeking Event data, scroll down to the 'Set Up' section. This is mostly helpful for creating Event specific Run Caps.
+For more details on how configuring the analysis or managing/upkeeping Event data, scroll down to the 'Set Up' section. This is mostly helpful for creating Event specific Run Caps.
 
 ## How to Read the Output
 The analysis is output in a 'Farming Plan.txt' and a 'Debug.txt' file (replacing any previous files), with an extra copy put into the 'Former Plans' folder (not replaced).
