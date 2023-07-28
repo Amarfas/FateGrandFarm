@@ -5,93 +5,118 @@ import numpy as np
 
 # Makes it so the program works whether it's started in the 'FarmingGrandOrder' overarching directory or the 'FarmGrandOrder' folder.
 def standardize_path():
-    pathDir = ''
+    global path_prefix
     if glob.glob('Code') == []:
-        return '..\\' + pathDir
-    return pathDir
+        path_prefix = '..\\'
+    else:
+        path_prefix = ''
+
+    Debug.config_notes = 'The Path Prefix is: ' + path_prefix + '\n'
+
+class ConfigList():
+    plan_name = ''
+    tg_half_AP = ''
+    remove_zeros = ''
+    run_int = ''
+    last_area = ''
+    output_text = ''
+    config = configparser.ConfigParser()
+
+    def set_notice( self ):
+        ConfigList.config.read( path_prefix + 'fgf_config.ini' )
+        key = 'Notifications'
+
+        return key, self.set_config(key, 'bool')
+
+    def set_config( self, key, type = '', section = 'DEFAULT' ):
+        key_value = self.config[section][key]
+
+        if type == 'int':
+            try:
+                key_value = int(key_value)
+            except ValueError:
+                if key_value != '' and key_value != 'None':
+                    Debug().error_warning( 'Configuration "' + key + '" was not a number.')
+                key_value = None
+
+        if type == 'float':
+            try:
+                key_value = float(key_value)
+            except ValueError:
+                Debug().error_warning( 'Configuration "' + key + '" was not a number.')
+                key_value = None
+
+        if type == 'bool':
+            x = key_value.lower()
+            if x == '1' or x == 'true' or x == 't' or x == 'yes' or x == 'y' or x == 'on':
+                key_value = True
+            else:
+                if not (x == '0' or x == 'false' or x == 'f' or x == 'no' or x == 'n' or x == 'off'):
+                    Debug().error_warning( 'Configuration "' + key + '" was not yes or no/true or false.')
+                key_value = False
+    
+        Debug().note_config(key, key_value)
+
+        # 'Last Area' configuration
+        if key == 'Last Area' and key_value == '':
+            return 'ZZZZZ'
+        return key_value
+
+    def create_config_list(self):
+        ConfigList.plan_name = self.set_config('Plan Name')
+        ConfigList.tg_half_AP = self.set_config('Training Grounds Half AP', 'bool')
+        ConfigList.remove_zeros = self.set_config('Remove Zeros', 'bool')
+        ConfigList.run_int = self.set_config('Run Count Integer', 'bool')
+        ConfigList.last_area = self.set_config('Last Area')
+        ConfigList.output_text = self.set_config('Output Text', 'bool')
 
 # Compiles statements to be included in the Debug output text file.
-class Debug:
-    def __init__( self, path_prefix ):
-        self.file_name = ''
-        self.error = ''
-        self.config_notes = 'The Path Prefix is: ' + path_prefix + '\n'
-        self.end_notes = ''
+class Debug():
+    error = ''
+    config_notes = ''
+    end_notes = ''
+    notifications = True
 
-        self.config = configparser.ConfigParser()
-        self.config.read( path_prefix + 'fgf_config.ini' )
-
-        self.notifications = True
-        self.notifications = self.note_config('Notifications', 'bool')
+    def set_notice(self):
+        Debug.notifications = ConfigList().set_notice()
     
     def error_warning( self, note ):
         note = '!! ' + note
         if self.notifications:
             print(note)
-        self.error += note + '\n'
+        Debug.error += note + '\n'
 
-    def note_config( self, key, type = '', section = 'DEFAULT' ):
-        keyValue = self.config[section][key]
-
-        if type == 'int':
-            try:
-                keyValue = int(keyValue)
-            except ValueError:
-                if key != 'Event Cap' and keyValue != '':
-                    self.error_warning( 'Configuration "' + key + '" was not a number.')
-                keyValue = 'NaN'
-
-        if type == 'float':
-            try:
-                keyValue = float(keyValue)
-            except ValueError:
-                self.error_warning( 'Configuration "' + key + '" was not a number.')
-                keyValue = 'Nan'
-
-        if type == 'bool':
-            x = keyValue.lower()
-            if x == '1' or x == 'true' or x == 't' or x == 'yes' or x == 'y' or x == 'on':
-                keyValue = True
-            else:
-                if not (x == '0' or x == 'false' or x == 'f' or x == 'no' or x == 'n' or x == 'off'):
-                    self.error_warning( 'Configuration "' + key + '" was not yes or no/true or false.')
-                keyValue = False
-    
-        self.config_notes += key + ' = ' + str(keyValue) + '\n'
-
-        # 'Last Area' configuration
-        if key == 'Last Area' and keyValue == '':
-            return 'ZZZZZ'
-        return keyValue
+    def note_config( self, key, key_value ):
+        Debug.config_notes += key + ' = ' + str(key_value) + '\n'
 
     def make_note( self, note , notice = False ):
         if self.notifications and notice:
             print(note)
-        self.end_notes += note
+        Debug.end_notes += note
 
 class InputData:
-    def __init__( self, goals_CSV, material_list_CSV, debug, remove_zeros = False ):
+    def __init__( self, goals_CSV, material_list_CSV ):
         self.mat_count = 0
         self.mat_total = 0
-        self.remove_zeros = remove_zeros
+        self.remove_zeros = ConfigList.remove_zeros
 
         self.ID_to_index = {-1: [], -2: [], -3: [], -4: [], -5: [], -6: 'T'}
         self.skip_data_index = {}
         self.index_to_name = {}
 
         self.goals = []
-        self._interpret_CSVs( goals_CSV, material_list_CSV, debug )
+        self._interpret_CSVs( goals_CSV, material_list_CSV )
     
     # Interpret the Materials by groups between their gaps.
-    def _interpret_group( self, reader, mat_ID, mat_name, count, index, gaps, error, debug: Debug ):
+    def _interpret_group( self, reader, mat_ID, mat_name, count, index, gaps, error ):
         row = next(reader)
         if row[0] != error[0]:
-            debug.error_warning( 'Does not seem to be the start of '+ error[1] +'. GOALS and/or Material List CSVs may need to be updated.' )
+            Debug().error_warning( 'Does not seem to be the start of '+ error[1] +'. GOALS and/or Material List CSVs may need to be updated.' )
         
         while row[0][0:2] != '!!':
             try:
                 matGoal = int(row[1])
-            except:
+            except ValueError:
                 matGoal = 0
             
             # Flag whether or not to remove this material from the Drop Matrix.
@@ -130,7 +155,7 @@ class InputData:
     # 'indexToName' maps placement in Drop Matrix to the corresponding Material's name.
     # 'skipDataIndex' maps whether or not an entry in the Free Drop Matrix should be skipped.
     # Also transforms the data in the GOALS csv into a computable column matrix.
-    def _interpret_CSVs( self, goals_CSV, material_list_CSV, debug: Debug ):
+    def _interpret_CSVs( self, goals_CSV, material_list_CSV ):
         with open( material_list_CSV, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
             mat_IDs = next(reader)
@@ -152,15 +177,15 @@ class InputData:
                          ['Saber Piece','Statues'], ['Saber Monument', 'Monuments']]
 
             for gaps in range(8):
-                reader, count, index = self._interpret_group( reader, mat_IDs, mat_names, count, index, gaps, errors[gaps], debug )
+                reader, count, index = self._interpret_group( reader, mat_IDs, mat_names, count, index, gaps, errors[gaps] )
 
             row = next(reader)
             if row[0] != 'Saber Blaze':
-                debug.error_warning( 'Does not seem to be the start of XP. GOALS and/or Material List CSVs may need to be updated.' )
+                Debug().error_warning( 'Does not seem to be the start of XP. GOALS and/or Material List CSVs may need to be updated.' )
             
             try:
                 mat_goal = int(row[1])
-            except:
+            except ValueError:
                 mat_goal = 0
             f.close()
         
@@ -184,10 +209,11 @@ class InputData:
         self.goals = np.array(self.goals)
 
 class RunCaps():
-    def __init__( self, debug: Debug ):
-        self.config_caps = { 'Event':[debug.note_config('Event Cap' ,'int')],
-                            'Raid':[debug.note_config('Raid Cap' ,'int')],
-                            'Bleach':[debug.note_config('Bleach Cap' ,'int')] }
+    def __init__(self):
+        self.config_caps = { 'Event':[ConfigList().set_config('Event Cap' ,'int')],
+                            'Lotto':[ConfigList().set_config('Lotto Cap' ,'int')],
+                            'Raid':[ConfigList().set_config('Raid Cap' ,'int')],
+                            'Bleach':[ConfigList().set_config('Bleach Cap' ,'int')] }
         self.node_info = []
 
     def determine_event_caps( self, event_node ):
@@ -200,8 +226,9 @@ class RunCaps():
             if i == 'Raid Run Caps:':
                 if new_cap != []:
                     event_caps[cap_read] = new_cap
-                    cap_read = 'Raid'
+                    event_caps['Lotto'] = new_cap
                     new_cap = []
+                cap_read = 'Raid'
             
             if cap_read:
                 try:
@@ -219,17 +246,20 @@ class RunCaps():
                 node_type, group_num = node_group.split(' ')
             except ValueError:
                 node_type = node_group
-                group_num = 'None'
-
-            if node_type == 'Lotto':
-                node_key = 'Event'
-            else:
-                node_key = node_type
+                group_num = 1
             
             if node_caps:
-                cap = node_caps.get(node_key)
+                cap = node_caps.get(node_type)
             else:
-                cap = self.config_caps.get(node_key)
+                cap = self.config_caps.get(node_type)
+            
+            if cap == None or len(cap) == 0:
+                cap = None
+            else:
+                if len(cap) == 1:
+                    cap = cap[0]
+                else:
+                    cap = cap[ (group_num - 1) % len(cap) ]
 
             self.node_info.append([ true_name, node_type, group_num, group_count, cap ])
     
@@ -255,7 +285,7 @@ class RunCaps():
             if i[4] != None:
                 if name_tracker == []:
                     name_tracker.append(i[0:3])
-                    run_cap.append([i[4][0]])
+                    run_cap.append([i[4]])
 
                     run_matrix = np.zeros((1,col))
                     run_matrix[0][start:col] = 1
@@ -264,12 +294,12 @@ class RunCaps():
 
                     row_find = 0
                     for j in name_tracker:
-                        if i[0:2] == j[0:2]:
+                        if i[0:3] == j[0:3]:
                             break
                         row_find += 1
                     else:
                         name_tracker.append(i[0:3])
-                        run_cap.append([i[4][0]])
+                        run_cap.append([i[4]])
                         row += 1
 
                         run_matrix = np.vstack(( run_matrix, np.zeros((1,col)) ))

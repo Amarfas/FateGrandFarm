@@ -4,13 +4,13 @@ import numpy as np
 import Interpret as Inter
 
 class Nodes:
-    def __init__( self, remove_zeros = False ):
+    def __init__( self ):
         self.node_names = []
         self.AP_costs = []
         self.drop_matrix = np.array([])
         self.hellfire_range = [9700000,500]
 
-        self.remove_zeros = remove_zeros
+        self.remove_zeros = Inter.ConfigList.remove_zeros
 
     # TODO: There are some issues with this method of assembling matrices.
     # The basic issue is that cvxpy analysis requires data in the form of numpy matrices, but the best way to form numpy matrices is to initialize its size.
@@ -32,7 +32,7 @@ class Nodes:
                     self.AP_costs = np.vstack(( self.AP_costs, add_AP_cost ))
                     self.drop_matrix = np.vstack(( self.drop_matrix, add_drop_matrix )) 
 
-    def add_event_drop( self, event_drop_CSV, run_caps: Inter.RunCaps, debug: Inter.Debug, mat_count, ID_to_index ):
+    def add_event_drop( self, event_drop_CSV, run_caps: Inter.RunCaps, mat_count, ID_to_index ):
         event_folder = ['FGO Efficiency ',
                         'Efficiency ',
                         'Events Farm' + '\\']
@@ -43,7 +43,7 @@ class Nodes:
                 break
 
         event_name = event_drop_CSV[(start):event_drop_CSV.rindex(' - Event',start)]
-        debug.make_note( event_name + '\n' )
+        Inter.Debug().make_note( event_name + '\n' )
 
         with open( event_drop_CSV, newline = '', encoding = 'latin1' ) as f:
             reader = csv.reader(f)
@@ -57,7 +57,7 @@ class Nodes:
                 try:
                     event_node = next(reader)
                 except:
-                    debug.error_warning( 'Sheet does not have columns labeled "ID".' )
+                    Inter.Debug().error_warning( 'Sheet does not have columns labeled "ID".' )
                 count = 0
                 for i in event_node:
                     if i == 'ID': 
@@ -115,16 +115,16 @@ class Nodes:
             run_caps.add_group_info( event_true_name, node_group, group_count, event_caps )
             self.assemble_matrix( event_AP_cost, event_drop_matrix )
     
-    def multi_event( self, path, run_caps, debug: Inter.Debug, mat_count, ID_to_index ):
-        debug.make_note( 'The Events included in this analysis are:\n' )
-        eventFolder = glob.glob( path + 'Events Farm\\*' )
+    def multi_event( self, run_caps, mat_count, ID_to_index ):
+        Inter.Debug().make_note( 'The Events included in this analysis are:\n' )
+        eventFolder = glob.glob( Inter.path_prefix + 'Events Farm\\*' )
 
         for event in eventFolder:
-            self.add_event_drop( event, run_caps, debug, mat_count, ID_to_index )
+            self.add_event_drop( event, run_caps, mat_count, ID_to_index )
         
-        debug.make_note('\n')
+        Inter.Debug().make_note('\n')
     
-    def add_free_drop( self, free_drop_CSV, run_caps: Inter.RunCaps, last_area, debug: Inter.Debug, skip_data_index ):
+    def add_free_drop( self, free_drop_CSV, run_caps: Inter.RunCaps, skip_data_index ):
         with open( free_drop_CSV, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
 
@@ -135,7 +135,7 @@ class Nodes:
                 try:
                     free_drop = next(reader)
                 except:
-                    debug.error_warning( 'Sheet does not have a column labeled as referencing "Monument" mats.' )
+                    Inter.Debug().error_warning( 'Sheet does not have a column labeled as referencing "Monument" mats.' )
                 for i in range(len(free_drop)):
                     if free_drop[i].find('Bronze') >= 0:
                         mat_start = i
@@ -143,7 +143,7 @@ class Nodes:
                         mat_end = i+9
                         break
             if mat_start == 0:
-                debug.error_warning( 'Sheet does not have a column labeled as referencing "Bronze" mats.' )
+                Inter.Debug().error_warning( 'Sheet does not have a column labeled as referencing "Bronze" mats.' )
             
             free_AP_cost = []
             free_drop_matrix = []
@@ -151,18 +151,24 @@ class Nodes:
             node_group = False
             group_count = 0
 
+            half_AP = Inter.ConfigList.tg_half_AP
+
             # Interpretation of how this is supposed to read the APD csv:
             # If the Singularity is further than the user wants to farm as defined in the config file, stop.
             # If the line is filler because the original google sheet copies the Japanese document formatting, skip it.
             # Else, start a new line of drop rate data.
             for free_drop in reader:
-                if free_drop[0].find( last_area ) >= 0: 
+                if free_drop[0].find( Inter.ConfigList.last_area ) >= 0: 
                     break
 
-                if free_drop[2] == '' or free_drop[2] == 'AP': 
+                try:
+                    node_AP = int(free_drop[2])
+                except ValueError:
                     continue
 
-                node_AP = int(free_drop[2])
+                if free_drop[3] == 'Daily' and half_AP:
+                    node_AP *= float( node_AP / int(node_AP/2) )
+
                 drop_matrix_add = []
                 if self.remove_zeros:
                     add_data = False

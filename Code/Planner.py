@@ -6,11 +6,11 @@ import time
 import Interpret as Inter
 from Nodes import Nodes
 
-def planner( nodes: Nodes, debug: Inter.Debug, input_data: Inter.InputData, run_cap_matrix = False, run_int = False ):
+def planner( nodes: Nodes, input_data: Inter.InputData, run_cap_matrix = False ):
     drop_matrix = np.transpose( nodes.drop_matrix )
     AP_costs = np.transpose( nodes.AP_costs )
     run_size = np.size( AP_costs )
-    if run_int: 
+    if Inter.ConfigList.run_int: 
         runs = cp.Variable( (run_size,1) , integer=True)
     else: 
         runs = cp.Variable( (run_size,1) , nonneg=True )
@@ -20,7 +20,7 @@ def planner( nodes: Nodes, debug: Inter.Debug, input_data: Inter.InputData, run_
             if j > 0: break
         else:
             if input_data.index_to_name[i] != '':
-                debug.make_note( 'Obtaining any ' + input_data.index_to_name[i] + ' is impossible with these restrictions.' )
+                Inter.Debug().make_note( 'Obtaining any ' + input_data.index_to_name[i] + ' is impossible with these restrictions.' )
                 input_data.goals[i] = 0
 
     objective = cp.Minimize( AP_costs @ runs )
@@ -31,7 +31,7 @@ def planner( nodes: Nodes, debug: Inter.Debug, input_data: Inter.InputData, run_
     prob = cp.Problem( objective , constraints )
     prob.solve()
 
-    if run_int:
+    if Inter.ConfigList.run_int:
         return ( prob , runs.value , prob.value )
     else: 
         run_clean = np.zeros( (run_size,1) , dtype = int)
@@ -45,31 +45,36 @@ def planner( nodes: Nodes, debug: Inter.Debug, input_data: Inter.InputData, run_
         return ( prob , run_clean , int( AP_costs @ runs.value ) )
 
 class Output:
-    def __init__( self, path_prefix, debug: Inter.Debug ):
-        self.path_prefix = path_prefix
-        self.debug = debug
+    def __init__(self) -> None:
+        pass
 
     def console_print( self, text ):
         print( text )
         return text + '\n'
-
-    def file_creation( self, file_name, text ):
-        specific = time.ctime(time.time()).replace(':','_') + '__' + self.debug.file_name + ' '
-        plan_folder = self.path_prefix
-        former_plans = plan_folder + 'Former Plans\\' + specific + file_name
-
-        with open( plan_folder + file_name, 'w') as f:
-            f.write(text)
-            f.close()
-        
+    
+    def avoid_error( self, former_plans, text ):
         os.makedirs(os.path.dirname(former_plans), exist_ok=True)
         with open( former_plans, 'w') as f:
             f.write(text)
             f.close()
 
-    def print_out( self, optimal, runs, total_AP, node_names, output_text = False ):
+    def file_creation( self, plan_name, time_stamp, file_name, text ):
+        former_start = Inter.path_prefix + 'Former Plans\\'
+        former_end = time_stamp + file_name
+
+        with open( Inter.path_prefix + file_name, 'w') as f:
+            f.write(text)
+            f.close()
+        
+        try:
+            self.avoid_error( former_start + plan_name + former_end, text )
+        except:
+            self.avoid_error( former_start + former_end, '!! Plan Name not accepted by OS\n' + text )
+
+
+    def print_out( self, optimal, runs, total_AP, node_names ):
         output = self.console_print( 'These results are: ' + optimal )
-        output += self.console_print( 'The total AP required is: ' + "{:,}".format(total_AP) )
+        output += self.console_print( 'The total AP required is: ' + "{:,}".format(total_AP) + '\n' )
         output += self.console_print( 'You should run:' )
 
         count = 0
@@ -78,15 +83,20 @@ class Output:
                 output += self.console_print( node_names[count] + ': ' + "{:,}".format(int(i)) + ' times')
             count += 1
         
-        if output_text:
-            self.file_creation( 'Farming Plan.txt' , output )
+        if Inter.ConfigList.output_text:
+            plan_name = Inter.ConfigList.plan_name
+            if plan_name:
+                plan_name += '_'
+            time_stamp = time.strftime("%Y%m%d_%H%M%S__", time.localtime())
+
+            self.file_creation( plan_name, time_stamp, 'Farming Plan.txt', output )
 
             output = ''
-            if self.debug.error != '':
+            if Inter.Debug.error != '':
                 output = '!! WARNING !!\n'
-                output += self.debug.error + '\n'
+                output += Inter.Debug.error + '\n'
             output += '__Configurations:\n'
-            output += self.debug.config_notes + '\n'
-            output += self.debug.end_notes
+            output += Inter.Debug.config_notes + '\n'
+            output += Inter.Debug.end_notes
 
-            self.file_creation( 'Debug.txt' , output )
+            self.file_creation( plan_name, time_stamp, 'Debug.txt', output )
