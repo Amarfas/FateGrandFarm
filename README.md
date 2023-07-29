@@ -99,13 +99,29 @@ Details on configuring the Run Caps:
 As an example, if only 2 values are given, 'Lotto 3' will use the 1st Run Cap. If there are 3 or more values, 'Lotto 3' will use the 3rd Run Cap. 'Raids' work the same.
 
 ## Upkeep
-Similar to how the 'Event Quest' tab from the ['FGO Efficiency'](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) google sheet was used to produce the relevant Event '.csv's, the 'APD' and 'Calc' tabs were used to produce the relevant '.csv' files in the 'Data Files' Folder.
+Similar to how the 'Event Quest' tab from the ['FGO Efficiency'](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) google sheet was used to produce the relevant Event '.csv's, the 'APD' and 'Calc' tabs were used to produce the relevant '.csv' files in the 'Data Files' Folder. If you want to update Fate/Grand Farm with new information, you need merely to download the relevant files and place them in the proper folders. For a more extensive explanation, read the next section.
 
 ## Making Your Own Readable CSVs
 
-What follows is a lengthy description of how the 'APD', 'Calc', and 'Event' '.csv's are read by FGF ('Fate/Grand Farm') in case you wanted to make your own from scratch rather than downloading the corresponding file from the google sheet, you could also just read the Python code.
+To create your own 'APD', 'Calc', and 'Event' '.csv's so they can be read by FGF ('Fate/Grand Farm') follow these guidelines. You can also read the Python code itself.
 
-The 'Calc' file is found by locating a file ending in 'Calc.csv'. It is read alongside 'GOALS.csv'. FGF looks at the 3rd row for the ID of each Material and the 4th row for their name. It starts on the 2nd column of those lines (it assumes that's where 'Proof of Hero' is) and reads alongside 'GOALs', matching each Material goal to its corresponding Material ID and name. Order matters. There is a blank entry between each of Bronze mats, Silver mats, Gold mats, Blue Gems, Red Gems, Gold Gems, Statues, Monuments, Blazes, and Hellfires. These are all relevant to make sure the GOALS and Free Quest data all line up. It recognizes skips by the lines starting with '!!' in 'GOALS.csv'. All the Blazes and Hellfires entries are read and pointed to the final index in the drop data.
+## 'Calc' File
+ 1. Create a CSV file with a name ending in '*Calc.csv' in the 'Data Files' folder. This will be read alongside 'GOALS.csv'.
+ 2. Put the Material IDs on a row whose first column starts with 'ID'. Start the actual Material ID values on the 2nd column (assumed where 'Proof of Hero' is). Use the same order as 'GOALS.csv'.
+ 3. Do the same for the Material Names on the next row.
+ 4. Make sure there is a blank entry/column between the following groups:
+     * Bronze mats
+     * Silver mats
+     * Gold mats
+     * Blue Gems
+     * Red Gems
+     * Gold Gems
+     * Statues
+     * Monuments
+     * Blazes
+     * Hellfires
+
+  Worth noting that FGF recognizes the skips by the lines starting with '!!' in 'GOALS.csv'.
 
 The 'APD' file is found by locating a file ending 'APD.csv', and is used to gather 'Free Quest' drop rates. FGF recognizes where the data starts by skipping rows until it finds a cell with a string that has the word 'Bronze' in it.  It designates that column as the starting point of the Bronze Materials, and searches for a cell with a string that has the word 'Monument' in it. It assumes the start of the XP cards ('Blazes') are 8 columns past that. FGF then reads row by row, skipping all rows where the 3rd column are either blank ('') or 'AP', and finally stops when either rows run out or a cell with a string containing the value set by 'Last Area' in 'FGF_config.ini' is found. If 'Last Area' is blank, it looks for 'ZZZZZ' in vain. On each read row, the 1st column is read as the singularity name, the 2nd as the quest name, the 3rd as the AP value, and the 4th as the type of quest. It then starts reading starting from the column determined by 'Bronze', adding the Material drop rate to the corresponding index by taking the AP (in the 3rd column) and diving by the APD value. Having the same order as 'Calc' and "GOALS' matters. Once 9 columns past 'Monument' is reached, it adds every cell past that to the last index, tripling the drop rate once it is 15 entries past 'Monument' (as Hellfires are 3x as good as Blazes).
 
