@@ -98,8 +98,10 @@ Details on configuring the Run Caps:
 
 As an example, if only 2 values are given, 'Lotto 3' will use the 1st Run Cap. If there are 3 or more values, 'Lotto 3' will use the 3rd Run Cap. 'Raids' work the same.
 
-## Upkeep and Making Your Own CSVs
-Similar to how the 'Event Quest' tab from my ['FGO Efficiency' google sheet](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) was used to produce the relevant Event '.csv's, the 'APD' and 'Calc' '.csv' files in the 'Data Files' Folder
+## Upkeep
+Similar to how the 'Event Quest' tab from the ['FGO Efficiency'](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) google sheet was used to produce the relevant Event '.csv's, the 'APD' and 'Calc' tabs were used to produce the relevant '.csv' files in the 'Data Files' Folder.
+
+## Making Your Own Readable CSVs
 
 What follows is a lengthy description of how the 'APD', 'Calc', and 'Event' '.csv's are read by FGF ('Fate/Grand Farm') in case you wanted to make your own from scratch rather than downloading the corresponding file from the google sheet, you could also just read the Python code.
 
