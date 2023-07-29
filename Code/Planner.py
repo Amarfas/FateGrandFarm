@@ -6,18 +6,19 @@ import time
 import Interpret as Inter
 from Nodes import Nodes
 
-def planner( nodes: Nodes, input_data: Inter.InputData, run_cap_matrix = False ):
+def planner( nodes: Nodes, input_data: Inter.InputData, run_cap_matrix = False, run_int = False ):
     drop_matrix = np.transpose( nodes.drop_matrix )
     AP_costs = np.transpose( nodes.AP_costs )
     run_size = np.size( AP_costs )
-    if Inter.ConfigList.run_int: 
+    if run_int: 
         runs = cp.Variable( (run_size,1) , integer=True)
     else: 
         runs = cp.Variable( (run_size,1) , nonneg=True )
 
     for i in range(input_data.mat_count):
         for j in drop_matrix[i]:
-            if j > 0: break
+            if j > 0: 
+                break
         else:
             if input_data.index_to_name[i] != '':
                 Inter.Debug().make_note( 'Obtaining any ' + input_data.index_to_name[i] + ' is impossible with these restrictions.' )
@@ -31,7 +32,7 @@ def planner( nodes: Nodes, input_data: Inter.InputData, run_cap_matrix = False )
     prob = cp.Problem( objective , constraints )
     prob.solve()
 
-    if Inter.ConfigList.run_int:
+    if run_int:
         return ( prob , runs.value , prob.value )
     else: 
         run_clean = np.zeros( (run_size,1) , dtype = int)
@@ -51,6 +52,32 @@ class Output:
     def console_print( self, text ):
         print( text )
         return text + '\n'
+    
+    def print_drops( self, output, runs, nodes: Nodes, index_to_name ):
+        output_drops = output
+
+        for i in range(len(runs)):
+            run_count = int(runs[i])
+            if run_count > 0:
+                text = nodes.node_names[i] + ':   ' + "{:,}".format(run_count) + ' times'
+                output_drops += text + '  =  '
+
+                if nodes.runs_per_box[i] != 'F':
+                    text += '  ,   Boxes Farmed = ' + "{:.2f}".format( run_count / nodes.runs_per_box[i] )
+
+                output += self.console_print(text)
+
+                add_drop = ''
+                for j in range(len( nodes.drop_matrix[i] )):
+                    mat_drop = nodes.drop_matrix[i][j]
+                    if mat_drop > 0:
+                        if add_drop != '':
+                            add_drop += ', '
+                        add_drop += "{:.2f}".format( run_count*mat_drop ) + ' ' + index_to_name[j]
+                
+                output_drops += add_drop + '\n'
+
+        return output, output_drops
     
     def avoid_error( self, former_plans, text ):
         os.makedirs(os.path.dirname(former_plans), exist_ok=True)
@@ -72,24 +99,21 @@ class Output:
             self.avoid_error( former_start + former_end, '!! Plan Name not accepted by OS\n' + text )
 
 
-    def print_out( self, optimal, runs, total_AP, node_names ):
-        output = self.console_print( 'These results are: ' + optimal )
+    def print_out( self, prob, runs, total_AP, nodes: Nodes, index_to_name, output_files = True ):
+        output = self.console_print( 'These results are: ' + prob.status )
         output += self.console_print( 'The total AP required is: ' + "{:,}".format(total_AP) + '\n' )
         output += self.console_print( 'You should run:' )
 
-        count = 0
-        for i in runs:
-            if i > 0:
-                output += self.console_print( node_names[count] + ': ' + "{:,}".format(int(i)) + ' times')
-            count += 1
+        output, output_drops = self.print_drops( output, runs, nodes, index_to_name )
         
-        if Inter.ConfigList.output_text:
+        if output_files:
             plan_name = Inter.ConfigList.plan_name
             if plan_name:
                 plan_name += '_'
             time_stamp = time.strftime("%Y%m%d_%H%M%S__", time.localtime())
 
             self.file_creation( plan_name, time_stamp, 'Farming Plan.txt', output )
+            self.file_creation( plan_name, time_stamp, 'Farming Plan Drops.txt', output_drops)
 
             output = ''
             if Inter.Debug.error != '':
@@ -97,6 +121,7 @@ class Output:
                 output += Inter.Debug.error + '\n'
             output += '__Configurations:\n'
             output += Inter.Debug.config_notes + '\n'
-            output += Inter.Debug.end_notes
+            output += Inter.Debug.end_notes + '\n'
+            output += Inter.Debug.lotto_notes + '\n'
 
             self.file_creation( plan_name, time_stamp, 'Debug.txt', output )

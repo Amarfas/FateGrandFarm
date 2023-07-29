@@ -15,7 +15,7 @@ from Planner import planner
 # 'tolerance' defines the minimum difference that will break the matrix comparison
 # 'tolerance2' defines the maximum difference that'll be ignored in matrix comparisons
 
-test_modes = [ 4 ]
+test_modes = [ 1, 2, 3 ]
 tolerance = 0.01
 tolerance2 = 0
 rep = 100
@@ -97,8 +97,6 @@ def build_matrix( ver ):
 
 print('\n')
 Inter.standardize_path()
-
-Inter.Debug().set_notice()
 Inter.ConfigList().create_config_list()
 
 input_data = Inter.InputData( Inter.path_prefix + 'GOALS' + goals_debug + '.csv', glob.glob( Inter.path_prefix + 'Data Files\\*Calc.csv' )[0] )
@@ -112,15 +110,16 @@ else:
     goals_list = [goals_debug]
 
 for goals_debug in goals_list:
+    print( 'Test results for: GOALS' + goals_debug + '.csv:')
     for i in test_modes:
         if i == 1:
             print( 'Nodes Names equal: ' + check_matrix( nodes.node_names, nodes_test.node_names, 'T', 'T', matrix = 'node_names' ))
             print( 'AP Cost equal: ' + check_matrix( nodes.AP_costs, nodes_test.AP_costs ))
             print( 'Drop Matrix equal: ' + check_matrix( nodes.drop_matrix, nodes_test.drop_matrix ))
             #print( 'Cap Info Matrix equal: ' + check_matrix( run_caps.node_info, nodes_test.node_info ))
+            print('')
         
         if i == 2:
-            print('\n')
             prob , runs , total_AP = planner( nodes, input_data )
             prob2 , runs2 , total_AP2 = planner( nodes_test, input_data )
 
@@ -129,10 +128,10 @@ for goals_debug in goals_list:
                 print('Total AP equal: T')
             else: 
                 print('Total AP equal: F: '+str(total_AP)+' != '+str(total_AP2))
+
+            print('')
         
         if i == 3:
-            print( '\nFor GOALS' + goals_debug + '.csv:')
-
             t1 = time.time()
             for j in range(rep):
                 nodes, run_caps, run_cap_matrix = build_matrix('Nodes')
@@ -148,6 +147,8 @@ for goals_debug in goals_list:
             print( '   Time2 per iter: ' + str(t2) )
 
             print( ' Difference x1,000: ' + str(1000*(t2-t1)) )
+
+            print('')
         
         if i == 4:
             run_cap_matrix1 = run_caps.build_run_cap_matrix()

@@ -19,14 +19,8 @@ class ConfigList():
     remove_zeros = ''
     run_int = ''
     last_area = ''
-    output_text = ''
+    output_files = ''
     config = configparser.ConfigParser()
-
-    def set_notice( self ):
-        ConfigList.config.read( path_prefix + 'fgf_config.ini' )
-        key = 'Notifications'
-
-        return key, self.set_config(key, 'bool')
 
     def set_config( self, key, type = '', section = 'DEFAULT' ):
         key_value = self.config[section][key]
@@ -63,22 +57,23 @@ class ConfigList():
         return key_value
 
     def create_config_list(self):
+        ConfigList.config.read( path_prefix + 'fgf_config.ini' )
+
+        Debug.notifications = self.set_config('Notifications', 'bool')
         ConfigList.plan_name = self.set_config('Plan Name')
         ConfigList.tg_half_AP = self.set_config('Training Grounds Half AP', 'bool')
         ConfigList.remove_zeros = self.set_config('Remove Zeros', 'bool')
         ConfigList.run_int = self.set_config('Run Count Integer', 'bool')
         ConfigList.last_area = self.set_config('Last Area')
-        ConfigList.output_text = self.set_config('Output Text', 'bool')
+        ConfigList.output_files = self.set_config('Output Files', 'bool')
 
 # Compiles statements to be included in the Debug output text file.
 class Debug():
     error = ''
     config_notes = ''
     end_notes = ''
+    lotto_notes = ''
     notifications = True
-
-    def set_notice(self):
-        Debug.notifications = ConfigList().set_notice()
     
     def error_warning( self, note ):
         note = '!! ' + note
@@ -93,6 +88,11 @@ class Debug():
         if self.notifications and notice:
             print(note)
         Debug.end_notes += note
+    
+    def add_lotto( self, note ):
+        if Debug.lotto_notes == '':
+            Debug.lotto_notes += 'The lotto drop bonus for each node is:\n'
+        Debug.lotto_notes += note
 
 class InputData:
     def __init__( self, goals_CSV, material_list_CSV ):
@@ -100,8 +100,8 @@ class InputData:
         self.mat_total = 0
         self.remove_zeros = ConfigList.remove_zeros
 
-        self.ID_to_index = {-1: [], -2: [], -3: [], -4: [], -5: [], -6: 'T'}
         self.skip_data_index = {}
+        self.ID_to_index = {-1: [], -2: [], -3: [], -4: [], -5: [], -6: 'T'}
         self.index_to_name = {}
 
         self.goals = []
@@ -151,9 +151,9 @@ class InputData:
         
         return reader, count, index
 
-    # Creates three dictionaries, 'IDtoIndex' maps a Material's ID to placement in Drop Matrix, or notes that it should be skipped with a 'T' value.
-    # 'indexToName' maps placement in Drop Matrix to the corresponding Material's name.
-    # 'skipDataIndex' maps whether or not an entry in the Free Drop Matrix should be skipped.
+    # Creates three dictionaries, 'ID_to_index' maps a Material's ID to placement in Drop Matrix, or notes that it should be skipped with a 'T' value.
+    # 'index_to_name' maps placement in Drop Matrix to the corresponding Material's name.
+    # 'skip_data_index' maps whether or not an entry in the Free Drop Matrix should be skipped.
     # Also transforms the data in the GOALS csv into a computable column matrix.
     def _interpret_CSVs( self, goals_CSV, material_list_CSV ):
         with open( material_list_CSV, newline = '', encoding = 'Latin1' ) as f:

@@ -6,11 +6,10 @@ import Planner as Plan
 # Maybe this should all be in a 'main' method? No clue about the etiquette there for more 'professional' programs.
 Inter.standardize_path()
 
-Inter.Debug().set_notice()
-run_caps = Inter.RunCaps()
 Inter.ConfigList().create_config_list()
+run_caps = Inter.RunCaps()
 
-goals_debug = 'Test'
+goals_debug = ''
 
 input_data = Inter.InputData( Inter.path_prefix + 'GOALS' + goals_debug + '.csv', glob.glob( Inter.path_prefix + 'Data Files\\*Calc.csv' )[0] )
 
@@ -22,4 +21,4 @@ run_cap_matrix = run_caps.build_run_cap_matrix()
 prob , runs , total_AP = Plan.planner( nodes, input_data, run_cap_matrix )
 
 output = Plan.Output()
-output.print_out( prob.status, runs, total_AP, nodes.node_names )
+output.print_out( prob, runs, total_AP, nodes, input_data.index_to_name, Inter.ConfigList.output_files )
