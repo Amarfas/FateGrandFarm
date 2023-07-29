@@ -127,13 +127,15 @@ Worth noting that FGF recognizes the skips by the lines starting with '!!' in 'G
 ## 'APD' File
  1. Create a CSV file with a name ending in '*APD.csv' in the 'Data Files' folder. This will determine the 'Free Quest' drop rates.
  2. On the 1st row, input a string with the word 'Bronze' on the column where you want to start reading drop data.
- 3. Also on the 1st row, input a string with the word 'Monument' on the column that starts where Monuments are input. FGF will stop adding new columns to the Drop Matrix 9 columns after this point, as it assumes 'Blazes' start 8 columns past that. It will add Drop data from the next 15 columns to the final column, tripling all Drop Rates 6 columns after that final column (Hellfires).
+ 3. Also on the 1st row, input a string with the word 'Monument' on the column that starts where Monuments are input.
  4. Input Free Quest data on each subsequent row. FGF will skip rows whose 3rd column are not integers.
  5. The 1st column is where the 'Singularity' or 'Lost Belt' Name goes. The naming convention should follow that used in 'fgf_config' if you want 'Last Area' to work. Worth noting that FGF looks for whether or not string fragments are found in the Singularity to decide if it should stop reading data (so 'Last Area' = 'Pluribus' will case it to stop reading at 'E Pluribus Unum').
  6. The 2nd column is where the Quest Name goes.
  7. The 3rd column is where the AP Cost goes.
- 8. The 4th column is where the Type goes, if you want 'Training Grounds Half AP' and 'Bleach Cap' to work, respectively. FGF looks for the strings 'Daily' and 'Bleach' to apply these conditions, respectively.
+ 8. The 4th column is where the Type goes, if you want 'Training Grounds Half AP' and 'Bleach Cap' to work. FGF looks for the strings 'Daily' and 'Bleach' to apply these conditions, respectively.
  9. Starting from the same column where you input 'Bronze', add Drop Rate data. Make sure the Materials follow the same order used in '*Calc.csv' and 'GOALS.csv'.
+
+Worth noting that when building the Drop Matrix, FGF will stop adding new columns 9 columns after the row with 'Monument' in it. It assumes 'Blazes' start 8 columns past that, and thus only makes a single column for XP as the final column. It will add Drop data from the next 15 columns to the final column, tripling all Drop Rates 6 columns after that final column (Hellfires should start after that).
 
 ## 'Event' Files
 
