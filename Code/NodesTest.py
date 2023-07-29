@@ -65,7 +65,7 @@ class Nodes:
                 if event_node[i] == 'Drop%':
                     data_indices['drop'].append(i)
         
-        return data_indices, event_node
+        return data_indices, reader
     
     def find_event_name( self, event_drop_CSV ):
         event_folder = ['FGO Efficiency ',
@@ -73,10 +73,17 @@ class Nodes:
         
         for i in event_folder:
             if event_drop_CSV.find(i) >= 0:
-                start = event_drop_CSV.rfind(i)+len(i)
+                start = event_drop_CSV.find(i)+len(i)
+                break
+        
+        event_folder = [' - Event',
+                        '.csv']
+        for i in event_folder:
+            if event_drop_CSV.rfind(i) >= 0:
+                end = event_drop_CSV.rfind(i)
                 break
 
-        return event_drop_CSV[(start):event_drop_CSV.rindex(' - Event',start)]
+        return event_drop_CSV[start:end]
 
     def add_event_drop( self, event_drop_CSV, run_caps: Inter.RunCaps, mat_count, ID_to_index ):
         event_name = self.find_event_name(event_drop_CSV)
@@ -96,7 +103,7 @@ class Nodes:
                         AP_Buyback = False
                     break
 
-            data_indices, event_node = self.find_data_indices(reader)
+            data_indices, reader = self.find_data_indices(reader)
 
             event_AP_cost = []
             event_drop_matrix = []

@@ -97,6 +97,18 @@ class Output:
             self.avoid_error( former_start + plan_name + former_end, text )
         except:
             self.avoid_error( former_start + former_end, '!! Plan Name not accepted by OS\n' + text )
+    
+    def make_debug_report( self, plan_name = '', time_stamp = '' ):
+        output = ''
+        if Inter.Debug.error != '':
+            output = '!! WARNING !!\n'
+            output += Inter.Debug.error + '\n'
+        output += '__Configurations:\n'
+        output += Inter.Debug.config_notes + '\n'
+        output += Inter.Debug.end_notes + '\n'
+        output += Inter.Debug.lotto_notes + '\n'
+
+        self.file_creation( plan_name, time_stamp, 'Debug.txt', output )
 
 
     def print_out( self, prob, runs, total_AP, nodes: Nodes, index_to_name, output_files = True ):
@@ -115,13 +127,4 @@ class Output:
             self.file_creation( plan_name, time_stamp, 'Farming Plan.txt', output )
             self.file_creation( plan_name, time_stamp, 'Farming Plan Drops.txt', output_drops)
 
-            output = ''
-            if Inter.Debug.error != '':
-                output = '!! WARNING !!\n'
-                output += Inter.Debug.error + '\n'
-            output += '__Configurations:\n'
-            output += Inter.Debug.config_notes + '\n'
-            output += Inter.Debug.end_notes + '\n'
-            output += Inter.Debug.lotto_notes + '\n'
-
-            self.file_creation( plan_name, time_stamp, 'Debug.txt', output )
+            self.make_debug_report( plan_name, time_stamp )

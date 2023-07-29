@@ -74,8 +74,8 @@ Note that if the file name starts with 'FGO Efficiency' or ends with ' - Free Qu
 
 Relevant Configurations:
  * Selecting the desired Event in cell A1.
- * For Lotto Events, specifying an Event-wide Drop Rate Bonus in cell E1. If you leave this blank, Materials from Boxes will not be included in the analysis.
- * Specifying a quest-specific Drop Rate Bonus in the corresponding row of column E.
+ * For Lotto Events, specifying an Event-wide Drop Rate Bonus in cell F1. If you leave this blank, Materials from Boxes will not be included in the analysis.
+ * Specifying a quest-specific Drop Rate Bonus in the corresponding row of column F.
  * Determine if you want Box Apple AP 'Buyback' to affect the AP values of the quests.
  * 'Event' and 'Raid Run Caps' for this specific Event.
 
@@ -84,7 +84,7 @@ Worth noting that in addition to the above, Fate/Grand Farm only actually reads:
  * For each Event quest, its name in column A.
  * Its AP in column B.
  * Its Type in column D.
- * Its Drop Rate Bonus in column F (hidden by default, determined by above configurations).
+ * Its Drop Rate Bonus in column E (hidden by default, determined by above configurations).
  * Each column with a Material ID (used to prevent translation changes from affecting the program).
  * Each column with a Material Drop Rate.
 
@@ -161,6 +161,14 @@ However, after the first row, FGF does not look for specific column numbers. It 
  * 'Drop%' for the Drop Rate for the above Materials. Note that FGF assumes the 1st 'ID' it finds corresponds to the 1st 'Drop%' it finds, the 2nd 'ID' to the 2nd 'Drop%', etc.
 
 FGF skips all lines whose AP Cost is not a float. It also skips all lines whose first 'Drop%' entry is white space.
+
+There are a few special Material IDs that FGF interprets as multiple different Materials at once. These are:
+ * '-1' = Blue Gems
+ * '-2' = Red Gems
+ * '-3' = Gold Gems
+ * '-4' = Statues
+ * '-5' = Monuments
+ * '-6' = XP Cards
 
 ## Acknowledgements
 All credit goes to the various communities that have worked hard to compile and analyze this game. Specifically:

@@ -3,7 +3,6 @@ from Nodes import Nodes
 import Interpret as Inter
 import Planner as Plan
 
-# Maybe this should all be in a 'main' method? No clue about the etiquette there for more 'professional' programs.
 Inter.standardize_path()
 
 Inter.ConfigList().create_config_list()

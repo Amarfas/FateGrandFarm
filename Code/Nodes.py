@@ -65,7 +65,7 @@ class Nodes:
                 if event_node[i] == 'Drop%':
                     data_indices['drop'].append(i)
         
-        return data_indices, event_node
+        return data_indices, reader
     
     def find_event_name( self, event_drop_CSV ):
         event_folder = ['FGO Efficiency ',
@@ -76,7 +76,13 @@ class Nodes:
                 start = event_drop_CSV.rfind(i)+len(i)
                 break
 
-        return event_drop_CSV[(start):event_drop_CSV.rindex(' - Event',start)]
+        event_folder = [' - Event', '.csv']
+        for i in event_folder:
+            if event_drop_CSV.rfind(i) >= 0:
+                end = event_drop_CSV.rfind(i)
+                break
+
+        return event_drop_CSV[start:end]
 
     def add_event_drop( self, event_drop_CSV, run_caps: Inter.RunCaps, mat_count, ID_to_index ):
         event_name = self.find_event_name(event_drop_CSV)
@@ -88,21 +94,23 @@ class Nodes:
 
             event_true_name = event_node[2]
             event_caps = run_caps.determine_event_caps(event_node)
+
             for i in range(len(event_node)):
                 if event_node[i] == 'Buyback?:':
-                    if not bool(event_node[i+1].strip()):
+                    if event_node[i+1] != '':
                         AP_Buyback = True
                     else:
                         AP_Buyback = False
                     break
 
-            data_indices, event_node = self.find_data_indices(reader)
+            data_indices, reader = self.find_data_indices(reader)
 
             event_AP_cost = []
             event_drop_matrix = []
             
             node_group = False
             group_count = 0
+            event_lotto = False
 
             # Interpretation of how this is supposed to read the Event Quest csv:
             # If there is no AP assigned or no material assigned in the first slot, skip this line.
@@ -111,7 +119,7 @@ class Nodes:
             for event_node in reader:
                 try:
                     node_AP_cost = float(event_node[ data_indices['AP'] ])
-                    if not bool(event_node[ data_indices['ID'][0] ].strip()):
+                    if event_node[ data_indices['ID'][0] ] == '':
                         continue
                 except ValueError:
                     continue
@@ -119,6 +127,7 @@ class Nodes:
                 node_name = event_name + ', ' + event_node[ data_indices['loc'] ]
                 if event_node[ data_indices['type'] ][0:5] == 'Lotto':
                     is_lotto = True
+                    event_lotto = True
                     Inter.Debug().add_lotto(  node_name + '  =  +' + event_node[ data_indices['lotto'] ] + '\n')
                 else:
                     is_lotto = False
@@ -156,6 +165,11 @@ class Nodes:
                     self.add_lotto_info( is_lotto, event_node, data_indices )
             f.close()
             
+            if event_lotto and AP_Buyback:
+                Inter.Debug().make_note( ' , AP Buyback was: On\n' )
+            else:
+                Inter.Debug().make_note('\n')
+
             run_caps.add_group_info( event_true_name, node_group, group_count, event_caps )
             self.assemble_matrix( event_AP_cost, event_drop_matrix )
     

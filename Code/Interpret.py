@@ -227,6 +227,7 @@ class RunCaps():
                 if new_cap != []:
                     event_caps[cap_read] = new_cap
                     event_caps['Lotto'] = new_cap
+                    Debug().make_note( ' , Event Run Cap was ' + str(new_cap) )
                     new_cap = []
                 cap_read = 'Raid'
             
@@ -237,6 +238,7 @@ class RunCaps():
 
         if new_cap != []:
             event_caps[cap_read] = new_cap
+            Debug().make_note( ' , Raid Run Cap was ' + str(new_cap) )
         
         return event_caps
     
@@ -259,7 +261,10 @@ class RunCaps():
                 if len(cap) == 1:
                     cap = cap[0]
                 else:
-                    cap = cap[ (group_num - 1) % len(cap) ]
+                    try:
+                        cap = cap[ (int(group_num) - 1) % len(cap) ]
+                    except ValueError:
+                        Debug().error_warning('Type Group Number was not an integer.')
 
             self.node_info.append([ true_name, node_type, group_num, group_count, cap ])
     
