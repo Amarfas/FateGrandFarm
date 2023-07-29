@@ -15,7 +15,7 @@ from Planner import planner
 # 'tolerance' defines the minimum difference that will break the matrix comparison
 # 'tolerance2' defines the maximum difference that'll be ignored in matrix comparisons
 
-test_modes = [ 1, 2 ]
+test_modes = [ 1, 2, 3 ]
 tolerance = 0.01
 tolerance2 = 0
 rep = 100
@@ -128,7 +128,6 @@ for goals_debug in goals_list:
                 print('Total AP equal: T')
             else: 
                 print('Total AP equal: F: '+str(total_AP)+' != '+str(total_AP2))
-
             print('')
         
         if i == 3:
@@ -146,16 +145,31 @@ for goals_debug in goals_list:
             t2 = ( time.time() - t2 ) / rep
             print( '   Time2 per iter: ' + str(t2) )
 
-            print( ' Difference x1,000: ' + str(1000*(t2-t1)) )
+            print( ' Difference x1,000: ' + str(1000*(t2-t1)) + '\n' )
 
-            print('')
         
         if i == 4:
             run_cap_matrix1 = run_caps.build_run_cap_matrix()
             run_cap_matrix2 = run_caps.build_run_cap_matrix_test()
             print( 'Run Matrix equal: ' + check_matrix( run_cap_matrix1[0], run_cap_matrix2[0] ))
             print( 'Run Cap equal: ' + check_matrix( run_cap_matrix1[1], run_cap_matrix2[1] ))
+            print('')
         
         if i == 5:
+            t1 = time.time()
+            for j in range(rep):
+                run_cap_matrix1 = run_caps.build_run_cap_matrix()
+            t1 = ( time.time() - t1 ) / rep
+            print( '   Time1 per iter: ' + str(t1) )
+
+            t2 = time.time()
+            for j in range(rep):
+                run_cap_matrix2 = run_caps.build_run_cap_matrix_test()
+            t2 = ( time.time() - t2 ) / rep
+            print( '   Time2 per iter: ' + str(t2) )
+
+            print( ' Difference x1,000,000: ' + str(1000000*(t2-t1)) + '\n' )
+        
+        if i == 6:
             #print( 'Cap Info Matrix equal: ' + check_matrix( run_caps.node_info, nodes_test.node_info ))
             print( 'Run Info equal: ' + check_matrix( run_caps.run_info, run_caps_test.run_info ))

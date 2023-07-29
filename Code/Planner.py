@@ -28,6 +28,8 @@ def planner( nodes: Nodes, input_data: Inter.InputData, run_cap_matrix = False, 
     constraints = [ drop_matrix @ runs >= input_data.goals ]
     if run_cap_matrix:
         constraints.append( run_cap_matrix[0] @ runs <= run_cap_matrix[1] )
+    if run_int:
+        constraints.append( np.eye(run_size) @ runs >= np.zeros((run_size,1)) )
 
     prob = cp.Problem( objective , constraints )
     prob.solve()
