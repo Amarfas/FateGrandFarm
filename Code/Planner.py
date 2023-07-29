@@ -55,27 +55,42 @@ class Output:
     
     def print_drops( self, output, runs, nodes: Nodes, index_to_name ):
         output_drops = output
+        text = []
 
         for i in range(len(runs)):
             run_count = int(runs[i])
             if run_count > 0:
-                text = nodes.node_names[i] + ':   ' + "{:,}".format(run_count) + ' times'
-                output_drops += text + '  =  '
+                text.append([nodes.node_names[i] + ':', "{:,}".format(run_count) + ' times'])
 
                 if nodes.runs_per_box[i] != 'F':
-                    text += '  ,   Boxes Farmed = ' + "{:.2f}".format( run_count / nodes.runs_per_box[i] )
+                    text[-1].append('   Boxes Farmed = ' + "{:.2f}".format( run_count / nodes.runs_per_box[i] ))
+                else:
+                    text[-1].append('')
+                text[-1].append('  =  ')
 
-                output += self.console_print(text)
-
-                add_drop = ''
                 for j in range(len( nodes.drop_matrix[i] )):
                     mat_drop = nodes.drop_matrix[i][j]
                     if mat_drop > 0:
-                        if add_drop != '':
-                            add_drop += ', '
-                        add_drop += "{:.2f}".format( run_count*mat_drop ) + ' ' + index_to_name[j]
-                
-                output_drops += add_drop + '\n'
+                        text[-1].append( "{:.2f}".format( run_count*mat_drop ) + ' ' + index_to_name[j] + ', ' )
+
+        indent = []
+        for i in text:
+            for j in range(len(i)):
+                try:
+                    new = len(i[j])
+                    if new > indent[j]:
+                        indent[j] = new
+                except IndexError:
+                    indent.append(new)
+        
+        for i in range(len(text)):
+            lead_text = "{:<{}}{:>{}}".format(text[i][0], indent[0], text[i][1], indent[1])
+            output += self.console_print( lead_text + text[i][2] )
+
+            output_drops += lead_text
+            for j in range(3,len(text[i])):
+                output_drops += "{:<{}}".format(text[i][j], indent[j]+1)
+            output_drops += '\n'
 
         return output, output_drops
     
@@ -126,5 +141,4 @@ class Output:
 
             self.file_creation( plan_name, time_stamp, 'Farming Plan.txt', output )
             self.file_creation( plan_name, time_stamp, 'Farming Plan Drops.txt', output_drops)
-
             self.make_debug_report( plan_name, time_stamp )

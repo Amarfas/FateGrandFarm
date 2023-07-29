@@ -175,12 +175,8 @@ All credit goes to the various communities that have worked hard to compile and 
 
 CVXPY for making a library that can crunch these numbers, and my friend for pointing them out to me.
 
-<<<<<<< HEAD
-JP Data is sourced from the following community collaboration: https://docs.google.com/spreadsheets/d/1TrfSDteVZnjUPz68rKzuZWZdZZBLqw03FlvEToOvqH0/
-=======
-JP Data is sourced from the following community collaboration: https://docs.google.com/spreadsheets/d/1TrfSDteVZnjUPz68rKzuZWZdZZBLqw03FlvEToOvqH0/
+JP Data is sourced from the [following community collaboration.](https://docs.google.com/spreadsheets/d/1TrfSDteVZnjUPz68rKzuZWZdZZBLqw03FlvEToOvqH0/)
 
-Domus Aurea is usually the JP source I'm pulling from/cross-referencing with: https://sites.google.com/view/fgo-domus-aurea
+[Domus Aurea](https://sites.google.com/view/fgo-domus-aurea) is usually the JP source I'm pulling from/cross-referencing with.
 
-Guruguru FGO is another JP source I pull from/cross-reference with: https://sites.google.com/site/gurugurufgo/
->>>>>>> 7e1fe8dad5245dadec62e7c04fac04b860ebedd6
+[Guruguru FGO](https://sites.google.com/site/gurugurufgo/) is another JP source I pull from/cross-reference with.

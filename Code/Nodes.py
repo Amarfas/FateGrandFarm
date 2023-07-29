@@ -166,7 +166,7 @@ class Nodes:
             f.close()
             
             if event_lotto and AP_Buyback:
-                Inter.Debug().make_note( ' , AP Buyback was: On\n' )
+                Inter.Debug().make_note( ' , AP Buyback was on\n' )
             else:
                 Inter.Debug().make_note('\n')
 
