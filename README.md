@@ -8,7 +8,7 @@ Fate/Grand Farm is a Python program designed to aid players in the mobile game '
 
 ## Introduction
 
-With the variety of Materials in the game, some of which don't help any of the Servants you rolled, it can be difficult to optimally plan your farming route. Even if you plan the best route for farming Free Quests, Events can offer much better drop rates. With readily available open-sourced data for Events, and the global version lagging 2 years behind the Japanese version, there has to be a better way to reach your farming goals?
+With the variety of Materials in the game, some of which don't help any of the Servants you rolled, it can be difficult to optimally plan your farming route. Even if you plan the best route for farming Free Quests, Events can offer much better drop rates. With readily available open-sourced data for Events, and the global version lagging 2 years behind the Japanese version, surely there must be a better way to reach your farming goals?
 
 This is where Fate/Grand Farm comes to your rescue! Input your farming goals, select which Events you want to analyze, possibly change some configurations if you're into that, press that exe button, and have the next 2 years of your grinding life dictated to you by a machine!
 
