@@ -38,14 +38,17 @@ After running the program, you will find 3 output files in the main directory ('
 'Debug' contains all the information necessary to properly understand the context for the corresponding 'Farming Plan.' This includes all the Errors that came up, Configurations, the Events included, and Lotto Drop Rate boosts.
 
 ## Troubleshooting
-This was programmed in Python 3.9, and the necessary libraries are: [NumPy](https://numpy.org/), [SciPy](https://scipy.org/), and [CVXPY](https://www.cvxpy.org/).
+Fate/Grand Farm was programmed in Python 3.9, and the necessary libraries are: [NumPy](https://numpy.org/), [SciPy](https://scipy.org/), and [CVXPY](https://www.cvxpy.org/).
 
-It is suggested you download [Anaconda.](https://www.anaconda.com/) You may need to add the 'conda-forge' channel to find CVXPY.
+It is recommended to download and install [Anaconda.](https://www.anaconda.com/) If you encounter any issues finding CVXPY, you may need to add the 'conda-forge' channel.
 
-When all necessary modules are installed, go into the 'Code' folder and run 'Fate_Grand_Farm.py'.
+After setting up the required Python environment and libraries, navigate to the 'Code' folder and execute 'Fate_Grand_Farm.py' by running the following command in your terminal or command prompt:
+```
+python Fate_Grand_Farm.py
+```
 
 ## Set Up
-### 'Events List' Folder
+## 'Events List' Folder
 Contains the drop rate data for a bunch of Events in '.csv' format. Lotto Events have their own folders to not clog up list. For Lotto events, '-D#' describes the Drop Rate Bonus used in the analysis, as the Materials obtained from corresponding boxes are essentially added to each node's drop rate table. Any truncated Material name after 'D#-' is the Material you are supposed to grab with the ticket from the Lotto box. For example, 'Christmas 2023 -D12-Claw - Event Quest' is a file for the drop rate table of all 'Christmas 2023' quests, assuming that you have a +12 Drop Rate Bonus from Event CEs, and that you are grabbing Claws of Chaos from any tickets you get from boxes from those runs. It is suggested you put a '.csv' for each ticket Material in the 'Events Farm' folder, as extra data won't confuse the analysis and will instead help you determine what Materials to grab with the ticket.
 
 ### Configuring Your Own Event CSV
@@ -57,7 +60,7 @@ Worth noting that this program only actually reads the (hidden in C1) 'Actual Ev
 
 On configuring the Run Caps, any readable entry to the right of the corresponding Run Cap type overwrites the value in 'FGF_config' for that specific Event. For Run Cap values read in the Event '.csv,' 'Event' and 'Lotto' Type quests both treated as 'Event' quests. The multiple entries for Run Caps are relevant for quests with numbered Types (like 'Lotto 1', 'Lotto 2', etc). If there is only one readable value given, that Run Cap will be applied separately to EACH of 'Lotto 1' and 'Lotto 2'. If two or more readable values are given, the 1st will be applied to 'Lotto 1' and the 2nd applied to 'Lotto 2.' If there are more numbered Types than entries, the Run Caps will be cycled through for later numbers. So if only two values are given, 'Lotto 3' will use the 1st Run Cap. If there are three or more values, 'Lotto 3' will use the 3rd Run Cap. 'Raids' work the same.
 
-### Upkeep and Making Your Own CSVs
+## Upkeep and Making Your Own CSVs
 Similar to how the 'Event Quest' tab from my ['FGO Efficiency' google sheet](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) was used to produce the relevant Event '.csv's, the 'APD' and 'Calc' '.csv' files in the 'Data Files' Folder
 
 What follows is a lengthy description of how the 'APD', 'Calc', and 'Event' '.csv's are read by FGF ('Fate/Grand Farm') in case you wanted to make your own from scratch rather than downloading the corresponding file from the google sheet, you could also just read the Python code.
