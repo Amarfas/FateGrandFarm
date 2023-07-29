@@ -88,7 +88,15 @@ Worth noting that in addition to the above, Fate/Grand Farm only actually reads:
 
 Efficiency values in the sheet are not relevant for this program, so any settings in the 'Mat' tab do not affect this analysis.
 
-On configuring the Run Caps, any readable entry to the right of the corresponding Run Cap type overwrites the value in 'FGF_config' for that specific Event. For Run Cap values read in the Event '.csv,' 'Event' and 'Lotto' Type quests both treated as 'Event' quests. The multiple entries for Run Caps are relevant for quests with numbered Types (like 'Lotto 1', 'Lotto 2', etc). If there is only one readable value given, that Run Cap will be applied separately to EACH of 'Lotto 1' and 'Lotto 2'. If two or more readable values are given, the 1st will be applied to 'Lotto 1' and the 2nd applied to 'Lotto 2.' If there are more numbered Types than entries, the Run Caps will be cycled through for later numbers. So if only two values are given, 'Lotto 3' will use the 1st Run Cap. If there are three or more values, 'Lotto 3' will use the 3rd Run Cap. 'Raids' work the same.
+Details on configuring the Run Caps:
+ * Any integer to the right of the a 'Run Cap' overwrites the corresponding value in 'fgf_config.ini'.
+ * For 'Lotto' Type quests, values to the right of 'Event Run Caps:' overwrite 'Lotto Cap' in 'fgf_config.ini'.
+ * Multiple entries for Run Caps are relevant for quests with numbered Types (like 'Lotto 1', 'Lotto 2', etc).
+ * If only 1 value is entered, that Run Cap will be applied separately to EACH of 'Lotto 1' and 'Lotto 2'.
+ * If 2 or more values are entered, the 1st will be applied to 'Lotto 1' and the 2nd applied to 'Lotto 2.'
+ * If there are more numbered Types than entries, the Run Caps will be cycled through for later numbers.
+
+As an example, if only 2 values are given, 'Lotto 3' will use the 1st Run Cap. If there are 3 or more values, 'Lotto 3' will use the 3rd Run Cap. 'Raids' work the same.
 
 ## Upkeep and Making Your Own CSVs
 Similar to how the 'Event Quest' tab from my ['FGO Efficiency' google sheet](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) was used to produce the relevant Event '.csv's, the 'APD' and 'Calc' '.csv' files in the 'Data Files' Folder
