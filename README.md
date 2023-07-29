@@ -103,13 +103,14 @@ Similar to how the 'Event Quest' tab from the ['FGO Efficiency'](https://docs.go
 
 ## Making Your Own Readable CSVs
 
-To create your own 'APD', 'Calc', and 'Event' '.csv's so they can be read by FGF ('Fate/Grand Farm') follow these guidelines. You can also read the Python code itself.
+To create your own readable '.csv' files for FGF ('Fate/Grand Farm') follow these guidelines for each type of file. You can also read the Python code itself.
 
 ## 'Calc' File
- 1. Create a CSV file with a name ending in '*Calc.csv' in the 'Data Files' folder. This will be read alongside 'GOALS.csv'.
- 2. Put the Material IDs on a row whose first column starts with 'ID'. Start the actual Material ID values on the 2nd column (assumed where 'Proof of Hero' is). Use the same order as 'GOALS.csv'.
- 3. Do the same for the Material Names on the next row.
- 4. Make sure there is a blank entry/column between the following groups:
+ 1. Create a CSV file with a name ending in '*Calc.csv' in the 'Data Files' folder. This file will be read alongside 'GOALS.csv'.
+ 2. Place the Material IDs in a row whose first column starts with 'ID'. Start entering the actual Material ID values on the 2nd column (assumed where 'Proof of Hero' is).
+ 3. Make sure to use the same order as 'GOALS.csv'.
+ 4. Similarly, put the Material names on the next row, starting from the 2nd column.
+ 5. Insert a blank entry/column between group of Materials in the following categories:
      * Bronze mats
      * Silver mats
      * Gold mats
@@ -121,8 +122,19 @@ To create your own 'APD', 'Calc', and 'Event' '.csv's so they can be read by FGF
      * Blazes
      * Hellfires
 
-  Worth noting that FGF recognizes the skips by the lines starting with '!!' in 'GOALS.csv'.
+Worth noting that FGF recognizes the skips by the lines starting with '!!' in 'GOALS.csv'.
 
-The 'APD' file is found by locating a file ending 'APD.csv', and is used to gather 'Free Quest' drop rates. FGF recognizes where the data starts by skipping rows until it finds a cell with a string that has the word 'Bronze' in it.  It designates that column as the starting point of the Bronze Materials, and searches for a cell with a string that has the word 'Monument' in it. It assumes the start of the XP cards ('Blazes') are 8 columns past that. FGF then reads row by row, skipping all rows where the 3rd column are either blank ('') or 'AP', and finally stops when either rows run out or a cell with a string containing the value set by 'Last Area' in 'FGF_config.ini' is found. If 'Last Area' is blank, it looks for 'ZZZZZ' in vain. On each read row, the 1st column is read as the singularity name, the 2nd as the quest name, the 3rd as the AP value, and the 4th as the type of quest. It then starts reading starting from the column determined by 'Bronze', adding the Material drop rate to the corresponding index by taking the AP (in the 3rd column) and diving by the APD value. Having the same order as 'Calc' and "GOALS' matters. Once 9 columns past 'Monument' is reached, it adds every cell past that to the last index, tripling the drop rate once it is 15 entries past 'Monument' (as Hellfires are 3x as good as Blazes).
+## 'APD' File
+ 1. Create a CSV file with a name ending in '*APD.csv' in the 'Data Files' folder. This will determine the 'Free Quest' drop rates.
+ 2. On the 1st row, input a string with the word 'Bronze' on the column where you want to start reading drop data.
+ 3. Also on the 1st row, input a string with the word 'Monument' on the column that starts where Monuments are input. FGF will stop adding new columns to the Drop Matrix 9 columns after this point, as it assumes 'Blazes' start 8 columns past that. It will add Drop data from the next 15 columns to the final column, tripling all Drop Rates 6 columns after that final column (Hellfires).
+ 4. Input Free Quest data on each subsequent row. FGF will skip rows whose 3rd column are not integers.
+ 5. The 1st column is where the 'Singularity' or 'Lost Belt' Name goes. The naming convention should follow that used in 'fgf_config' if you want 'Last Area' to work. Worth noting that FGF looks for whether or not string fragments are found in the Singularity to decide if it should stop reading data (so 'Last Area' = 'Pluribus' will case it to stop reading at 'E Pluribus Unum').
+ 6. The 2nd column is where the Quest Name goes.
+ 7. The 3rd column is where the AP Cost goes.
+ 8. The 4th column is where the Type goes, if you want 'Training Grounds Half AP' and 'Bleach Cap' to work, respectively. FGF looks for the strings 'Daily' and 'Bleach' to apply these conditions, respectively.
+ 9. Starting from the same column where you input 'Bronze', add Drop Rate data. Make sure the Materials follow the same order used in '*Calc.csv' and 'GOALS.csv'.
+
+## 'Event' Files
 
 Some details of how the 'Event' files are read described in the 'Configuring Your Own Event CSV' section. FGF reads the 3rd cell in the first row as the 'Actual Event Name', then goes along the row until it finds a cell with 'Event Run Caps:'. After that cell, it uses every integer it reads to replace the 'Event' and 'Lotto Cap's in 'fgf_config.ini', until it finds a cell with 'Raid Run Caps:'. It then uses every integer it reads to replace the 'Raid Cap' in 'fgf_config.ini' until the row ends. It then skips rows until it finds one with a cell containing 'ID'. It notes every column/cell containing 'ID' in that row. It then goes row by row, skipping ones whose 2nd cell are not floats, or whose cells in the first column found using 'ID' are blank (''). If a row is read, it reads the 1st column as the quest name, the 2nd as the AP, and the 4th as the type of quest. and then goes to each column on the 'ID' list. It reads the value 2 cells to the right of each 'ID' as the drop rate for that ID, and if it is not empty it adds the drop rate to the index corresponding to the 'ID'.
