@@ -49,7 +49,14 @@ python Fate_Grand_Farm.py
 
 ## Set Up
 ## 'Events List' Folder
-Contains the drop rate data for a bunch of Events in '.csv' format. Lotto Events have their own folders to not clog up list. For Lotto events, '-D#' describes the Drop Rate Bonus used in the analysis, as the Materials obtained from corresponding boxes are essentially added to each node's drop rate table. Any truncated Material name after 'D#-' is the Material you are supposed to grab with the ticket from the Lotto box. For example, 'Christmas 2023 -D12-Claw - Event Quest' is a file for the drop rate table of all 'Christmas 2023' quests, assuming that you have a +12 Drop Rate Bonus from Event CEs, and that you are grabbing Claws of Chaos from any tickets you get from boxes from those runs. It is suggested you put a '.csv' for each ticket Material in the 'Events Farm' folder, as extra data won't confuse the analysis and will instead help you determine what Materials to grab with the ticket.
+Contains the drop rate data for various Events in '.csv' format. Lotto Events have their own folders to help organize the data. 
+
+Lotto Events have their own additional naming convention:
+ * '-D#' describes the Drop Rate Bonus used in the analysis, as the Materials obtained from Boxes are added to each quest's drop rate table.
+ * '-D-' means that boxes are not included in the analysis.
+ * Any truncated Material name after '-D#-' represents the Material to be obtained using the ticket from the Lotto Box.
+
+For example, 'Christmas 2023 -D12-Claw' signifies the drop rate table of all 'Christmas 2023' quests, assuming that you have a +12 Drop Rate Bonus from Event CEs, and that you are choosing Claws of Chaos with any tickets you get from Boxes from those runs. To improve the 'Farming Plan' it is suggested to include a '.csv' for each ticket Material in the 'Events Farm' folder. Extra data won't confuse the analysis and will instead help you in choosing Materials from the tickets.
 
 ### Configuring Your Own Event CSV
 To generate your own '.csv's, you can go to my ['FGO Efficiency' google sheet](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/), go to the menu bar, and select 'File' -> 'Make a Copy'. Once you have your own copy, you can go to the 'Event Quest' tab, input any configurations you wants, then go to the sheet's menu bar, and select 'File' -> 'Download' -> 'Comma Separated Values (.csv)'. You can then give the '.csv' file a descriptive name (assuming you did not already rename the google sheet), and put the file into the 'Events Farm' folder. Note that if the file name starts with 'FGO Efficiency' or ends with ' - Free Quest', those parts will be ignored when the Event is named in the output 'Farming Plan.'
