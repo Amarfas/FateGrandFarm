@@ -129,7 +129,7 @@ Worth noting that FGF recognizes the skips by the lines starting with '!!' in 'G
  2. On the 1st row, input a string with the word 'Bronze' on the column where you want to start reading drop data.
  3. Also on the 1st row, input a string with the word 'Monument' on the column that starts where Monuments are input.
  4. Input Free Quest data on each subsequent row. FGF will skip rows whose 3rd column are not integers.
- 5. The 1st column is where the 'Singularity' or 'Lost Belt' Name goes. The naming convention should follow that used in 'fgf_config' if you want 'Last Area' to work. Worth noting that FGF looks for whether or not string fragments are found in the Singularity to decide if it should stop reading data (so 'Last Area' = 'Pluribus' will case it to stop reading at 'E Pluribus Unum').
+ 5. The 1st column is where the 'Singularity' or 'Lost Belt' Name goes.
  6. The 2nd column is where the Quest Name goes.
  7. The 3rd column is where the AP Cost goes.
  8. The 4th column is where the Type goes, if you want 'Training Grounds Half AP' and 'Bleach Cap' to work. FGF looks for the strings 'Daily' and 'Bleach' to apply these conditions, respectively.
@@ -137,6 +137,19 @@ Worth noting that FGF recognizes the skips by the lines starting with '!!' in 'G
 
 Worth noting that when building the Drop Matrix, FGF will stop adding new columns 9 columns after the row with 'Monument' in it. It assumes 'Blazes' start 8 columns past that, and thus only makes a single column for XP as the final column. It will add Drop data from the next 15 columns to the final column, tripling all Drop Rates 6 columns after that final column (Hellfires should start after that).
 
+The Singularity/Lost Belt name should follow the conventions used in 'fgf_config' if you want 'Last Area' to work. Worth noting that FGF looks for whether or not string fragments are found in the Singularity to decide if it should stop reading data (so 'Last Area' = 'Pluribus' will cause it to stop reading at 'E Pluribus Unum').
+
 ## 'Event' Files
 
-Some details of how the 'Event' files are read described in the 'Configuring Your Own Event CSV' section. FGF reads the 3rd cell in the first row as the 'Actual Event Name', then goes along the row until it finds a cell with 'Event Run Caps:'. After that cell, it uses every integer it reads to replace the 'Event' and 'Lotto Cap's in 'fgf_config.ini', until it finds a cell with 'Raid Run Caps:'. It then uses every integer it reads to replace the 'Raid Cap' in 'fgf_config.ini' until the row ends. It then skips rows until it finds one with a cell containing 'ID'. It notes every column/cell containing 'ID' in that row. It then goes row by row, skipping ones whose 2nd cell are not floats, or whose cells in the first column found using 'ID' are blank (''). If a row is read, it reads the 1st column as the quest name, the 2nd as the AP, and the 4th as the type of quest. and then goes to each column on the 'ID' list. It reads the value 2 cells to the right of each 'ID' as the drop rate for that ID, and if it is not empty it adds the drop rate to the index corresponding to the 'ID'.
+Some details of how the 'Event' files are read is described in the 'Configuring Your Own Event CSV' section. Specifically, in the first row, it looks at the 3rd column for the 'Actual
+
+However, after the first row, FGF does not look for specific column numbers. It instead looks for a row with columns containing a value of 'ID', and uses strings in that row to determine where it should find the data. Worth noting that the location is set by the first column it finds matching the following strings, except for 'ID' and 'Drop%'. The strings it looks for to find the corresponding data are:
+ * 'Location' for the Quest Name
+ * 'AP' for the AP Costs
+ * 'Type' for the Quest Type.
+ * 'Lotto' for the Drop Rate Bonus.
+ * 'R/Box' for the average numbers of runs to get a Box.
+ * 'ID' for the Material IDs. These should match the IDs used in 'Calc'.
+ * 'Drop%' for the Drop Rate for the above Materials. Note that FGF assumes the 1st 'ID' it finds corresponds to the 1st 'Drop%' it finds, the 2nd 'ID' to the 2nd 'Drop%', etc.
+
+FGF reads the 3rd cell in the first row as the 'Actual Event Name', then goes along the row until it finds a cell with 'Event Run Caps:'. After that cell, it uses every integer it reads to replace the 'Event' and 'Lotto Cap's in 'fgf_config.ini', until it finds a cell with 'Raid Run Caps:'. It then uses every integer it reads to replace the 'Raid Cap' in 'fgf_config.ini' until the row ends. It then skips rows until it finds one with a cell containing 'ID'. It notes every column/cell containing 'ID' in that row. It then goes row by row, skipping ones whose 2nd cell are not floats, or whose cells in the first column found using 'ID' are blank (''). If a row is read, it reads the 1st column as the quest name, the 2nd as the AP, and the 4th as the type of quest. and then goes to each column on the 'ID' list. It reads the value 2 cells to the right of each 'ID' as the drop rate for that ID, and if it is not empty it adds the drop rate to the index corresponding to the 'ID'.
