@@ -58,8 +58,18 @@ Lotto Events have their own additional naming convention:
 
 For example, 'Christmas 2023 -D12-Claw' signifies the drop rate table of all 'Christmas 2023' quests, assuming that you have a +12 Drop Rate Bonus from Event CEs, and that you are choosing Claws of Chaos with any tickets you get from Boxes from those runs. To improve the 'Farming Plan' it is suggested to include a '.csv' for each ticket Material in the 'Events Farm' folder. Extra data won't confuse the analysis and will instead help you in choosing Materials from the tickets.
 
-### Configuring Your Own Event CSV
-To generate your own '.csv's, you can go to my ['FGO Efficiency' google sheet](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/), go to the menu bar, and select 'File' -> 'Make a Copy'. Once you have your own copy, you can go to the 'Event Quest' tab, input any configurations you wants, then go to the sheet's menu bar, and select 'File' -> 'Download' -> 'Comma Separated Values (.csv)'. You can then give the '.csv' file a descriptive name (assuming you did not already rename the google sheet), and put the file into the 'Events Farm' folder. Note that if the file name starts with 'FGO Efficiency' or ends with ' - Free Quest', those parts will be ignored when the Event is named in the output 'Farming Plan.'
+## Configuring Your Own Event CSV
+To generate your own '.csv' files for specific Events, use my ['FGO Efficiency'](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) google sheet. To obtain your '.csv' file:
+ 1. Go the sheet's menu bar, select 'File' -> 'Make a Copy'. You can rename it whatever.
+ 2. Open your own copy of the sheet.
+ 3. Go to the 'Event Quest' tab.
+ 4. Input any configurations you want.
+ 5. Go to the sheet's menu bar, selct 'File' -> 'Download' -> 'Comma Separated Values (.csv)'.
+ 6. Go to your Downloads folder. I suggest giving the file a descriptive name, as that determines what the Event is called in the 'Farming Plan'.
+ 7. Place it into the 'Events Farm' folder.
+
+Note that if the file name starts with 'FGO Efficiency' or ends with ' - Free Quest', those parts will be ignored for the Event Name.
+
 
 What configurations on the 'Event Quest' tab are relevant for 'Fate/Grand Farm'? Obviously you must select the Event you want analyzed in A1. Then for lotto Events, you can specify an Event wide Drop Rate Bonus in E1 or any quest specific values in the same column. You can also determine if you want box apple AP 'Buyback' to affect the AP values of the quests, and also input 'Event' and 'Raid Run Caps' for this specific Event.
 
