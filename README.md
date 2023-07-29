@@ -70,10 +70,23 @@ To generate your own '.csv' files for specific Events, use my ['FGO Efficiency']
 
 Note that if the file name starts with 'FGO Efficiency' or ends with ' - Free Quest', those parts will be ignored for the Event Name.
 
+Relevant Configurations:
+ * Selecting the desired Event in cell A1.
+ * For Lotto Events, specifying an Event-wide Drop Rate Bonus in cell E1. If you leave this blank, Materials from Boxes will not be included in the analysis.
+ * Specifying a quest-specific Drop Rate Bonus in the corresponding row of column E.
+ * Determine if you want Box Apple AP 'Buyback' to affect the AP values of the quests.
+ * 'Event' and 'Raid Run Caps' for this specific Event.
 
-What configurations on the 'Event Quest' tab are relevant for 'Fate/Grand Farm'? Obviously you must select the Event you want analyzed in A1. Then for lotto Events, you can specify an Event wide Drop Rate Bonus in E1 or any quest specific values in the same column. You can also determine if you want box apple AP 'Buyback' to affect the AP values of the quests, and also input 'Event' and 'Raid Run Caps' for this specific Event.
+Worth noting that in addition to the above, Fate/Grand Farm only actually reads:
+ * 'Actual Event Name' in cell C1 (hidden by default), used so that the program recognizes 'Christmas 2023 w/ Claw' and 'Christmas 2023 w/ Feather' are the same when determining Run Caps.
+ * For each Event quest, its name in column A.
+ * Its AP in column B.
+ * Its Type in column D.
+ * Its Drop Rate Bonus in column F (hidden by default, determined by above configurations).
+ * Each column with a Material ID (used to prevent translation changes from affecting the program).
+ * Each column with a Material Drop Rate.
 
-Worth noting that this program only actually reads the (hidden in C1) 'Actual Event Name,' whether or not there's 'Buyback,' the 'Event' and 'Raid Run Caps,' and for each Event Quest its, its AP, its type, the Drop Rate Bonus (read value is hidden in F column by default but included if the Event wide value is input into E1), and the (hidden) ID and drop rate for each Material dropped. Material IDs are used so translation changes don't affect the program. None of the values for Efficiency in the document are relevant for this program, so any other settings in the 'Mat' do not affect the analysis. The 'Actual Event Name' is a constant for multiple entries of the same event, so that the program recognizes that 'Christmas 2023 w/ Claw' and 'Christmas 2023 w/ Feather' are actually the same for determining Run Caps.
+Efficiency values in the sheet are not relevant for this program, so any settings in the 'Mat' tab do not affect this analysis.
 
 On configuring the Run Caps, any readable entry to the right of the corresponding Run Cap type overwrites the value in 'FGF_config' for that specific Event. For Run Cap values read in the Event '.csv,' 'Event' and 'Lotto' Type quests both treated as 'Event' quests. The multiple entries for Run Caps are relevant for quests with numbered Types (like 'Lotto 1', 'Lotto 2', etc). If there is only one readable value given, that Run Cap will be applied separately to EACH of 'Lotto 1' and 'Lotto 2'. If two or more readable values are given, the 1st will be applied to 'Lotto 1' and the 2nd applied to 'Lotto 2.' If there are more numbered Types than entries, the Run Caps will be cycled through for later numbers. So if only two values are given, 'Lotto 3' will use the 1st Run Cap. If there are three or more values, 'Lotto 3' will use the 3rd Run Cap. 'Raids' work the same.
 
