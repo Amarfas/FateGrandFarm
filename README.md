@@ -8,7 +8,9 @@ Fate/Grand Farm is a Python program designed to aid players in the mobile game '
 
 ## Introduction
 
-With the variety of Materials in the game, some of which don't help any of the Servants you rolled, it can be difficult to optimally plan your farming route. Even if you plan the best route for farming Free Quests, Events can offer much better drop rates. With readily available open-sourced data for Events, and the global version lagging 2 years behind the Japanese version, there has to be a better way to reach your farming goals? This is where Fate/Grand Farm comes to your rescue! Input your farming goals, select which Events you want to analyze, possibly change some configurations if you're into that, press that exe button, and have the next 2 years of your grinding life dictated to you by a machine!
+With the variety of Materials in the game, some of which don't help any of the Servants you rolled, it can be difficult to optimally plan your farming route. Even if you plan the best route for farming Free Quests, Events can offer much better drop rates. With readily available open-sourced data for Events, and the global version lagging 2 years behind the Japanese version, there has to be a better way to reach your farming goals?
+
+This is where Fate/Grand Farm comes to your rescue! Input your farming goals, select which Events you want to analyze, possibly change some configurations if you're into that, press that exe button, and have the next 2 years of your grinding life dictated to you by a machine!
 
 The executable only works for Windows. If you use another Operating System (or run into other problems), look into the 'Troubleshooting' section below to find out what you need for the Python program.
 
@@ -56,7 +58,9 @@ Lotto Events have their own additional naming convention:
  * '-D-' means that boxes are not included in the analysis.
  * Any truncated Material name after '-D#-' represents the Material to be obtained using the ticket from the Lotto Box.
 
-For example, 'Christmas 2023 -D12-Claw' signifies the drop rate table of all 'Christmas 2023' quests, assuming that you have a +12 Drop Rate Bonus from Event CEs, and that you are choosing Claws of Chaos with any tickets you get from Boxes from those runs. To improve the 'Farming Plan' it is suggested to include a '.csv' for each ticket Material in the 'Events Farm' folder. Extra data won't confuse the analysis and will instead help you in choosing Materials from the tickets.
+For example, 'Christmas 2023 -D12-Claw' signifies the drop rate table of all 'Christmas 2023' quests, assuming that you have a +12 Drop Rate Bonus from Event CEs, and that you are choosing Claws of Chaos with any tickets you get from Boxes from those runs.
+
+To improve the 'Farming Plan' it is suggested to include a '.csv' for each ticket Material in the 'Events Farm' folder. Extra data won't confuse the analysis and will instead help you in choosing Materials from the tickets.
 
 ## Configuring Your Own Event CSV
 To generate your own '.csv' files for specific Events, use my ['FGO Efficiency'](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) google sheet. To obtain your '.csv' file:
@@ -159,3 +163,14 @@ However, after the first row, FGF does not look for specific column numbers. It 
  * 'Drop%' for the Drop Rate for the above Materials. Note that FGF assumes the 1st 'ID' it finds corresponds to the 1st 'Drop%' it finds, the 2nd 'ID' to the 2nd 'Drop%', etc.
 
 FGF skips all lines whose AP Cost is not a float. It also skips all lines whose first 'Drop%' entry is white space.
+
+## Acknowledgements
+All credit goes to the various communities that have worked hard to compile and analyze this game. Specifically:
+
+CVXPY for making a library that can crunch these numbers, and my friend for pointing them out to me.
+
+JP Data is sourced from the following community collaboration: https://docs.google.com/spreadsheets/d/1TrfSDteVZnjUPz68rKzuZWZdZZBLqw03FlvEToOvqH0/
+
+Domus Aurea is usually the JP source I'm pulling from/cross-referencing with: https://sites.google.com/view/fgo-domus-aurea
+
+Guruguru FGO is another JP source I pull from/cross-reference with: https://sites.google.com/site/gurugurufgo/
