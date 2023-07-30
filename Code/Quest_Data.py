@@ -3,16 +3,19 @@ import glob
 import numpy as np
 import Interpret as Inter
 
-class Nodes:
+class QuestData:
     def __init__( self ):
-        self.node_names = []
+        self.quest_names = []
         self.AP_costs = []
         self.drop_matrix = np.array([])
 
         self.runs_per_box = []
 
         self.hellfire_range = [9700000,500]
+
         self.remove_zeros = Inter.ConfigList.remove_zeros
+        self.tg_half_AP = Inter.ConfigList.tg_half_AP
+        self.last_area = Inter.ConfigList.last_area
 
     # TODO: There are some issues with this method of assembling matrices.
     # The basic issue is that cvxpy analysis requires data in the form of numpy matrices, but the best way to form numpy matrices is to initialize its size.
@@ -34,18 +37,19 @@ class Nodes:
                     self.AP_costs = np.vstack(( self.AP_costs, add_AP_cost ))
                     self.drop_matrix = np.vstack(( self.drop_matrix, add_drop_matrix ))
     
-    def add_lotto_info( self, is_lotto, event_node = [], data_indices = [] ):
+    def add_box_run_info( self, is_lotto, quest_rpb = 0 ):
         if is_lotto:
-            self.runs_per_box.append( float(event_node[ data_indices['rbox'] ]) )
+            self.runs_per_box.append( float(quest_rpb) )
         else:
             self.runs_per_box.append( 'F' )
     
     def find_data_indices( self, reader ):
         data_indices = {'ID':[], 'drop':[]}
+
         while data_indices['ID'] == []:
             try:
                 event_node = next(reader)
-            except:
+            except StopIteration:
                 Inter.Debug().error_warning( 'Sheet does not have columns labeled "ID".' )
 
             for i in range(len(event_node)):
@@ -60,6 +64,7 @@ class Nodes:
                 if event_node[i] == 'R/Box':
                     data_indices.setdefault('rbox',i)
 
+                # Multiple Material IDs and their corresponding drops.
                 if event_node[i] == 'ID': 
                     data_indices['ID'].append(i)
                 if event_node[i] == 'Drop%':
@@ -68,39 +73,38 @@ class Nodes:
         return data_indices, reader
     
     def find_event_name( self, event_drop_CSV ):
-        event_folder = ['FGO Efficiency ',
+        fluff_to_remove = ['FGO Efficiency ',
                         'Events Farm' + '\\']
         
-        for i in event_folder:
+        for i in fluff_to_remove:
             if event_drop_CSV.find(i) >= 0:
-                start = event_drop_CSV.find(i)+len(i)
+                start = event_drop_CSV.rfind(i)+len(i)
                 break
-        
-        event_folder = [' - Event',
-                        '.csv']
-        for i in event_folder:
+
+        fluff_to_remove = [' - Event', '.csv']
+        for i in fluff_to_remove:
             if event_drop_CSV.rfind(i) >= 0:
                 end = event_drop_CSV.rfind(i)
                 break
 
         return event_drop_CSV[start:end]
 
-    def add_event_drop( self, event_drop_CSV, run_caps: Inter.RunCaps, mat_count, ID_to_index ):
+    def add_event_drop( self, event_drop_CSV, run_caps: Inter.RunCaps, ID_to_index, drop_index_count ):
         event_name = self.find_event_name(event_drop_CSV)
         Inter.Debug().make_note( event_name )
 
         with open( event_drop_CSV, newline = '', encoding = 'latin1' ) as f:
             reader = csv.reader(f)
-            event_node = next(reader)
+            event_quest = next(reader)
 
-            event_true_name = event_node[2]
-            event_caps = run_caps.determine_event_caps(event_node)
-            for i in range(len(event_node)):
-                if event_node[i] == 'Buyback?:':
-                    if not bool(event_node[i+1].strip()):
+            event_true_name = event_quest[2]
+            event_caps = run_caps.determine_event_caps(event_quest)
+
+            AP_Buyback = False
+            for i in range(len(event_quest)):
+                if event_quest[i].find('Buyback') >= 0:
+                    if event_quest[i+1] != '':
                         AP_Buyback = True
-                    else:
-                        AP_Buyback = False
                     break
 
             data_indices, reader = self.find_data_indices(reader)
@@ -108,151 +112,183 @@ class Nodes:
             event_AP_cost = []
             event_drop_matrix = []
             
-            node_group = False
-            group_count = 0
+            # Notes Event groups to properly apply Run Caps.
+            quest_group = False
+            member_count = 0
+            event_lotto = False
 
             # Interpretation of how this is supposed to read the Event Quest csv:
             # If there is no AP assigned or no material assigned in the first slot, skip this line.
             # If there is an AP assigned, assume the drops are part of a new node and start a new line of the Drop Matrix.
             # Add drops to the last made line in the Drop Matrix.
-            for event_node in reader:
+            for event_quest in reader:
                 try:
-                    node_AP_cost = float(event_node[ data_indices['AP'] ])
-                    if not bool(event_node[ data_indices['ID'][0] ].strip()):
+                    quest_AP_cost = float(event_quest[ data_indices['AP'] ])
+
+                    if event_quest[ data_indices['ID'][0] ] == '':
                         continue
                 except ValueError:
                     continue
                 
-                node_name = event_name + ', ' + event_node[ data_indices['loc'] ]
-                if event_node[ data_indices['type'] ][0:5] == 'Lotto':
+                quest_name = event_name + ', ' + event_quest[ data_indices['loc'] ]
+
+                if event_quest[ data_indices['type'] ][0:5] == 'Lotto':
                     is_lotto = True
-                    Inter.Debug().add_lotto(  node_name + '  =  +' + event_node[ data_indices['lotto'] ] + '\n')
+                    event_lotto = True
+                    Inter.Debug().add_lotto_drop_bonus(  quest_name + '  =  +' + event_quest[ data_indices['lotto'] ] + '\n')
                 else:
                     is_lotto = False
 
-                event_drop_add = np.zeros( mat_count )
+                event_drop_add = np.zeros( drop_index_count )
+
                 if self.remove_zeros:
                     add_data = False
                 else:
                     add_data = True
 
                 for i in range(len(data_indices['ID'])):
-                    if event_node[data_indices['drop'][i]] != '':
-                        mat_ID = int(event_node[ data_indices['ID'][i] ])
-                        if ID_to_index[mat_ID] == 'T':
+                    if event_quest[data_indices['drop'][i]] != '':
+                        mat_ID = int(event_quest[ data_indices['ID'][i] ])
+
+                        # Skips adding Material if it has no assigned index, so if it was assigned to be skipped
+                        if ID_to_index[mat_ID] == 'F':
                             continue
 
-                        dropRate = float(event_node[ data_indices['drop'][i] ]) / 100
-                        if mat_ID >= self.hellfire_range[0] and mat_ID % self.hellfire_range[1] == 0:
-                            dropRate *= 3
+                        drop_rate = float(event_quest[ data_indices['drop'][i] ]) / 100
 
+                        # Determines whether Material has one of the XP Hellfire IDs
+                        if mat_ID >= self.hellfire_range[0] and mat_ID % self.hellfire_range[1] == 0:
+                            drop_rate *= 3
+
+                        # Allows certain negative IDs to input data for multiple Materials.
                         if mat_ID < 0:
                             mat_ID = ID_to_index[mat_ID]
                         else:
                             mat_ID = [mat_ID]
+
                         for j in mat_ID:
                             add_data = True
-                            event_drop_add[ ID_to_index[j] ] += dropRate
+                            event_drop_add[ ID_to_index[j] ] += drop_rate
 
-                node_group, group_count = run_caps.evaluate_group_info( add_data, event_node[data_indices['type']], event_true_name, node_group, group_count, event_caps )
+                quest_group, member_count = run_caps.evaluate_group_info( add_data, event_quest[ data_indices['type'] ], 
+                                                                         event_true_name, quest_group, member_count, event_caps )
+
                 if add_data:
-                    self.node_names.append( node_name )
-                    event_AP_cost.append( [node_AP_cost] )
+                    self.quest_names.append( quest_name )
+                    event_AP_cost.append( [quest_AP_cost] )
                     event_drop_matrix.append( event_drop_add )
 
-                    self.add_lotto_info( is_lotto, event_node, data_indices )
+                    self.add_box_run_info( is_lotto, event_quest[ data_indices['rbox'] ] )
             f.close()
             
-            run_caps.add_group_info( event_true_name, node_group, group_count, event_caps )
+            # Event Lotto has own separate logic check just in case more Types creep into the data at the end.
+            if event_lotto and AP_Buyback:
+                Inter.Debug().make_note( '  ,  AP Buyback was on\n' )
+            else:
+                Inter.Debug().make_note('\n')
+
+            run_caps.add_group_info( event_true_name, quest_group, member_count, event_caps )
             self.assemble_matrix( event_AP_cost, event_drop_matrix )
     
-    def multi_event( self, run_caps, mat_count, ID_to_index ):
+    def multi_event( self, run_caps, ID_to_index, drop_index_count, ):
         Inter.Debug().make_note( 'The Events included in this analysis are:\n' )
-        eventFolder = glob.glob( Inter.path_prefix + 'Events Farm\\*' )
+        events_farm_folder = glob.glob( Inter.path_prefix + 'Events Farm\\*' )
 
-        for event in eventFolder:
-            self.add_event_drop( event, run_caps, mat_count, ID_to_index )
+        for event in events_farm_folder:
+            self.add_event_drop( event, run_caps, ID_to_index, drop_index_count )
         
         Inter.Debug().make_note('\n')
+
+    # Assumes first Material data point has a Header with "Bronze" in it, and that "Saber Blaze" is 9 columns after the "Monuments"  start.
+    def find_data_range( self, reader ):
+        mat_start = 0
+        mat_end = 0
+
+        while mat_end == 0:
+            try:
+                free_drop = next(reader)
+            except StopIteration:
+                Inter.Debug().error_warning( 'Sheet does not have a column labeled as referencing "Monument" mats.' )
+
+            for i in range(len(free_drop)):  
+                if free_drop[i].find('Bronze') >= 0:
+                    mat_start = i
+                if free_drop[i].find('Monument') >= 0:
+                    mat_end = i+9
+                    break
+        if mat_start == 0:
+            Inter.Debug().error_warning( 'Sheet does not have a column labeled as referencing "Bronze" mats.' )
+        
+        return reader, mat_start, mat_end
     
     def add_free_drop( self, free_drop_CSV, run_caps: Inter.RunCaps, skip_data_index ):
         with open( free_drop_CSV, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
 
-            # Find the starting index of the Materials and where the XP starts.
-            mat_start = 0
-            mat_end = 0
-            while mat_end == 0:
-                try:
-                    free_drop = next(reader)
-                except:
-                    Inter.Debug().error_warning( 'Sheet does not have a column labeled as referencing "Monument" mats.' )
-                for i in range(len(free_drop)):  
-                    if free_drop[i].find('Bronze') >= 0:
-                        mat_start = i
-                    if free_drop[i].find('Monument') >= 0:
-                        mat_end = i+9
-                        break
-            if mat_start == 0:
-                Inter.Debug().error_warning( 'Sheet does not have a column labeled as referencing "Bronze" mats.' )
+            reader, mat_start, mat_end = self.find_data_range( reader )
             
             free_AP_cost = []
             free_drop_matrix = []
 
-            node_group = False
-            group_count = 0
-
-            half_AP = Inter.ConfigList.tg_half_AP
+            # Notes Quest groups to properly apply Run Caps, as well as Half AP.
+            quest_group = False
+            member_count = 0
 
             # Interpretation of how this is supposed to read the APD csv:
             # If the Singularity is further than the user wants to farm as defined in the config file, stop.
             # If the line is filler because the original google sheet copies the Japanese document formatting, skip it.
             # Else, start a new line of drop rate data.
             for free_drop in reader:
-                if free_drop[0].find( Inter.ConfigList.last_area ) >= 0: 
+                if free_drop[0].find( self.last_area ) >= 0: 
                     break
 
                 try:
-                    node_AP = int(free_drop[2])
+                    quest_AP = int(free_drop[2])
                 except ValueError:
                     continue
 
-                if free_drop[3] == 'Daily' and half_AP:
-                    node_AP *= float( node_AP / int(node_AP/2) )
-
                 drop_matrix_add = []
+
                 if self.remove_zeros:
                     add_data = False
                 else:
                     add_data = True
 
+                drop_mult = 1
+                # Effectively doubles drop rate for Half AP, taking into account odd AP costs.
+                if free_drop[3] == 'Daily' and self.tg_half_AP:
+                    drop_mult *= float( quest_AP / int(quest_AP/2) )
+
                 for i in range(mat_start,mat_end):
                     if not skip_data_index[i-mat_start]:
                         try:
                             add_data = True
-                            drop_matrix_add.append( node_AP / float(free_drop[i]) )
+                            drop_matrix_add.append( drop_mult * quest_AP / float(free_drop[i]) )
                         except ValueError:
                             drop_matrix_add.append(0)
                 
                 if not skip_data_index[i-mat_start]:
-                    XP_mult = 1
+                    XP_mult = drop_mult
                     for i in range(mat_end,mat_end+14):
+                        # Assumes Hellfires will being at about 6 columns after "Saber Blaze."
                         if i == mat_end + 6:
-                            XP_mult = 3
+                            XP_mult *= 3
+
                         try:
                             add_data = True
-                            drop_matrix_add[-1] += XP_mult * node_AP / float(free_drop[i])
+                            drop_matrix_add[-1] += XP_mult * quest_AP / float(free_drop[i])
                         except ValueError:
                             drop_matrix_add[-1] += 0
                 
-                node_group, group_count = run_caps.evaluate_group_info( add_data, free_drop[3], 'Free Quests', node_group, group_count )
+                quest_group, member_count = run_caps.evaluate_group_info( add_data, free_drop[3], 'Free Quests', quest_group, member_count )
+
                 if add_data:
-                    self.node_names.append( free_drop[0] + ', ' + free_drop[1] )
-                    free_AP_cost.append( [node_AP] )
+                    self.quest_names.append( free_drop[0] + ', ' + free_drop[1] )
+                    free_AP_cost.append( [quest_AP] )
                     free_drop_matrix.append( drop_matrix_add )
 
-                    self.add_lotto_info(False)
+                    self.add_box_run_info(False)
             f.close()
             
-            run_caps.add_group_info( 'Free Quests', node_group, group_count )
+            run_caps.add_group_info( 'Free Quests', quest_group, member_count )
             self.assemble_matrix( free_AP_cost, free_drop_matrix )
