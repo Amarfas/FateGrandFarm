@@ -3,9 +3,9 @@ import glob
 import numpy as np
 import Interpret as Inter
 
-class Nodes:
+class QuestData:
     def __init__( self ):
-        self.node_names = []
+        self.quest_names = []
         self.AP_costs = []
         self.drop_matrix = np.array([])
 
@@ -73,10 +73,11 @@ class Nodes:
         
         for i in event_folder:
             if event_drop_CSV.find(i) >= 0:
-                start = event_drop_CSV.rfind(i)+len(i)
+                start = event_drop_CSV.find(i)+len(i)
                 break
-
-        event_folder = [' - Event', '.csv']
+        
+        event_folder = [' - Event',
+                        '.csv']
         for i in event_folder:
             if event_drop_CSV.rfind(i) >= 0:
                 end = event_drop_CSV.rfind(i)
@@ -94,10 +95,9 @@ class Nodes:
 
             event_true_name = event_node[2]
             event_caps = run_caps.determine_event_caps(event_node)
-
             for i in range(len(event_node)):
                 if event_node[i] == 'Buyback?:':
-                    if event_node[i+1] != '':
+                    if not bool(event_node[i+1].strip()):
                         AP_Buyback = True
                     else:
                         AP_Buyback = False
@@ -110,7 +110,6 @@ class Nodes:
             
             node_group = False
             group_count = 0
-            event_lotto = False
 
             # Interpretation of how this is supposed to read the Event Quest csv:
             # If there is no AP assigned or no material assigned in the first slot, skip this line.
@@ -119,7 +118,7 @@ class Nodes:
             for event_node in reader:
                 try:
                     node_AP_cost = float(event_node[ data_indices['AP'] ])
-                    if event_node[ data_indices['ID'][0] ] == '':
+                    if not bool(event_node[ data_indices['ID'][0] ].strip()):
                         continue
                 except ValueError:
                     continue
@@ -127,8 +126,7 @@ class Nodes:
                 node_name = event_name + ', ' + event_node[ data_indices['loc'] ]
                 if event_node[ data_indices['type'] ][0:5] == 'Lotto':
                     is_lotto = True
-                    event_lotto = True
-                    Inter.Debug().add_lotto(  node_name + '  =  +' + event_node[ data_indices['lotto'] ] + '\n')
+                    Inter.Debug().add_lotto_drop_bonus(  node_name + '  =  +' + event_node[ data_indices['lotto'] ] + '\n')
                 else:
                     is_lotto = False
 
@@ -141,7 +139,7 @@ class Nodes:
                 for i in range(len(data_indices['ID'])):
                     if event_node[data_indices['drop'][i]] != '':
                         mat_ID = int(event_node[ data_indices['ID'][i] ])
-                        if ID_to_index[mat_ID] == 'T':
+                        if ID_to_index[mat_ID] == 'F':
                             continue
 
                         dropRate = float(event_node[ data_indices['drop'][i] ]) / 100
@@ -158,18 +156,13 @@ class Nodes:
 
                 node_group, group_count = run_caps.evaluate_group_info( add_data, event_node[data_indices['type']], event_true_name, node_group, group_count, event_caps )
                 if add_data:
-                    self.node_names.append( node_name )
+                    self.quest_names.append( node_name )
                     event_AP_cost.append( [node_AP_cost] )
                     event_drop_matrix.append( event_drop_add )
 
                     self.add_lotto_info( is_lotto, event_node, data_indices )
             f.close()
             
-            if event_lotto and AP_Buyback:
-                Inter.Debug().make_note( ' , AP Buyback was on\n' )
-            else:
-                Inter.Debug().make_note('\n')
-
             run_caps.add_group_info( event_true_name, node_group, group_count, event_caps )
             self.assemble_matrix( event_AP_cost, event_drop_matrix )
     
@@ -254,7 +247,7 @@ class Nodes:
                 
                 node_group, group_count = run_caps.evaluate_group_info( add_data, free_drop[3], 'Free Quests', node_group, group_count )
                 if add_data:
-                    self.node_names.append( free_drop[0] + ', ' + free_drop[1] )
+                    self.quest_names.append( free_drop[0] + ', ' + free_drop[1] )
                     free_AP_cost.append( [node_AP] )
                     free_drop_matrix.append( drop_matrix_add )
 

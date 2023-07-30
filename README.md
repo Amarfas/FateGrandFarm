@@ -171,9 +171,12 @@ There are a few special Material IDs that FGF interprets as multiple different M
  * '-6' = XP Cards
 
 ## Acknowledgements
-All credit goes to the various communities that have worked hard to compile and analyze this game. Specifically:
+
+[pyinstaller](https://github.com/pyinstaller/pyinstaller) for making it easy to create an executable.
 
 CVXPY for making a library that can crunch these numbers, and my friend for pointing them out to me.
+
+Other credit goes to the various communities that have worked hard to compile and analyze this game. Specifically:
 
 JP Data is sourced from the [following community collaboration.](https://docs.google.com/spreadsheets/d/1TrfSDteVZnjUPz68rKzuZWZdZZBLqw03FlvEToOvqH0/)
 
