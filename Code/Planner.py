@@ -37,10 +37,13 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_matrix 
     prob = cp.Problem( objective , constraints )
     prob.solve()
 
+    if prob.status != 'optimal':
+        Inter.Debug().error_warning( 'This solution is or was: ' + prob.status )
+    
     if prob.status == 'infeasible':
         prob = cp.Problem( objective, [ drop_matrix @ runs >= data_files.goals ] )
         prob.solve()
-        Inter.Debug().error_warning( 'The applied Run Caps made the Goals impossible.' )
+        Inter.Debug().error_warning( 'The applied Run Caps made the Goals impossible. Analysis will now remove Run Caps.' )
 
     # Makes Run counts integers.
     if run_int:
@@ -92,9 +95,9 @@ class Output:
                 try:
                     new = len(i[j])
                     if new > indent[j]:
-                        indent[j] = new
+                        indent[j] = new + 1
                 except IndexError:
-                    indent.append(new)
+                    indent.append( new + 1 )
         
         # Formats the output files.
         for i in range(len(text)):
@@ -103,7 +106,7 @@ class Output:
 
             output_drops += lead_text
             for j in range(3,len(text[i])):
-                output_drops += "{:<{}}".format(text[i][j], indent[j]+1)
+                output_drops += "{:<{}}".format(text[i][j], indent[j])
             output_drops += '\n'
 
         return output, output_drops
