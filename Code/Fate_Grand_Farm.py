@@ -18,6 +18,7 @@ def main():
     quest_data.multi_event( run_caps, data_files.ID_to_index, data_files.drop_index_count )
     quest_data.add_free_drop( glob.glob( Inter.path_prefix + 'Data Files\\*APD.csv' )[0], run_caps, data_files.skip_data_index )
 
+    # First index is the run matrix, second index is the matric with all run caps.
     run_cap_matrix = run_caps.build_run_cap_matrix()
     prob , runs , total_AP = Plan.planner( quest_data, data_files, run_cap_matrix, Inter.ConfigList.run_int )
 

@@ -15,15 +15,15 @@ def standardize_path():
 
 class ConfigList():
     plan_name = ''
-    tg_half_AP = ''
-    remove_zeros = ''
-    run_int = ''
+    tg_half_AP = False
+    remove_zeros = True
+    run_int = False
     last_area = ''
-    debug_on_fail = ''
-    create_output_files = ''
+    debug_on_fail = True
+    create_output_files = True
     config = configparser.ConfigParser()
 
-    def set_config( self, key, type = '', section = 'DEFAULT', default = True ):
+    def set_config( self, key, type = '', section = 'DEFAULT' ):
         key_value = self.config[section][key]
 
         if type == 'int':
@@ -50,7 +50,6 @@ class ConfigList():
                     key_value = False
                 else:
                     Debug().error_warning( 'Configuration "' + key + '" was not yes or no/true or false.')
-                    key_value = default
     
         Debug().note_config(key, key_value)
 
@@ -62,13 +61,13 @@ class ConfigList():
     def read_config_ini(self):
         ConfigList.config.read( path_prefix + 'fgf_config.ini' )
 
-        ConfigList.debug_on_fail = self.set_config('Debug Fail', 'bool', default = False)
+        ConfigList.debug_on_fail = self.set_config('Debug Fail', 'bool')
         Debug.notifications = self.set_config('Notifications', 'bool')
 
         ConfigList.plan_name = self.set_config('Plan Name')
-        ConfigList.tg_half_AP = self.set_config('Training Grounds Half AP', 'bool', default = False)
+        ConfigList.tg_half_AP = self.set_config('Training Grounds Half AP', 'bool')
         ConfigList.remove_zeros = self.set_config('Remove Zeros', 'bool')
-        ConfigList.run_int = self.set_config('Run Count Integer', 'bool', default = False)
+        ConfigList.run_int = self.set_config('Run Count Integer', 'bool')
         ConfigList.last_area = self.set_config('Stop Here')
         ConfigList.create_output_files = self.set_config('Output Files', 'bool')
 
@@ -226,6 +225,8 @@ class DataFiles:
             f.close()
 
         self._interpret_XP_data( mat_ID_list, list_index, drop_matrix_index, xp_goal )
+        if self.goals == []:
+            Debug().error_warning("You have assigned no goals.")
         self.goals = np.array(self.goals)
 
 class RunCaps():
