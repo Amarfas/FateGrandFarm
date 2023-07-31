@@ -12,7 +12,7 @@ With the variety of Materials in the game, some of which don't help any of the S
 
 This is where Fate/Grand Farm comes to your rescue! Input your farming goals, select which Events you want to analyze, possibly change some configurations if you're into that, press that exe button, and have the next 2 years of your grinding life dictated to you by a machine!
 
-The executable only works for Windows. If you use another Operating System (or run into other problems), look into the 'Troubleshooting' section below to find out what you need for the Python program.
+The executable only works for Windows. If you use another Operating System (or run into other problems), look into the 'Python Environment Set Up' section below to find out what you need for the Python program.
 
 *Note: As the linear programming algorithms can only compute averages, the actual number of runs required to reach your goal may be highly variable for a low number of Materials required.*
 
@@ -37,7 +37,7 @@ After running the program, you will find 3 output files in the main directory ('
 
 'Debug' contains all the information necessary to properly understand the context for the corresponding 'Farming Plan.' This includes all the Errors that came up, Configurations, the Events included, and Lotto Drop Rate boosts.
 
-## Troubleshooting
+## Python Environment Set Up
 Fate/Grand Farm was programmed in Python 3.9, and the necessary libraries are: [NumPy](https://numpy.org/), [SciPy](https://scipy.org/), and [CVXPY](https://www.cvxpy.org/).
 
 It is recommended to download and install [Anaconda.](https://www.anaconda.com/) If you encounter any issues finding CVXPY, you may need to add the 'conda-forge' channel.
