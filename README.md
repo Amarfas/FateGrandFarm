@@ -60,6 +60,8 @@ For example, 'Christmas 2023 -D12-Claw' signifies the drop rate table of all 'Ch
 
 To improve the 'Farming Plan' it is suggested to include a '.csv' for each ticket Material in the 'Events Farm' folder. Extra data won't confuse the analysis and will instead help you in choosing Materials from the tickets.
 
+As a further note, all Lotto Event '.csv's that come pre-installed with Fate/Grand Farm have 'Apple AP Buyback' turned on. This means that Apples gained from Boxes are assumed to go back into farming the quest in question. This effectively lowers their AP Cost. Even if this is not how you actually farm the Event, it does represent how efficient the drop rate is per AP spent.
+
 ## Configuring Your Own Event CSV
 To generate your own '.csv' files for specific Events, use my ['FGO Efficiency'](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) google sheet. To obtain your '.csv' file:
  1. Go the sheet's menu bar, select 'File' -> 'Make a Copy'. You can rename it whatever.
