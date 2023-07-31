@@ -48,6 +48,18 @@ python Fate_Grand_Farm.py
 ```
 
 ## Set Up
+## 'fgf_config.ini' Extra Notes
+
+For any y/n (yes/no) question in the configurations, it will also read the following as yes or no (not case sensitive):
+ * 1 = yes , 0 = no
+ * true = yes , false = no
+ * t = yes , f = no
+ * yes = yes , no = no
+ * y = yes , n = no
+ * on = yes , off = no
+
+For another note on 'remove_zeros', sometimes there are non-trivial different solutions which fulfill the same goals for the same AP cost. Consequently, sometimes an entirely different run path will be spit out when 'remove_zeros' is toggled, as the technically different matrix causes the solver to reach its solution on a different path.
+
 ## 'Events List' Folder
 Contains the drop rate data for various Events in '.csv' format. Lotto Events have their own folders to help organize the data. 
 
