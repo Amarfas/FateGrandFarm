@@ -29,7 +29,7 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_matrix 
     objective = cp.Minimize( AP_costs @ runs )
 
     constraints = [ drop_matrix @ runs >= data_files.goals ]
-    if run_cap_matrix:
+    if run_cap_matrix and run_cap_matrix[0].any():
         constraints.append( run_cap_matrix[0] @ runs <= run_cap_matrix[1] )
     if run_int:
         constraints.append( np.eye(run_size) @ runs >= np.zeros((run_size,1)) )
