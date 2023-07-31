@@ -55,7 +55,7 @@ class ConfigList():
         Debug().note_config(key, key_value)
 
         # 'Last Area' configuration, hopefully no Regions have ZZZZZ in their name in the future.
-        if key == 'Last Area' and key_value == '':
+        if key == 'Stop Here' and key_value == '':
             return 'ZZZZZ'
         return key_value
 
@@ -69,7 +69,7 @@ class ConfigList():
         ConfigList.tg_half_AP = self.set_config('Training Grounds Half AP', 'bool', default = False)
         ConfigList.remove_zeros = self.set_config('Remove Zeros', 'bool')
         ConfigList.run_int = self.set_config('Run Count Integer', 'bool', default = False)
-        ConfigList.last_area = self.set_config('Last Area')
+        ConfigList.last_area = self.set_config('Stop Here')
         ConfigList.create_output_files = self.set_config('Output Files', 'bool')
 
 # Compiles statements to be included in the Debug output text file.
