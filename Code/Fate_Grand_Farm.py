@@ -28,6 +28,6 @@ if Inter.ConfigList().debug_on_fail:
     try:
         main()
     except:
-        Plan.Output().make_debug_report()
+        Plan.Output().create_note_file()
 else:
     main()
