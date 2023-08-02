@@ -1,4 +1,5 @@
 import glob
+import math
 import os
 import numpy as np
 import cvxpy as cp
@@ -55,7 +56,7 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_matrix 
             if i[0] < 0.1: 
                 run_int_values[count,0] = 0
             else: 
-                run_int_values[count,0] = int(i[0]) + 1
+                run_int_values[count,0] = int(math.ceil(i[0]))
             count += 1
         return ( prob , run_int_values , int( AP_costs @ runs.value ) )
 
@@ -67,6 +68,19 @@ class Output:
         print( text )
         return text + '\n'
     
+    # Finds an appropriate indentation between each column of data.
+    def find_indent( self, text ):
+        indent = []
+        for i in text:
+            for j in range(len(i)):
+                try:
+                    new = len(i[j])
+                    if new > indent[j]:
+                        indent[j] = new + 1
+                except IndexError:
+                    indent.append( new + 1 )
+        return indent
+
     def create_drop_file( self, output, runs, nodes: QuestData, index_to_name ):
         output_drops = output
         text = []
@@ -88,16 +102,7 @@ class Output:
                     if mat_drop > 0:
                         text[-1].append( "{:.2f}".format( run_count*mat_drop ) + ' ' + index_to_name[j] + ', ' )
 
-        # Finds an appropriate indentation between each column of data.
-        indent = []
-        for i in text:
-            for j in range(len(i)):
-                try:
-                    new = len(i[j])
-                    if new > indent[j]:
-                        indent[j] = new + 1
-                except IndexError:
-                    indent.append( new + 1 )
+        indent = self.find_indent(text)
         
         # Formats the output files.
         for i in range(len(text)):
@@ -132,18 +137,32 @@ class Output:
                 text += '!! Plan Name not accepted by OS\n\n'
             self.avoid_plan_name_error( name_prefix + name_suffix, text )
 
-    
-    def make_debug_report( self, plan_name = '', time_stamp = '' ):
-        output = ''
-        if Inter.Debug.error != '':
-            output = '!! WARNING !!\n'
-            output += Inter.Debug.error + '\n'
-        output += '__Configurations:\n'
-        output += Inter.Debug.config_notes + '\n'
-        output += Inter.Debug.end_notes + '\n'
-        output += Inter.Debug.lotto_notes + '\n'
+    def make_debug_report( self, text ):
+        indent = self.find_indent(text)
+        run_debug = ''
+        if text != []:
+            run_debug = 'The following are notes to make sure that Run Caps were applied correctly:\n\n'
 
-        self.file_creation( plan_name, time_stamp, 'Debug.txt', output, True )
+        for i in range(len(text)):
+            for j in range(len(text[i])):
+                run_debug += "{:<{}}".format(text[i][j], indent[j])
+            run_debug += '\n'
+        
+        return run_debug
+    
+    def create_note_file( self, plan_name = '', time_stamp = '' ):
+        output = ''
+        debug = Inter.Debug()
+        if debug.error != '':
+            output = '!! WARNING !!\n'
+            output += debug.error + '\n'
+        output += '__Configurations:\n'
+        output += debug.config_notes + '\n'
+        output += debug.event_notes + '\n'
+        output += debug.lotto_notes + '\n'
+        output += self.make_debug_report( debug.run_cap_debug )
+
+        self.file_creation( plan_name, time_stamp, 'Config Notes.txt', output, True )
 
 
     def print_out( self, prob, runs, total_AP, nodes: QuestData, index_to_name, will_output_files = True ):
@@ -161,4 +180,4 @@ class Output:
 
             self.file_creation( plan_name, time_stamp, 'Farming Plan.txt', output )
             self.file_creation( plan_name, time_stamp, 'Farming Plan Drops.txt', output_drops)
-            self.make_debug_report( plan_name, time_stamp )
+            self.create_note_file( plan_name, time_stamp )

@@ -101,17 +101,17 @@ print('\n')
 Inter.standardize_path()
 Inter.ConfigList().read_config_ini()
 
-input_data = Inter.DataFiles( Inter.path_prefix + 'GOALS' + goals_debug + '.csv', glob.glob( Inter.path_prefix + 'Data Files\\*Calc.csv' )[0] )
-
-nodes, run_caps, run_cap_matrix = build_matrix('Nodes')
-nodes_test, run_caps_test, run_cap_matrix_test = build_matrix('NodesTest')
-
 if mult_test:
-    goals_list = [ '', 'Test', 'Test1', 'Test2']
+    goals_list = [  'Test', 'Test1', 'Test2', 'Test3', 'Test4', 'Test_Per' ]
 else:
     goals_list = [goals_debug]
 
 for goals_debug in goals_list:
+    input_data = Inter.DataFiles( Inter.path_prefix + 'GOALS' + goals_debug + '.csv', glob.glob( Inter.path_prefix + 'Data Files\\*Calc.csv' )[0] )
+
+    nodes, run_caps, run_cap_matrix = build_matrix('Nodes')
+    nodes_test, run_caps_test, run_cap_matrix_test = build_matrix('NodesTest')
+
     print( 'Test results for: GOALS' + goals_debug + '.csv:')
     for i in test_modes:
         if i == 1:

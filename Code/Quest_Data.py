@@ -90,8 +90,10 @@ class QuestData:
         return event_drop_CSV[start:end]
 
     def add_event_drop( self, event_drop_CSV, run_caps: Inter.RunCaps, ID_to_index, drop_index_count ):
+        debug = Inter.Debug()
         event_name = self.find_event_name(event_drop_CSV)
-        Inter.Debug().make_note( event_name )
+        debug.note_event_list( event_name )
+        debug.add_debug( event_name, 0, 5 )
 
         with open( event_drop_CSV, newline = '', encoding = 'latin1' ) as f:
             reader = csv.reader(f)
@@ -135,7 +137,7 @@ class QuestData:
                 if event_quest[ data_indices['type'] ][0:5] == 'Lotto':
                     is_lotto = True
                     event_lotto = True
-                    Inter.Debug().add_lotto_drop_bonus(  quest_name + '  =  +' + event_quest[ data_indices['lotto'] ] + '\n')
+                    debug.add_lotto_drop_bonus(  quest_name + '  =  +' + event_quest[ data_indices['lotto'] ] + '\n')
                 else:
                     is_lotto = False
 
@@ -183,21 +185,20 @@ class QuestData:
             
             # Event Lotto has own separate logic check just in case more Types creep into the data at the end.
             if event_lotto and AP_Buyback:
-                Inter.Debug().make_note( '  ,  AP Buyback was on\n' )
+                debug.note_event_list( '  ,  AP Buyback was on\n' )
             else:
-                Inter.Debug().make_note('\n')
+                debug.note_event_list('\n')
 
             run_caps.add_group_info( event_true_name, quest_group, member_count, event_caps )
             self.assemble_matrix( event_AP_cost, event_drop_matrix )
     
     def multi_event( self, run_caps, ID_to_index, drop_index_count, ):
-        Inter.Debug().make_note( 'The Events included in this analysis are:\n' )
         events_farm_folder = glob.glob( Inter.path_prefix + 'Events Farm\\*' )
 
         for event in events_farm_folder:
             self.add_event_drop( event, run_caps, ID_to_index, drop_index_count )
         
-        Inter.Debug().make_note('\n')
+        Inter.Debug().note_event_list('\n')
 
     # Assumes first Material data point has a Header with "Bronze" in it, and that "Saber Blaze" is 9 columns after the "Monuments"  start.
     def find_data_range( self, reader ):
@@ -226,6 +227,8 @@ class QuestData:
             reader = csv.reader(f)
 
             reader, mat_start, mat_end = self.find_data_range( reader )
+
+            free_cap = Inter.RunCaps().set_config_caps(True)
             
             free_AP_cost = []
             free_drop_matrix = []
@@ -280,7 +283,7 @@ class QuestData:
                         except ValueError:
                             drop_matrix_add[-1] += 0
                 
-                quest_group, member_count = run_caps.evaluate_group_info( add_data, free_drop[3], 'Free Quests', quest_group, member_count )
+                quest_group, member_count = run_caps.evaluate_group_info( add_data, free_drop[3], 'Free Quests', quest_group, member_count, free_cap )
 
                 if add_data:
                     self.quest_names.append( free_drop[0] + ', ' + free_drop[1] )
@@ -290,5 +293,5 @@ class QuestData:
                     self.add_box_run_info(False)
             f.close()
             
-            run_caps.add_group_info( 'Free Quests', quest_group, member_count )
+            run_caps.add_group_info( 'Free Quests', quest_group, member_count, free_cap )
             self.assemble_matrix( free_AP_cost, free_drop_matrix )

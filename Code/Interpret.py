@@ -23,12 +23,12 @@ class ConfigList():
     create_output_files = True
     config = configparser.ConfigParser()
 
-    def set_config( self, key, type = '', section = 'DEFAULT' ):
+    def set_config( self, key, type = '', section = 'DEFAULT', make_note = True ):
         key_value = self.config[section][key]
 
         if type == 'int':
             try:
-                key_value = int(key_value)
+                key_value = int(key_value.replace(',',''))
             except ValueError:
                 if key_value != '' and key_value != 'None':
                     Debug().error_warning( 'Configuration "' + key + '" was not a number.')
@@ -50,8 +50,9 @@ class ConfigList():
                     key_value = False
                 else:
                     Debug().error_warning( 'Configuration "' + key + '" was not yes or no/true or false.')
-    
-        Debug().note_config(key, key_value)
+
+        if make_note:
+            Debug().note_config(key, key_value)
 
         # 'Last Area' configuration, hopefully no Regions have ZZZZZ in their name in the future.
         if key == 'Stop Here' and key_value == '':
@@ -61,7 +62,7 @@ class ConfigList():
     def read_config_ini(self):
         ConfigList.config.read( path_prefix + 'fgf_config.ini' )
 
-        ConfigList.debug_on_fail = self.set_config('Debug Fail', 'bool')
+        ConfigList.debug_on_fail = self.set_config('Debug on Fail', 'bool')
         Debug.notifications = self.set_config('Notifications', 'bool')
 
         ConfigList.plan_name = self.set_config('Plan Name')
@@ -75,9 +76,13 @@ class ConfigList():
 class Debug():
     error = ''
     config_notes = ''
-    end_notes = ''
+    event_notes = 'The Events included in this analysis are:\n'
     lotto_notes = ''
+    run_cap_debug = []
     notifications = True
+
+    def __init__(self) -> None:
+        pass
     
     def error_warning( self, note ):
         note = '!! ' + note
@@ -88,10 +93,13 @@ class Debug():
     def note_config( self, key, key_value ):
         Debug.config_notes += key + ' = ' + str(key_value) + '\n'
 
-    def make_note( self, note , notice = False ):
-        if self.notifications and notice:
-            print(note)
-        Debug.end_notes += note
+    def add_debug( self, note, index, new = False ):
+        if new:
+            Debug.run_cap_debug.append( [''] * new )
+        Debug.run_cap_debug[-1][index] += note
+
+    def note_event_list( self, note ):
+        Debug.event_notes += note
     
     # Lot of information, has its own category so it can be forced to the bottom
     def add_lotto_drop_bonus( self, note ):
@@ -231,18 +239,21 @@ class DataFiles:
 
 class RunCaps():
     def __init__(self):
-        self.config_caps = { 'Event':[ConfigList().set_config('Event Cap', 'int')],
-                            'Lotto':[ConfigList().set_config('Lotto Cap', 'int')],
-                            'Raid':[ConfigList().set_config('Raid Cap', 'int')],
-                            'Bleach':[ConfigList().set_config('Bleach Cap', 'int')] }
-
         self.group_to_member_count = []
         self.group_name_list = []
         self.run_cap_list = []
         self.matrix_col = 0
 
+    def set_config_caps( self, make_note = False ):
+        return { 'Event':[ConfigList().set_config('Event Cap', 'int', make_note=make_note)],
+                'Lotto':[ConfigList().set_config('Lotto Cap', 'int', make_note=make_note)],
+                'Raid':[ConfigList().set_config('Raid Cap', 'int', make_note=make_note)],
+                'Bleach':[ConfigList().set_config('Bleach Cap', 'int', make_note=make_note)] }
+
     def determine_event_caps( self, event_node ):
-        event_caps = self.config_caps
+        debug = Debug()
+        cap_debug_notes = '  ,  is default = '
+        event_caps = self.set_config_caps()
 
         new_cap = []
         cap_read = False
@@ -256,7 +267,8 @@ class RunCaps():
                     event_caps['Lotto'] = new_cap
 
                     # Noted as a deviation from fgf_config value
-                    Debug().make_note( '  ,  Event Run Cap was ' + str(new_cap) )
+                    debug.note_event_list( '  ,  Event Run Cap was ' + str(new_cap) )
+                    debug.add_debug( '  ,  Event Run Cap was ' + str(new_cap), 2 )
                     new_cap = []
 
                 cap_read = 'Raid'
@@ -264,16 +276,20 @@ class RunCaps():
             if cap_read:
                 try:
                     new_cap.append(int(i.replace(',','')))
+                    cap_debug_notes = '  -->  '
                 except ValueError:
                     pass
 
         if new_cap != []:
             event_caps[cap_read] = new_cap
-            Debug().make_note( '  ,  Raid Run Cap was ' + str(new_cap) )
+            debug.note_event_list( '  ,  Raid Run Cap was ' + str(new_cap) )
+            debug.add_debug( '  ,  Raid Run Cap was ' + str(new_cap), 2 )
         
+        debug.add_debug( cap_debug_notes, 3 )
+        debug.add_debug( str(event_caps) + '\n', 4 )
         return event_caps
     
-    def add_group_info( self, true_name, group_name, member_count, quest_caps = False ):
+    def add_group_info( self, true_name, group_name, member_count, quest_caps ):
         if group_name and member_count > 0:
             self.matrix_col += member_count
 
@@ -286,10 +302,7 @@ class RunCaps():
             type_info = [ true_name, group_type, group_num ]
             self.group_to_member_count.append([type_info, member_count])
             
-            if quest_caps:
-                cap_list = quest_caps.get(group_type)
-            else:
-                cap_list = self.config_caps.get(group_type)
+            cap_list = quest_caps.get(group_type)
             
             if cap_list == None or len(cap_list) == 0 or cap_list[0] == None:
                 cap_input = None

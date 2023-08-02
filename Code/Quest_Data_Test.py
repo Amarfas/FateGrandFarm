@@ -87,7 +87,7 @@ class QuestData:
 
     def add_event_drop( self, event_drop_CSV, run_caps: Inter.RunCaps, mat_count, ID_to_index ):
         event_name = self.find_event_name(event_drop_CSV)
-        Inter.Debug().make_note( event_name )
+        Inter.Debug().note_event_list( event_name )
 
         with open( event_drop_CSV, newline = '', encoding = 'latin1' ) as f:
             reader = csv.reader(f)
@@ -167,13 +167,13 @@ class QuestData:
             self.assemble_matrix( event_AP_cost, event_drop_matrix )
     
     def multi_event( self, run_caps, mat_count, ID_to_index ):
-        Inter.Debug().make_note( 'The Events included in this analysis are:\n' )
+        Inter.Debug().note_event_list( 'The Events included in this analysis are:\n' )
         eventFolder = glob.glob( Inter.path_prefix + 'Events Farm\\*' )
 
         for event in eventFolder:
             self.add_event_drop( event, run_caps, mat_count, ID_to_index )
         
-        Inter.Debug().make_note('\n')
+        Inter.Debug().note_event_list('\n')
     
     def add_free_drop( self, free_drop_CSV, run_caps: Inter.RunCaps, skip_data_index ):
         with open( free_drop_CSV, newline = '', encoding = 'Latin1' ) as f:
@@ -195,6 +195,8 @@ class QuestData:
                         break
             if mat_start == 0:
                 Inter.Debug().error_warning( 'Sheet does not have a column labeled as referencing "Bronze" mats.' )
+
+            free_cap = Inter.RunCaps().set_config_caps(True)
             
             free_AP_cost = []
             free_drop_matrix = []
@@ -245,7 +247,7 @@ class QuestData:
                         except ValueError:
                             drop_matrix_add[-1] += 0
                 
-                node_group, group_count = run_caps.evaluate_group_info( add_data, free_drop[3], 'Free Quests', node_group, group_count )
+                node_group, group_count = run_caps.evaluate_group_info( add_data, free_drop[3], 'Free Quests', node_group, group_count, free_cap )
                 if add_data:
                     self.quest_names.append( free_drop[0] + ', ' + free_drop[1] )
                     free_AP_cost.append( [node_AP] )
@@ -254,5 +256,5 @@ class QuestData:
                     self.add_lotto_info(False)
             f.close()
             
-            run_caps.add_group_info( 'Free Quests', node_group, group_count )
+            run_caps.add_group_info( 'Free Quests', node_group, group_count, free_cap )
             self.assemble_matrix( free_AP_cost, free_drop_matrix )
