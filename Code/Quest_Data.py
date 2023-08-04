@@ -17,17 +17,13 @@ class QuestData:
         self.tg_half_AP = Inter.ConfigList.tg_half_AP
         self.last_area = Inter.ConfigList.last_area
 
-    # TODO: There are some issues with this method of assembling matrices.
+
+    # There are some issues with this method of assembling matrices.
     # The basic issue is that cvxpy analysis requires data in the form of numpy matrices, but the best way to form numpy matrices is to initialize its size.
     # This is because vstacking numpy matrices line by line is slow, because it rewrites the entire matrix every time.
-    # ^^^ NOT CONFIRMED, maybe that's what I should do.
     # Unfortunately, in order to initialize the size, we have to know how many lines the csv is. This apparently requires reading through the entire csv once.
     # Since the csv's have to be read and added to the data line by line, this would be inelegant/slow.
     # For the above reasons, I have instead opted to put the data from the csv into an array first, and then turn those arrays into a numpy matrix before stacking.
-    # This seems to have caused an issue with making a 'Run Cap' constraint, as the column matrixes are size '(X,)' rather than '(X,1)'
-    # This doesn't make sense and tells me there needs to be some changes.
-
-    # FIXED SIZE PROBLEM: rest should still be looked into.
     def assemble_matrix( self, add_AP_cost, add_drop_matrix ):
             if add_drop_matrix != []:
                 if np.size( self.drop_matrix ) == 0:
@@ -246,7 +242,7 @@ class QuestData:
                     break
 
                 try:
-                    quest_AP = int(free_drop[2])
+                    normal_quest_AP = int(free_drop[2])
                 except ValueError:
                     continue
 
@@ -257,29 +253,29 @@ class QuestData:
                 else:
                     add_data = True
 
-                drop_mult = 1
-                # Effectively doubles drop rate for Half AP, taking into account odd AP costs.
+                current_quest_AP = normal_quest_AP
+                # Drop rate calculated from normal quest AP so that Half AP effectively doubles drop rate when optimizing run counts.
                 if free_drop[3] == 'Daily' and self.tg_half_AP:
-                    drop_mult *= float( quest_AP / int(quest_AP/2) )
+                    current_quest_AP = int(normal_quest_AP/2)
 
                 for i in range(mat_start,mat_end):
                     if not skip_data_index[i-mat_start]:
                         try:
                             add_data = True
-                            drop_matrix_add.append( drop_mult * quest_AP / float(free_drop[i]) )
+                            drop_matrix_add.append( normal_quest_AP / float(free_drop[i]) )
                         except ValueError:
                             drop_matrix_add.append(0)
                 
                 if not skip_data_index[i-mat_start]:
-                    XP_mult = drop_mult
+                    XP_mult = 1
                     for i in range(mat_end,mat_end+14):
                         # Assumes Hellfires will being at about 6 columns after "Saber Blaze."
                         if i == mat_end + 6:
-                            XP_mult *= 3
+                            XP_mult = 3
 
                         try:
                             add_data = True
-                            drop_matrix_add[-1] += XP_mult * quest_AP / float(free_drop[i])
+                            drop_matrix_add[-1] += XP_mult * normal_quest_AP / float(free_drop[i])
                         except ValueError:
                             drop_matrix_add[-1] += 0
                 
@@ -287,7 +283,7 @@ class QuestData:
 
                 if add_data:
                     self.quest_names.append( free_drop[0] + ', ' + free_drop[1] )
-                    free_AP_cost.append( [quest_AP] )
+                    free_AP_cost.append( [current_quest_AP] )
                     free_drop_matrix.append( drop_matrix_add )
 
                     self.add_box_run_info(False)

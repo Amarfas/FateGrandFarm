@@ -219,8 +219,9 @@ class QuestData:
                 except ValueError:
                     continue
 
+                actual_node_AP = node_AP
                 if free_drop[3] == 'Daily' and half_AP:
-                    node_AP *= float( node_AP / int(node_AP/2) )
+                    actual_node_AP = int(node_AP/2)
 
                 drop_matrix_add = []
                 if self.remove_zeros:
@@ -250,7 +251,7 @@ class QuestData:
                 node_group, group_count = run_caps.evaluate_group_info( add_data, free_drop[3], 'Free Quests', node_group, group_count, free_cap )
                 if add_data:
                     self.quest_names.append( free_drop[0] + ', ' + free_drop[1] )
-                    free_AP_cost.append( [node_AP] )
+                    free_AP_cost.append( [actual_node_AP] )
                     free_drop_matrix.append( drop_matrix_add )
 
                     self.add_lotto_info(False)

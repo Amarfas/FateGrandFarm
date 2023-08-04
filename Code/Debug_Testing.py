@@ -15,7 +15,7 @@ from Planner import planner
 # 'tolerance' defines the minimum difference that will break the matrix comparison
 # 'tolerance2' defines the maximum difference that'll be ignored in matrix comparisons
 
-test_modes = [ 1, 2 ]
+test_modes = [ 1, 2, 3 ]
 tolerance = 0.01
 tolerance2 = 0
 rep = 100
