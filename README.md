@@ -33,6 +33,8 @@ After running the program, you will find 3 output files in the main directory ('
  * 2nd entry: Quest/node name.
  * 3rd entry: Suggested number of times it should be run. Expected number of gained Boxes is also included for Lotto runs.
 
+Run count suggestions may randomly go 1 over the specified Run Cap. This seems to be a consequence of how the float values interact.
+
 'Farming Plan Drops.txt' is very similar to 'Farming Plan'. However, it also lists the expected number of each Material dropped for those runs. Note that if the 'Remove Zeros' configuration is on, it will not include Materials who have no goal.
 
 'Config Notes' contains all the information necessary to properly understand the context for the corresponding 'Farming Plan.' This includes all the Errors that came up, Configurations, the Events included, and Lotto Drop Rate boosts.
