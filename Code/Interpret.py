@@ -36,7 +36,7 @@ class ConfigList():
 
         if type == 'float':
             try:
-                key_value = float(key_value)
+                key_value = float(key_value.replace(',',''))
             except ValueError:
                 Debug().error_warning( 'Configuration "' + key + '" was not a number.')
                 key_value = None
@@ -245,10 +245,10 @@ class RunCaps():
         self.matrix_col = 0
 
     def set_config_caps( self, make_note = False ):
-        return { 'Event':[ConfigList().set_config('Event Cap', 'int', make_note=make_note)],
-                'Lotto':[ConfigList().set_config('Lotto Cap', 'int', make_note=make_note)],
-                'Raid':[ConfigList().set_config('Raid Cap', 'int', make_note=make_note)],
-                'Bleach':[ConfigList().set_config('Bleach Cap', 'int', make_note=make_note)] }
+        return { 'Event':[ConfigList().set_config('Event Cap', 'float', make_note=make_note)],
+                'Lotto':[ConfigList().set_config('Lotto Cap', 'float', make_note=make_note)],
+                'Raid':[ConfigList().set_config('Raid Cap', 'float', make_note=make_note)],
+                'Bleach':[ConfigList().set_config('Bleach Cap', 'float', make_note=make_note)] }
 
     def determine_event_caps( self, event_node ):
         debug = Debug()
