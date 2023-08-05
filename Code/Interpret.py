@@ -30,15 +30,16 @@ class ConfigList():
             try:
                 key_value = int(key_value.replace(',',''))
             except ValueError:
-                if key_value != '' and key_value != 'None':
-                    Debug().error_warning( 'Configuration "' + key + '" was not a number.')
+                if key_value != '' and key_value != 'None' and make_note:
+                    Debug().error_warning( 'Configuration "' + key + '" was not an integer.')
                 key_value = None
 
         if type == 'float':
             try:
                 key_value = float(key_value.replace(',',''))
             except ValueError:
-                Debug().error_warning( 'Configuration "' + key + '" was not a number.')
+                if key_value != '' and key_value != 'None' and make_note:
+                    Debug().error_warning( 'Configuration "' + key + '" was not a number.')
                 key_value = None
 
         if type == 'bool':
