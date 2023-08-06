@@ -124,7 +124,7 @@ class QuestData:
                     continue
                 
                 node_name = event_name + ', ' + event_node[ data_indices['loc'] ]
-                if event_node[ data_indices['type'] ][0:5] == 'Lotto':
+                if event_node[ data_indices['type'] ][0:5] == 'Lotto' and event_node[ data_indices['rbox'] ] != '':
                     is_lotto = True
                     Inter.Debug().add_lotto_drop_bonus(  node_name + '  =  +' + event_node[ data_indices['lotto'] ] + '\n')
                 else:

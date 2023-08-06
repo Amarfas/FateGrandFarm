@@ -130,7 +130,7 @@ class QuestData:
                 
                 quest_name = event_name + ', ' + event_quest[ data_indices['loc'] ]
 
-                if event_quest[ data_indices['type'] ][0:5] == 'Lotto':
+                if event_quest[ data_indices['type'] ][0:5] == 'Lotto' and event_quest[ data_indices['rbox'] ] != '':
                     is_lotto = True
                     event_lotto = True
                     debug.add_lotto_drop_bonus(  quest_name + '  =  +' + event_quest[ data_indices['lotto'] ] + '\n')
