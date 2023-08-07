@@ -120,13 +120,14 @@ As an example, if only 2 values are given, 'Lotto 3' will use the 1st Run Cap. I
 Similar to how the 'Event Quest' tab from the ['FGO Efficiency'](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) google sheet was used to produce the relevant Event '.csv's, the 'APD' and 'Calc' tabs were used to produce the relevant '.csv' files in the 'Data Files' Folder. If you want to update Fate/Grand Farm with new information, you need merely to download the relevant files and place them in the proper folders. For a more extensive explanation, read the next section.
 
 # Troubleshooting
- * First, check the 'Config Notes' file and see notes anything wrong at the top.
+ * Before anything else, check the 'Config Notes' file and see if it notes anything wrong at the top.
 
-If nothing is stated explicitly, and it doesn't list any Events included in the analysis, the program probably halted before reaching that point. That means it either had a hard time reading the '.csv's in the 'Data Files' folder, the 'GOALS', or the Event '.csv's.
+If nothing is stated explicitly, and it doesn't list all (or any) of the Events meant to be included in the analysis, the program probably halted before reaching that point. That means it either had a hard time reading the '.csv's in the 'Data Files' folder, the 'GOALS', or an Event '.csv'.
 
- * Next, remove all files from the 'Events Farm' folder, and see if Fate/Grand Farm outputs a Farming Plan.
- * If it does, then one of the Event '.csv's is at fault. Try removing Events until you find the one causing the problem. You can try and create a new file from the ['FGO Efficiency'](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) google sheet.
- * If the problem is not in the 'Events Farm' folder, it might be in 'GOALS.csv'. Make sure your formatting follows what has been described, as demonstrated in the 'Sample_GOALS.csv' sheet.
+ * First, remove all files from the 'Events Farm' folder, and see if Fate/Grand Farm outputs a Farming Plan.
+ * If it does, then one of the Event '.csv's is at fault. It reads through the files alphabetically, so try removing either the last recorded Event file or the one just after.
+ * If the problem was with an Event file, you can try creating a new file from the ['FGO Efficiency'](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) google sheet.
+ * If the problem is not in the 'Events Farm' folder, it might be in 'GOALS.csv'. Make sure your formatting follows what has been described, as demonstrated in the 'Sample_GOALS.csv' file.
 
 If the above does not fix the issue, it is suggested you return to the Fate/Grand Farm github page and see if there are any newer versions. The newest version should have up to date files in the 'Data Files' folder.
 
