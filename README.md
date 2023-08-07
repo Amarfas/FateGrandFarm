@@ -49,7 +49,7 @@ After setting up the required Python environment and libraries, navigate to the 
 python Fate_Grand_Farm.py
 ```
 
-## Set Up
+# Set Up
 ## 'fgf_config.ini' Extra Notes
 
 For any y/n (yes/no) question in the configurations, it will also read the following as yes or no (not case sensitive):
@@ -119,7 +119,21 @@ As an example, if only 2 values are given, 'Lotto 3' will use the 1st Run Cap. I
 ## Upkeep
 Similar to how the 'Event Quest' tab from the ['FGO Efficiency'](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) google sheet was used to produce the relevant Event '.csv's, the 'APD' and 'Calc' tabs were used to produce the relevant '.csv' files in the 'Data Files' Folder. If you want to update Fate/Grand Farm with new information, you need merely to download the relevant files and place them in the proper folders. For a more extensive explanation, read the next section.
 
-## Making Your Own Readable CSVs
+# Troubleshooting
+ * Before anything else, check the 'Config Notes' file and see if it notes anything wrong at the top.
+
+If nothing is stated explicitly, and it doesn't list all (or any) of the Events meant to be included in the analysis, the program probably halted before reaching that point. That means it either had a hard time reading the '.csv's in the 'Data Files' folder, the 'GOALS', or an Event '.csv'.
+
+ * First, remove all files from the 'Events Farm' folder, and see if Fate/Grand Farm outputs a Farming Plan.
+ * If it does, then one of the Event '.csv's is at fault. It reads through the files alphabetically, so try removing either the last recorded Event file or the one just after.
+ * If the problem was with an Event file, you can try creating a new file from the ['FGO Efficiency'](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) google sheet.
+ * If the problem is not in the 'Events Farm' folder, it might be in 'GOALS.csv'. Make sure your formatting follows what has been described, as demonstrated in the 'Sample_GOALS.csv' file.
+
+If the above does not fix the issue, it is suggested you return to the Fate/Grand Farm github page and see if there are any newer versions. The newest version should have up to date files in the 'Data Files' folder.
+
+If you're running the program through the 'Fate_Grand_Farm.py' file and want to debug it yourself, make sure the 'Debug on Fail' option in 'fgf_config.ini' is set to 'n'.
+
+# Making Your Own Readable CSVs
 
 To create your own readable '.csv' files for FGF ('Fate/Grand Farm') follow these guidelines for each type of file. You can also read the Python code itself.
 
@@ -193,6 +207,8 @@ There are a few special Material IDs that FGF interprets as multiple different M
 CVXPY for making a library that can crunch these numbers, and my friend for pointing them out to me.
 
 Other credit goes to the various communities that have worked hard to compile and analyze this game. Specifically:
+
+[Atlas Academy](https://atlasacademy.io/) for more recent data.
 
 JP Data is sourced from the [following community collaboration.](https://docs.google.com/spreadsheets/d/1TrfSDteVZnjUPz68rKzuZWZdZZBLqw03FlvEToOvqH0/)
 
