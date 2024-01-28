@@ -99,8 +99,8 @@ Worth noting that in addition to the above, Fate/Grand Farm only actually reads:
  * 'Actual Event Name' in cell C1 (hidden by default), used so that the program recognizes 'Christmas 2023 w/ Claw' and 'Christmas 2023 w/ Feather' are the same when determining Run Caps.
  * For each Event quest, its name in column A.
  * Its AP in column B.
- * Its Type in column D.
- * Its Drop Rate Bonus in column E (hidden by default, determined by above configurations).
+ * Its Type in column E.
+ * Its Drop Rate Bonus in column F (hidden by default, determined by above configurations).
  * Each column with a Material ID (used to prevent translation changes from affecting the program).
  * Each column with a Material Drop Rate.
 
