@@ -137,7 +137,12 @@ class DataFiles:
     # Interpret the Materials by groups between their gaps.
     def _interpret_group( self, reader, mat_ID_list, mat_name_list, list_index, drop_matrix_index, gaps, expected_mat ):
         goals_CSV_row = next(reader)
-        if goals_CSV_row[0] != expected_mat[0]:
+
+        try:
+            group_start_check = int(mat_ID_list[list_index])
+        except ValueError:
+            group_start_check = 0
+        if goals_CSV_row[0] != expected_mat[0] or group_start_check > 100:
             Debug().error_warning( 'Does not seem to be the start of '+ expected_mat[1] +'. GOALS and/or Material List CSVs may need to be updated.' )
         
         while goals_CSV_row[0][0:2] != '!!':
