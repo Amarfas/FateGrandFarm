@@ -1,6 +1,9 @@
 # Ignore 'OLD Files' folder
 OLD Files
 
+# Ignore files in 'Events Farm' folder
+Events Farm/
+
 # Ignore .vscode configurations used for readability.
 .vscode
 
