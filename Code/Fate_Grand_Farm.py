@@ -10,7 +10,7 @@ def main():
     run_caps = Inter.RunCaps()
 
     # Used to easily test different 'GOALS.csv' inputs.
-    goals_debug = 'Test_Per'
+    goals_debug = ''
 
     data_files = Inter.DataFiles( Inter.path_prefix + 'GOALS' + goals_debug + '.csv', glob.glob( Inter.path_prefix + 'Data Files\\*Calc.csv' )[0] )
 
