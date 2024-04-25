@@ -2,13 +2,13 @@
 OLD Files
 
 # Ignore files in 'Events Farm' folder
-Events Farm/*
+Events Farm/**
 
 # Plans
 Config Notes.txt
 Farming Plan Drops.txt
 Farming Plan.txt
-Former Plans/*
+Former Plans/**
 
 # Ignore .vscode configurations used for readability.
 .vscode
