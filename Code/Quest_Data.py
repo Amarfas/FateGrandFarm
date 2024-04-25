@@ -40,7 +40,7 @@ class QuestData:
             self.runs_per_box.append( 'F' )
     
     def find_data_indices( self, reader ):
-        data_indices = {'ID':[], 'drop':[]}
+        data_indices = {'ID':[], 'drop':[], 'rbox':176}
 
         while data_indices['ID'] == []:
             try:
@@ -58,7 +58,7 @@ class QuestData:
                 if event_node[i] == 'Lotto':
                     data_indices.setdefault('lotto',i)
                 if event_node[i] == 'R/Box':
-                    data_indices.setdefault('rbox',i)
+                    data_indices['rbox'] = i
 
                 # Multiple Material IDs and their corresponding drops.
                 if event_node[i] == 'ID': 
