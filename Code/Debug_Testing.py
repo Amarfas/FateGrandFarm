@@ -16,7 +16,7 @@ from Planner import planner
 # 'tolerance' defines the minimum difference that will break the matrix comparison
 # 'tolerance2' defines the maximum difference that'll be ignored in matrix comparisons
 
-test_list = [ 'Test', 'Test1', 'Test2', 'Test3', 'Test4', 'Test_Per' ]
+test_list = [ 'Per', 'Test', 'Test1', 'Test2', 'Test3', 'Test4' ]
 
 test_modes = [ 1 ]
 tolerance = 0.01
@@ -134,8 +134,6 @@ def check_matrix( overall, text, norm, test, np_array = True, extra = False, ext
     if valid_2 == 'NA':
         valid_2 = True
     return overall and valid_1 and valid_2 and (valid_3[0] == 'T')
-
-print('\n')
 
 Inter.standardize_path()
 Inter.ConfigList().read_config_ini()

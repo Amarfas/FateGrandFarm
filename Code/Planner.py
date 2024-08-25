@@ -89,20 +89,38 @@ class Output:
     # Finds an appropriate indentation between each column of data.
     def find_indent( self, text ):
         indent = [0] * len(max( text, key = len ))
-        for i in text:
-            for j in range(len(i)):
-                new = len(i[j])
-                if new > indent[j]:
-                    indent[j] = new + 1
+        for line in text:
+            for j in range(len(line)):
+                # Want a bit of padding if there are entries, but no spacing if there aren't
+                new_longest = len(line[j]) + 1
+                if new_longest > (indent[j] + 1):
+                    indent[j] = new_longest
 
         return indent
-    
-    def format_drop_text_file( self, text, output_longer, output_basic = False ):
+
+    def add_gained_materials( self, text, drop_matrix_line, run_count, index_to_name, num_format ):
+        gained_mats = False
+        for i in range(len( drop_matrix_line )):
+            mat_drop = drop_matrix_line[i]
+            if mat_drop > 0:
+                text[-1].append( num_format.format( run_count*mat_drop ) + ' ' )
+                text[-1].append( index_to_name[i] + ' , ')
+                gained_mats = True
+        
+        # Remove the ', ' from the last mat. 'gained_mats' flag just for extra security
+        if gained_mats:
+            last_mat_len = len(text[-1][-1])
+            text[-1][-1] = text[-1][-1][0:( last_mat_len - 2 )]
+        
+        return text
+
+    def format_farming_plan_text( self, text, output_longer, output_basic = False ):
         indent = self.find_indent(text)
 
         for i in range(len(text)):
             lead_text = "{:<{}}{:>{}}".format(text[i][0], indent[0], text[i][1], indent[1])
             if output_basic:
+                # Adds number of boxes farmed
                 output_basic += self.console_print( lead_text + text[i][2] )
                 lead_text += '  =  '
 
@@ -112,15 +130,6 @@ class Output:
             output_longer += '\n'
         
         return output_longer , output_basic
-    
-    def add_material_drops( self, text, drop_matrix_line, run_count, index_to_name, format ):
-        for i in range(len( drop_matrix_line )):
-            mat_drop = drop_matrix_line[i]
-            if mat_drop > 0:
-                text[-1].append( format.format( run_count*mat_drop ) + ' ' )
-                text[-1].append( index_to_name[i] + ', ' )
-        
-        return text
 
     def create_drop_file( self, output, runs, nodes: QuestData, index_to_name ):
         output_drops = output
@@ -141,33 +150,41 @@ class Output:
                     text[-1][2] = '   Boxes Farmed = ' + "{:.2f}".format( run_count / nodes.runs_per_box[i] )
 
                 # For Farming Plan Drops
-                text = self.add_material_drops( text, nodes.drop_matrix[i], run_count, index_to_name, "{:.2f}" )
+                text = self.add_gained_materials( text, nodes.drop_matrix[i], run_count, index_to_name, "{:.2f}" )
 
         # Formats the drop parts of the output files.
-        output_drops, output = self.format_drop_text_file( text, output_drops, output)
+        output_drops, output = self.format_farming_plan_text( text, output_drops, output)
 
         # Creates matrix of ticket choice information for each month.
         if ticket_start != -1 and ticket_start < (len(runs) - 1):
             ticket_text = []
             output_ticket = '\nThe choices you should make for Monthly Exchange Tickets are:\n'
-            prev_choice_month = False
+            prev_relevant_month = False
+            prev_relevant_year = False
 
             for i in range(ticket_start, len(runs)):
-                
+
                 run_count = int(runs[i])
                 if run_count > 0:
 
                     month_name = nodes.quest_names[i]
-                    if prev_choice_month != month_name:
-                        ticket_text.append([ month_name, ' = ', '' ])
-                    
-                    ticket_text = self.add_material_drops( ticket_text, nodes.drop_matrix[i], run_count, index_to_name, "{:.0f}" )
+                    if month_name != prev_relevant_month:
 
-                    prev_choice_month = month_name
+                        cur_year = month_name.split()[1]
+                        if cur_year != prev_relevant_year:
+                            if prev_relevant_year != False:
+                                ticket_text.append([ '----', '', '' ])
+                            prev_relevant_year = cur_year
+
+                        ticket_text.append([ month_name, '= ', '' ])
+                    
+                    ticket_text = self.add_gained_materials( ticket_text, nodes.drop_matrix[i], run_count, index_to_name, "{:.0f}" )
+
+                    prev_relevant_month = month_name
 
             # Formats the ticket parts of the output files.
             if ticket_text != []:
-                output_ticket, i = self.format_drop_text_file( ticket_text, output_ticket )
+                output_ticket, i = self.format_farming_plan_text( ticket_text, output_ticket )
                 
                 output += self.console_print( output_ticket, False )
                 output_drops += output_ticket
@@ -200,8 +217,8 @@ class Output:
             return ''
         
         indent = self.find_indent(text)
-        run_debug = header
 
+        run_debug = header + '\n'
         for i in range(len(text)):
             for j in range(len(text[i])):
                 run_debug += "{:<{}}".format(text[i][j], indent[j])
@@ -217,12 +234,11 @@ class Output:
             output = '!! WARNING !!\n'
             output += debug.error + '\n'
     
-        output += '__Configurations:\n'
-        output += debug.config_notes + '\n'
-        output += debug.monthly_notes
-        output += self.make_debug_report( debug.event_notes, '__The Events included in this analysis are:\n' )  + '\n\n'
-        output += self.make_debug_report( debug.lotto_notes, '__The lotto drop bonus for each node is:\n' )  + '\n\n'
-        output += self.make_debug_report( debug.run_cap_debug, '__The following are notes to make sure that Run Caps were applied correctly:\n' )
+        output += self.make_debug_report( debug.config_notes, '__Configurations:' ) + '\n'
+        output += debug.monthly_notes + '\n'
+        output += self.make_debug_report( debug.event_notes, '__The Events included in this analysis were:' )  + '\n\n'
+        output += self.make_debug_report( debug.lotto_notes, '__The Lotto Drop Bonuses for each Quest were:' )  + '\n\n'
+        output += self.make_debug_report( debug.run_cap_debug, '__The following are notes to make sure that Run Caps were applied correctly:' )
 
         self.file_creation( plan_name, 'Config Notes.txt', output, True )
 

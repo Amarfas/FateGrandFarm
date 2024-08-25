@@ -13,7 +13,7 @@ def standardize_path():
     else:
         path_prefix = ''
 
-    Debug.config_notes = 'The Path Prefix is: ' + path_prefix + '\n'
+    Debug().note_config( 'The Path Prefix is', path_prefix )
 
 class ConfigList():
     plan_name = ''
@@ -105,11 +105,11 @@ class ConfigList():
                     key_value = ''
                 else:
                     rel_time = self.monthly_ticket_start
-                    if time_frame[:4] == 'year':
+                    if time_frame[:3] == 'yea':
                         error = False
                         key_value = [rel_time[0], rel_time[1], rel_time[2] + time_skip]
 
-                    elif time_frame[:5] == 'month':
+                    elif time_frame[:3] == 'mon':
                         error = False
                         new_month_calc = rel_time[0] + time_skip - 1
                         new_month = new_month_calc % 12 + 1
@@ -152,17 +152,17 @@ class ConfigList():
         ConfigList.tg_half_AP = self.set_config('Training Grounds Half AP', 'bool')
         ConfigList.remove_zeros = self.set_config('Remove Zeros', 'bool')
         ConfigList.run_int = self.set_config('Run Count Integer', 'bool')
-        ConfigList.last_area = self.set_config('Stop Here')
         ConfigList.monthly_ticket_num = self.set_config('Monthly Ticket Per Day', 'int')
         ConfigList.monthly_ticket_start = self.set_date_config('Monthly Ticket Start Date')
         ConfigList.monthly_ticket_end = self.set_date_config('Monthly Ticket End Date')
         #ConfigList.use_all_tickets = self.set_config('Use All Tickets', 'bool')
+        ConfigList.last_area = self.set_config('Stop Here')
         ConfigList.create_output_files = self.set_config('Output Files', 'bool')
 
 # Compiles statements to be included in the Debug output text file.
 class Debug():
     error = ''
-    config_notes = ''
+    config_notes = []
     monthly_notes = ''
     event_notes = []
     lotto_notes = []
@@ -179,7 +179,7 @@ class Debug():
         Debug.error += note + '\n'
 
     def note_config( self, key, key_value ):
-        Debug.config_notes += key + ' = ' + str(key_value) + '\n'
+        Debug.config_notes.append( [ key, ' = ' + str(key_value) ] )
     
     def note_monthly_date_range( self, first, last ):
         if first != {}:
@@ -201,12 +201,12 @@ class Debug():
     
     # Lot of information, has its own category so it can be forced to the bottom
     def add_lotto_drop_bonus( self, event_name, bonus ):
-        bonus = str(bonus)
-        if len(bonus) == 1:
-            bonus_text = '+ ' + bonus
-        else:
-            bonus_text = '+' + bonus
-        Debug.lotto_notes.append([ event_name, '  =  ' + bonus_text ])
+        try:
+            bonus = str(bonus)
+            bonus_text = '+' + ( ' ' * (len(bonus) == 1) ) + bonus
+            Debug.lotto_notes.append([ event_name, '=  ' + bonus_text ])
+        except:
+            Debug().error_warning( 'Lotto Drop Bonus for ' + event_name + ' was not recorded.')
 
 class DataFiles:
     def __init__( self, goals_CSV, material_list_CSV ):
@@ -398,10 +398,15 @@ class RunCaps():
             cap_debug_notes = ' , Changed Caps --> '
         
         debug.add_runcap_debug( cap_debug_notes, 1 )
-        index = 2
+
+        index = 1
+        space = ' , '
         for group_type in self.group_type_list:
-            debug.add_runcap_debug( group_type + ': ' + str(event_caps[group_type]) + ' , ', index )
             index += 1
+            if index == 5:
+                space = ''
+            debug.add_runcap_debug( group_type + ': ' + str(event_caps[group_type]) + space, index )
+        
         return event_caps
     
     def add_group_info( self, true_name, group, quest_caps ):
