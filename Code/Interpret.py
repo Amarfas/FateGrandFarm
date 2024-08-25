@@ -2,6 +2,8 @@ import configparser
 import csv
 import glob
 import numpy as np
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 # Makes it so the program works whether it's started in the 'FarmingGrandOrder' overarching directory or the 'FarmGrandOrder' folder.
 def standardize_path():
@@ -11,7 +13,7 @@ def standardize_path():
     else:
         path_prefix = ''
 
-    Debug.config_notes = 'The Path Prefix is: ' + path_prefix + '\n'
+    Debug().note_config( 'The Path Prefix is', path_prefix )
 
 class ConfigList():
     plan_name = ''
@@ -19,6 +21,10 @@ class ConfigList():
     remove_zeros = True
     run_int = False
     last_area = ''
+    monthly_ticket_num = 1
+    monthly_ticket_start = ''
+    monthly_ticket_end = ''
+    #use_all_tickets = True
     debug_on_fail = True
     create_output_files = True
     config = configparser.ConfigParser()
@@ -60,6 +66,82 @@ class ConfigList():
             return 'ZZZZZ'
         return key_value
 
+    def check_if_date( self, key, key_value ):
+        if key_value == '':
+            return '', False
+        else:
+            key_value = key_value.split()[0].split('/')
+            try:
+                # Transform a 2 digit year into a 4 digit year
+                year = int(key_value[2][:4])
+                if year < 100:
+                    year += 2000
+
+                new_date = [int(key_value[0][:2]), int(key_value[1][:2]), year]
+                return new_date, False
+            
+            except ValueError:
+                return '', ' did not have proper numbers for Day, Month, or Year.'
+            except IndexError:
+                return '', ' was not a full date.'
+
+    def set_date_config( self, key, section = 'DEFAULT', make_note = True ):
+        key_value = self.config[section][key].lower()
+        error = False
+
+        if key == 'Monthly Ticket Start Date':
+            key_value, error = self.check_if_date( key, key_value )
+            if key_value == '':
+                t = datetime.now(ZoneInfo("America/New_York"))
+                key_value = [t.month, t.day, t.year]
+
+        elif key_value != '':
+            date_check, error = self.check_if_date( key, key_value )
+            if error:
+                key_space_split = key_value.split()
+                try:
+                    time_skip, time_frame = int(key_space_split[0]), key_space_split[1]
+                except ValueError:
+                    key_value = ''
+                else:
+                    rel_time = self.monthly_ticket_start
+                    if time_frame[:3] == 'yea':
+                        error = False
+                        key_value = [rel_time[0], rel_time[1], rel_time[2] + time_skip]
+
+                    elif time_frame[:3] == 'mon':
+                        error = False
+                        new_month_calc = rel_time[0] + time_skip - 1
+                        new_month = new_month_calc % 12 + 1
+                        new_year = rel_time[2] + new_month_calc // 12
+
+                        # Makes sure there isn't an error later because the time lapsed month has fewer days
+                        last_day_of_month = (datetime(new_year + new_month // 12, new_month % 12 + 1, 1) - timedelta(seconds=1)).day
+                        key_value = [new_month, min(rel_time[1], last_day_of_month), new_year]
+
+                    elif time_frame[:3] == 'day':
+                        error = False
+                        new_date = datetime(rel_time[2], rel_time[0], rel_time[1]) + timedelta(days = time_skip)
+                        key_value = [new_date.month, new_date.day, new_date.year]
+
+                    else:
+                        error = ' did not say whether time should elapse by days, months, or years.'
+                        key_value = ''
+            else:
+                key_value = date_check
+        
+        if error:
+            Debug().error_warning( 'Configuration "' + key + error)
+        
+        if make_note:
+            if key_value == '':
+                Debug().note_config(key, '')
+            else:
+                date_for_entry = datetime(key_value[2], key_value[0], key_value[1])
+                Debug().note_config(key, date_for_entry.strftime('%m/%d/%Y'))
+
+        return key_value
+
     def read_config_ini(self):
         ConfigList.config.read( path_prefix + 'fgf_config.ini' )
 
@@ -70,15 +152,20 @@ class ConfigList():
         ConfigList.tg_half_AP = self.set_config('Training Grounds Half AP', 'bool')
         ConfigList.remove_zeros = self.set_config('Remove Zeros', 'bool')
         ConfigList.run_int = self.set_config('Run Count Integer', 'bool')
+        ConfigList.monthly_ticket_num = self.set_config('Monthly Ticket Per Day', 'int')
+        ConfigList.monthly_ticket_start = self.set_date_config('Monthly Ticket Start Date')
+        ConfigList.monthly_ticket_end = self.set_date_config('Monthly Ticket End Date')
+        #ConfigList.use_all_tickets = self.set_config('Use All Tickets', 'bool')
         ConfigList.last_area = self.set_config('Stop Here')
         ConfigList.create_output_files = self.set_config('Output Files', 'bool')
 
 # Compiles statements to be included in the Debug output text file.
 class Debug():
     error = ''
-    config_notes = ''
-    event_notes = 'The Events included in this analysis are:\n'
-    lotto_notes = ''
+    config_notes = []
+    monthly_notes = ''
+    event_notes = []
+    lotto_notes = []
     run_cap_debug = []
     notifications = True
 
@@ -92,21 +179,34 @@ class Debug():
         Debug.error += note + '\n'
 
     def note_config( self, key, key_value ):
-        Debug.config_notes += key + ' = ' + str(key_value) + '\n'
+        Debug.config_notes.append( [ key, ' = ' + str(key_value) ] )
+    
+    def note_monthly_date_range( self, first, last ):
+        if first != {}:
+            if (first['Month'] == last['Month']) and (first['Year'] == last['Year']):
+                Debug.monthly_notes = 'The only Monthly Ticket Exchange included was ' + first['Date']
+            else:
+                Debug.monthly_notes = 'Monthly Ticket Exchange went from ' + first['Date'] + ' to ' + last['Date']
+            Debug.monthly_notes += '.\n\n'
 
-    def add_debug( self, note, index, new = False ):
-        if new:
-            Debug.run_cap_debug.append( [''] * new )
+    def add_runcap_debug( self, note, index, new_entry_index_num = False ):
+        if new_entry_index_num:
+            Debug.run_cap_debug.append( [''] * new_entry_index_num )
         Debug.run_cap_debug[-1][index] += note
 
-    def note_event_list( self, note ):
-        Debug.event_notes += note
+    def note_event_list( self, note, index, new_entry_index_num = False ):
+        if new_entry_index_num:
+            Debug.event_notes.append( [''] * new_entry_index_num )
+        Debug.event_notes[-1][index] += note
     
     # Lot of information, has its own category so it can be forced to the bottom
-    def add_lotto_drop_bonus( self, note ):
-        if Debug.lotto_notes == '':
-            Debug.lotto_notes += 'The lotto drop bonus for each node is:\n'
-        Debug.lotto_notes += note
+    def add_lotto_drop_bonus( self, event_name, bonus ):
+        try:
+            bonus = str(bonus)
+            bonus_text = '+' + ( ' ' * (len(bonus) == 1) ) + bonus
+            Debug.lotto_notes.append([ event_name, '=  ' + bonus_text ])
+        except:
+            Debug().error_warning( 'Lotto Drop Bonus for ' + event_name + ' was not recorded.')
 
 class DataFiles:
     def __init__( self, goals_CSV, material_list_CSV ):
@@ -248,65 +348,79 @@ class RunCaps():
         self.group_to_member_count = []
         self.group_name_list = []
         self.run_cap_list = []
+        #self.ticket_use_list = []
         self.matrix_col = 0
+        self.run_int = ConfigList.run_int
+
+        self.group_type_list = ['Event', 'Lotto', 'Raid', 'Bleach']
+        self.config_run_cap = self.set_config_caps()
 
     def set_config_caps( self, make_note = False ):
-        return { 'Event':[ConfigList().set_config('Event Cap', 'float', make_note=make_note)],
-                'Lotto':[ConfigList().set_config('Lotto Cap', 'float', make_note=make_note)],
-                'Raid':[ConfigList().set_config('Raid Cap', 'float', make_note=make_note)],
-                'Bleach':[ConfigList().set_config('Bleach Cap', 'float', make_note=make_note)] }
+        config_caps = {}
+        for group_type in self.group_type_list:
+            config_caps[group_type] = [ConfigList().set_config(group_type + ' Cap', 'int', make_note=make_note)]
+        return config_caps
 
     def determine_event_caps( self, event_node ):
         debug = Debug()
-        cap_debug_notes = '  ,  is default = '
-        event_caps = self.set_config_caps()
+        cap_debug_notes = ' ,     is default = '
+        event_caps = {}
+        for group_type in self.group_type_list:
+            event_caps[group_type] = self.config_run_cap[group_type]
 
         new_cap = []
         cap_read = False
-        for i in event_node:
-            if i.find('Event Run Caps') >= 0:
+        for index in event_node:
+            if index.find('Event Run Caps') >= 0:
                 cap_read = 'Event'
-            if i.find('Raid Run Caps') >= 0:
+            if index.find('Raid Run Caps') >= 0:
                 if new_cap != []:
                     # Event Caps are contexually either "Event" or "Lotto" Caps
                     event_caps[cap_read] = new_cap
                     event_caps['Lotto'] = new_cap
 
                     # Noted as a deviation from fgf_config value
-                    debug.note_event_list( '  ,  Event Run Cap was ' + str(new_cap) )
-                    debug.add_debug( '  ,  Event Run Cap was ' + str(new_cap), 2 )
+                    debug.note_event_list( ' , Event Run Cap was ' + str(new_cap), 1 )
+                    cap_debug_notes = ' , Changed Caps --> '
                     new_cap = []
 
                 cap_read = 'Raid'
             
             if cap_read:
                 try:
-                    new_cap.append(int(i.replace(',','')))
-                    cap_debug_notes = '  -->  '
+                    new_cap.append(int(index.replace(',','')))
                 except ValueError:
                     pass
 
         if new_cap != []:
             event_caps[cap_read] = new_cap
-            debug.note_event_list( '  ,  Raid Run Cap was ' + str(new_cap) )
-            debug.add_debug( '  ,  Raid Run Cap was ' + str(new_cap), 2 )
+            debug.note_event_list( ' , Raid Run Cap was ' + str(new_cap), 1 )
+            cap_debug_notes = ' , Changed Caps --> '
         
-        debug.add_debug( cap_debug_notes, 3 )
-        debug.add_debug( str(event_caps) + '\n', 4 )
+        debug.add_runcap_debug( cap_debug_notes, 1 )
+
+        index = 1
+        space = ' , '
+        for group_type in self.group_type_list:
+            index += 1
+            if index == 5:
+                space = ''
+            debug.add_runcap_debug( group_type + ': ' + str(event_caps[group_type]) + space, index )
+        
         return event_caps
     
-    def add_group_info( self, true_name, group_name, member_count, quest_caps ):
-        if group_name and member_count > 0:
-            self.matrix_col += member_count
+    def add_group_info( self, true_name, group, quest_caps ):
+        if group['Type'] and group['Count'] > 0:
+            self.matrix_col += group['Count']
 
             try:
-                group_type, group_num = group_name.split(' ')
+                group_type, group_num = group['Type'].split(' ')
             except ValueError:
-                group_type = group_name
+                group_type = group['Type']
                 group_num = '1'
 
             type_info = [ true_name, group_type, group_num ]
-            self.group_to_member_count.append([type_info, member_count])
+            self.group_to_member_count.append([type_info, group['Count']])
             
             cap_list = quest_caps.get(group_type)
             
@@ -324,18 +438,28 @@ class RunCaps():
                 if not type_info in self.group_name_list:
                     self.group_name_list.append(type_info)
                     self.run_cap_list.append([cap_input])
+
+                    # Cap -1 so that there's some leeway for the algorithm
+                    #if group_type == 'Monthly':
+                    #    self.ticket_use_list.append([cap_input - 1])
+                    #else:
+                    #    self.ticket_use_list.append([0])
+                    
     
-    def evaluate_group_info( self, add_quest_data, group_name, true_name, prev_group, member_count, quest_caps = False ):
-        if prev_group != group_name:
-            self.add_group_info( true_name, prev_group, member_count, quest_caps )
+    def evaluate_group_info( self, add_quest_data, true_name, cur_group_type,  prev_group, quest_caps = False ):
+        if prev_group['Type'] != cur_group_type:
+            self.add_group_info( true_name, prev_group, quest_caps )
 
             # If Quest Data is not to be added, does not count as an additional member. If included, members start at 1.
-            return group_name, add_quest_data
-        return prev_group, member_count + add_quest_data
+            return {'Type': cur_group_type, 'Count': add_quest_data}
+        prev_group['Count'] += add_quest_data
+        return prev_group
     
     def build_run_cap_matrix(self):
-        run_matrix = np.zeros(( len(self.run_cap_list), self.matrix_col ))
+        run_matrix = np.zeros( ( len(self.run_cap_list), self.matrix_col ), dtype=int)
+        use_ticket_matrix = np.zeros( ( len(self.run_cap_list), self.matrix_col ), dtype=int)
 
+        # For lists in group_to_member_count: [1] is the count, [0] is the matching name/type info, [0][1] is type
         col = 0
         for i in self.group_to_member_count:
             start = col
@@ -345,4 +469,8 @@ class RunCaps():
                 row = self.group_name_list.index(i[0])
                 run_matrix[row][start:col] = 1
 
+                #if i[0][1] == 'Monthly':
+                    #use_ticket_matrix[row][start:col] = 1
+
         return [ run_matrix, np.array(self.run_cap_list) ]
+        # ^^ add in == use_ticket_matrix, np.array(self.ticket_use_list) 
