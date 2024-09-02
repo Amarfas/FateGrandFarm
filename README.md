@@ -233,3 +233,5 @@ Other credit goes to the various communities that have worked hard to compile da
  * [Domus Aurea](https://sites.google.com/view/fgo-domus-aurea) was usually the JP source I pulled data from/cross-referenced with.
 
  * [Guruguru FGO](https://sites.google.com/site/gurugurufgo/) was another JP source I pulled data from/cross-referenced with.
+
+ Current Version: v1.3.6
