@@ -104,7 +104,7 @@ Relevant Configurations:
 
 Worth noting that in addition to the above, Fate/Grand Farm only actually reads:
  * 'Actual Event Name' in cell C1 (hidden by default), used so that the program recognizes 'Christmas 2023 w/ Claw' and 'Christmas 2023 w/ Feather' as the same Event when determining Run Caps.
- * Whether 'Apple AP Buyback' is active or not from cell J1.
+ * Whether 'Apple AP Buyback' is active or not from cell M1.
  * The cells after 'Event Run Caps' and 'Raid Run Caps' in the 1st row. 
  * For each Event Quest in the following rows:
    - Its name in column A.
@@ -233,3 +233,5 @@ Other credit goes to the various communities that have worked hard to compile da
  * [Domus Aurea](https://sites.google.com/view/fgo-domus-aurea) was usually the JP source I pulled data from/cross-referenced with.
 
  * [Guruguru FGO](https://sites.google.com/site/gurugurufgo/) was another JP source I pulled data from/cross-referenced with.
+
+ Current Version: v1.3.6
