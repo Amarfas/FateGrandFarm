@@ -10,15 +10,18 @@ from Quest_Data import QuestData
 from Quest_Data_Test import QuestData as QT
 from Planner import planner
 
-# Mode 1: Check if Node Names, AP Costs, and Drop Matrices are equal.
-# Mode 2: Check if Planner outputs are similar or the same.
-# Mode 3: Compare run times, with below 'rep' count.
+# Mode 1: Check if 'Node Names', 'AP Costs', and 'Drop Matrices' are equal.
+# Mode 2: Check if 'Planner' outputs are similar or the same.
+# Mode 3: Compare times to 'Build Matrix' and run the 'Planner', with below 'rep' count.
+# Mode 4: Check if 'Run Matrix' and 'Run Caps' are similar or the same.
+# Mode 5: Compare times to 'Build Run Cap Matrix'
+# Mode 6: Check if 'ID to Index', 'Skip Data Index', and 'Index to Name' variables are the same
 # 'tolerance' defines the minimum difference that will break the matrix comparison
 # 'tolerance2' defines the maximum difference that'll be ignored in matrix comparisons
 
 test_list = [ 'Per', 'Test', 'Test1', 'Test2', 'Test3', 'Test4' ]
 
-test_modes = [ 1 ]
+test_modes = [ 1, 2, 4 ]
 tolerance = 0.01
 tolerance2 = 0
 rep = 100
@@ -37,23 +40,27 @@ change_config = {'TG_half_AP':     False ,
 
 def build_matrix( ver ):
     if test_Interpret_py and ver == 'NodesTest':
-        input_data = IN.DataFiles( IN.path_prefix + 'GOALS' + goals_debug + '.csv', glob.glob( IN.path_prefix + 'Data Files\\*Calc.csv' )[0] )
-        run_caps = IN.RunCaps()
+        input_data =    IN.DataFiles(    IN.path_prefix + 'GOALS' + goals_debug + '.csv', 
+                                  glob.glob(    IN.path_prefix + 'Data Files Test\\*Calc.csv' )[0] )
+        run_caps =    IN.RunCaps()
     else:
-        input_data = Inter.DataFiles( Inter.path_prefix + 'GOALS' + goals_debug + '.csv', glob.glob( Inter.path_prefix + 'Data Files\\*Calc.csv' )[0] )
+        input_data = Inter.DataFiles( Inter.path_prefix + 'GOALS' + goals_debug + '.csv', 
+                                  glob.glob( Inter.path_prefix + 'Data Files\\*Calc.csv' )[0] )
         run_caps = Inter.RunCaps()
 
     if ver == 'Nodes':
         nodes = QuestData()
         nodes.multi_event( run_caps, input_data.ID_to_index, input_data.drop_index_count )
-        nodes.add_free_drop( glob.glob( Inter.path_prefix + 'Data Files\\*APD.csv' )[0], run_caps, input_data.skip_data_index )
+        nodes.add_free_drop( glob.glob( Inter.path_prefix + 'Data Files\\*APD.csv' )[0], 
+                            run_caps, input_data.skip_data_index, input_data.list_size )
         nodes.read_monthly_ticket_list( run_caps, input_data.ID_to_index, input_data.drop_index_count )
 
     if ver == 'NodesTest':
         nodes = QT()
         nodes.multi_event( run_caps, input_data.ID_to_index, input_data.drop_index_count )
-        nodes.add_free_drop( glob.glob( Inter.path_prefix + 'Data Files\\*APD.csv' )[0], run_caps, input_data.skip_data_index )
-        #nodes.read_monthly_ticket_list( run_caps, input_data.ID_to_index, input_data.drop_index_count )
+        nodes.add_free_drop( glob.glob( Inter.path_prefix + 'Data Files Test\\*APD.csv' )[0], 
+                            run_caps, input_data.skip_data_index, input_data.list_size )
+        nodes.read_monthly_ticket_list( run_caps, input_data.ID_to_index, input_data.drop_index_count )
 
     return nodes, input_data, run_caps, run_caps.build_run_cap_matrix()
 
@@ -129,7 +136,8 @@ def check_matrix( overall, text, norm, test, np_array = True, extra = False, ext
         else:
             valid_3 = 'F: Different problem status: norm: ' + extra.status + ' , test: ' + extra_test.status
 
-    print( "{:<{}}{:<{}}".format( text, 24, str(valid_1) + ', ' + (str(valid_2) + ', ') * int(valid_2 != 'NA') + valid_3, 0 ) )
+    print( "{:<{}}{:<{}}".format( text, 24, str(valid_1) + ', ' + (str(valid_2) + ', ') * int(valid_2 != 'NA') 
+                                 + valid_3, 0 ) )
 
     if valid_2 == 'NA':
         valid_2 = True
@@ -153,7 +161,8 @@ for goals_debug in goals_list:
     print( "{:<{}}{:<{}}".format( '  Test results for:', 23, 'GOALS' + goals_debug + '.csv:', 0 ) )
     for i in test_modes:
         if i == 1:
-            #print( 'Nodes Names equal: ' + check_matrix_proto( nodes.quest_names, nodes_test.quest_names, 1, 1, matrix = 'node_names' ))
+            #print( 'Nodes Names equal: ' + check_matrix_proto( nodes.quest_names, nodes_test.quest_names, 
+            # 1, 1, matrix = 'node_names' ))
             valid = check_matrix( valid, 'Nodes Names equal:', nodes.quest_names, nodes_test.quest_names, False )
             valid = check_matrix( valid, 'AP Cost equal:', nodes.AP_costs, nodes_test.AP_costs )
             valid = check_matrix( valid, 'Drop Matrix equal:', nodes.drop_matrix, nodes_test.drop_matrix )
@@ -167,7 +176,8 @@ for goals_debug in goals_list:
             if total_AP == total_AP2: 
                 print( "{:<{}}{:<{}}".format( 'Total AP equal:', 24, 'T: AP = ' + str(total_AP), 0 ) )
             else: 
-                print( "{:<{}}{:<{}}".format( 'Total AP equal:', 24, 'F: norm: '+str(total_AP)+' != test: '+str(total_AP2), 0 ) )
+                print( "{:<{}}{:<{}}".format( 'Total AP equal:', 24, 'F: norm: '+ str(total_AP) + 
+                                             ' != test: ' + str(total_AP2), 0 ) )
                 valid = False
             print('')
         
@@ -212,8 +222,10 @@ for goals_debug in goals_list:
             print( ' Difference x1,000,000: ' + str(1000000*(t2-t1)) + '\n' )
         
         if i == 6:
-            i1 = Inter.DataFiles( Inter.path_prefix + 'GOALS' + goals_debug + '.csv', glob.glob( Inter.path_prefix + 'Data Files\\*Calc.csv' )[0] )
-            i2 = Inter.DataFiles( Inter.path_prefix + 'GOALS' + goals_debug + '.csv', glob.glob( Inter.path_prefix + 'Data Files\\*Calc.csv' )[0] )
+            i1 = Inter.DataFiles( Inter.path_prefix + 'GOALS' + goals_debug + '.csv', 
+                                 glob.glob( Inter.path_prefix + 'Data Files\\*Calc.csv' )[0] )
+            i2 = IN.DataFiles( Inter.path_prefix + 'GOALS' + goals_debug + '.csv', 
+                              glob.glob( Inter.path_prefix + 'Data Files Test\\*Calc.csv' )[0] )
 
             eq1 = (i1.ID_to_index == i2.ID_to_index)
             eq2 = (i1.skip_data_index == i2.skip_data_index)
@@ -221,7 +233,7 @@ for goals_debug in goals_list:
             print( 'ID to Index equal: ' + str(eq1) )
             print( 'Skip Data Index equal: ' + str(eq2) )
             print( 'Index to Name equal: ' + str(eq3) + '\n')
-            valid = valid and eq1 and eq2 and eq2
+            valid = valid and eq1 and eq2 and eq3
 
 print( 'Overall Tests Were: ' + str(valid) )
 

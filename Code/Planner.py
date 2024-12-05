@@ -28,7 +28,8 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_matrix 
         else:
             if data_files.index_to_name[i] != '':
                 if message >= 2:
-                    Inter.Debug().error_warning( 'Obtaining any ' + data_files.index_to_name[i] + ' is impossible with these restrictions.' )
+                    Inter.Debug().error_warning( 'Obtaining any ' + data_files.index_to_name[i] + 
+                                                ' is impossible with these restrictions.' )
                 data_files.goals[i] = 0
 
     objective = cp.Minimize( AP_costs @ runs )
@@ -51,7 +52,8 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_matrix 
     
     if prob.status == 'infeasible':
         if message >= 1:
-            Inter.Debug().error_warning( 'The applied Run Caps likely made the Goals impossible. Analysis will now remove Run Caps.' )
+            Inter.Debug().error_warning( 'The applied Run Caps likely made the Goals impossible.' + 
+                                        'Analysis will now remove Run Caps.' )
         constraints = [ drop_matrix @ runs >= data_files.goals ]
         if run_int:
             constraints.append( np.eye(run_size) @ runs >= np.zeros((run_size,1), dtype=int) )
@@ -98,7 +100,7 @@ class Output:
 
         return indent
 
-    def add_gained_materials( self, text, drop_matrix_line, run_count, index_to_name, num_format ):
+    def add_gained_mats( self, text, drop_matrix_line, run_count, index_to_name, num_format ):
         gained_mats = False
         for i in range(len( drop_matrix_line )):
             mat_drop = drop_matrix_line[i]
@@ -150,7 +152,7 @@ class Output:
                     text[-1][2] = '   Boxes Farmed = ' + "{:.2f}".format( run_count / nodes.runs_per_box[i] )
 
                 # For Farming Plan Drops
-                text = self.add_gained_materials( text, nodes.drop_matrix[i], run_count, index_to_name, "{:.2f}" )
+                text = self.add_gained_mats( text, nodes.drop_matrix[i], run_count, index_to_name, "{:.2f}" )
 
         # Formats the drop parts of the output files.
         output_drops, output = self.format_farming_plan_text( text, output_drops, output)
@@ -178,7 +180,8 @@ class Output:
 
                         ticket_text.append([ month_name, '= ', '' ])
                     
-                    ticket_text = self.add_gained_materials( ticket_text, nodes.drop_matrix[i], run_count, index_to_name, "{:.0f}" )
+                    ticket_text = self.add_gained_mats( ticket_text, nodes.drop_matrix[i], run_count, 
+                                                       index_to_name, "{:.0f}" )
 
                     prev_relevant_month = month_name
 
@@ -212,7 +215,7 @@ class Output:
                 text += '!! Plan Name not accepted by OS\n\n'
             self.avoid_plan_name_error( name_prefix + name_suffix, text )
 
-    def make_debug_report( self, text, header = '' ):
+    def make_report( self, text, header = '' ):
         if text == []:
             return ''
         
@@ -234,11 +237,12 @@ class Output:
             output = '!! WARNING !!\n'
             output += debug.error + '\n'
     
-        output += self.make_debug_report( debug.config_notes, '__Configurations:' ) + '\n'
+        output += self.make_report( debug.config_notes, '__Configurations:' ) + '\n'
         output += debug.monthly_notes + '\n'
-        output += self.make_debug_report( debug.event_notes, '__The Events included in this analysis were:' )  + '\n\n'
-        output += self.make_debug_report( debug.lotto_notes, '__The Lotto Drop Bonuses for each Quest were:' )  + '\n\n'
-        output += self.make_debug_report( debug.run_cap_debug, '__The following are notes to make sure that Run Caps were applied correctly:' )
+        output += self.make_report( debug.event_notes, '__The Events included in this analysis were:' )  + '\n\n'
+        output += self.make_report( debug.lotto_notes, '__The Lotto Drop Bonuses for each Quest were:' )  + '\n\n'
+        output += self.make_report( debug.run_cap_debug, 
+                                   '__The following are notes to make sure that Run Caps were applied correctly:' )
 
         self.file_creation( plan_name, 'Config Notes.txt', output, True )
 

@@ -5,7 +5,8 @@ import numpy as np
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-# Makes it so the program works whether it's started in the 'FarmingGrandOrder' overarching directory or the 'FarmGrandOrder' folder.
+# Makes it so the program works whether it's started in the 'FateGrandFarm' overarching directory
+#  or the 'Code' folder.
 def standardize_path():
     global path_prefix
     if glob.glob('Code') == []:
@@ -56,7 +57,7 @@ class ConfigList():
                 if x == '0' or x == 'false' or x == 'f' or x == 'no' or x == 'n' or x == 'off':
                     key_value = False
                 else:
-                    Debug().error_warning( 'Configuration "' + key + '" was not yes or no/true or false.')
+                    Debug().error_warning( 'Configuration "' + key + '" was not yes / true or no / false.')
 
         if make_note:
             Debug().note_config(key, key_value)
@@ -116,7 +117,8 @@ class ConfigList():
                         new_year = rel_time[2] + new_month_calc // 12
 
                         # Makes sure there isn't an error later because the time lapsed month has fewer days
-                        last_day_of_month = (datetime(new_year + new_month // 12, new_month % 12 + 1, 1) - timedelta(seconds=1)).day
+                        last_day_of_month = (datetime(new_year + new_month // 12, new_month % 12 + 1, 1) 
+                                             - timedelta(seconds=1)).day
                         key_value = [new_month, min(rel_time[1], last_day_of_month), new_year]
 
                     elif time_frame[:3] == 'day':
@@ -211,7 +213,7 @@ class Debug():
 class DataFiles:
     def __init__( self, goals_CSV, material_list_CSV ):
         self.drop_index_count = 0
-        self.data_index_count = 0
+        self.list_size = 0
         self.remove_zeros = ConfigList.remove_zeros
 
         self.skip_data_index = {}
@@ -234,17 +236,25 @@ class DataFiles:
 
             return mat_ID_list, mat_name_list
 
-    # Interpret the Materials by groups between their gaps.
-    def _interpret_group( self, reader, mat_ID_list, mat_name_list, list_index, drop_matrix_index, gaps, expected_mat ):
+    # Interpret the Materials one group at a time, using the gaps in the Mat ID List to keep track of groups.
+    # Now can use the first item to determine which group it is.
+    def _interpret_group( self, reader, mat_ID_list, mat_name_list, list_index, drop_index, 
+                         gaps, expected_mat ):
         goals_CSV_row = next(reader)
 
-        try:
-            group_start_check = int(mat_ID_list[list_index])
-        except ValueError:
-            group_start_check = 0
-        if goals_CSV_row[0] != expected_mat[0] or group_start_check > 100:
-            Debug().error_warning( 'Does not seem to be the start of '+ expected_mat[1] +'. GOALS and/or Material List CSVs may need to be updated.' )
-        
+        if mat_name_list[list_index] == expected_mat[gaps][0]:
+            list_index -= 1
+            first_ID_check = 0
+        else:
+            try:
+                first_ID_check = int(mat_ID_list[list_index])
+            except ValueError:
+                first_ID_check = 0
+    
+        if goals_CSV_row[0] != expected_mat[gaps][0] or first_ID_check > 100:
+            Debug().error_warning( 'Does not seem to be the start of '+ expected_mat[gaps][1] + 
+                                  '. GOALS and/or Material List CSVs may need to be updated.' )
+
         while goals_CSV_row[0][0:2] != '!!':
             try:
                 mat_goal = int(goals_CSV_row[1])
@@ -262,48 +272,50 @@ class DataFiles:
                 self.ID_to_index.setdefault( int(mat_ID_list[list_index]), 'F' )
             else:
                 self.goals.append( [mat_goal] )
-                self.ID_to_index.setdefault( int(mat_ID_list[list_index]), drop_matrix_index )
-                self.index_to_name.setdefault( drop_matrix_index, mat_name_list[list_index] )
-                drop_matrix_index += 1
+                self.ID_to_index.setdefault( int(mat_ID_list[list_index]), drop_index )
+                self.index_to_name.setdefault( drop_index, mat_name_list[list_index] )
+                drop_index += 1
 
-                # Adds Gems, Statues, Monuments, and XP cards to a special collective ID. Should be negative.
+                # Adds Gems, Statues, Monuments, and XP cards to a special collective ID. 
+                # Should be negative.
                 if gaps > 2:
                     self.ID_to_index[2-gaps].append( int(mat_ID_list[list_index]) )
 
         # If zeros are removed, gaps never matter. Otherwise, they need token additions.
         self.skip_data_index[list_index] = self.remove_zeros
         list_index += 1
-        if not self.remove_zeros:
+        if not self.remove_zeros and mat_name_list[list_index] != expected_mat[gaps + 1][0]:
             self.goals.append([0])
-            self.index_to_name.setdefault( drop_matrix_index, '' )
-            drop_matrix_index += 1
+            self.index_to_name.setdefault( drop_index, '' )
+            drop_index += 1
 
         # Notes that negative Mat IDs should be skipped if the entry is empty.
         if gaps > 2:
             if self.ID_to_index[2-gaps] == []:
                 self.ID_to_index[2-gaps] = 'F'
         
-        return reader, list_index, drop_matrix_index
+        return reader, list_index, drop_index
     
     # 'Saber Blaze' index will be used in place of all XP drops.
-    def _interpret_XP_data( self, mat_IDs, list_index, drop_matrix_index, xp_goal ):
+    def _interpret_XP_data( self, mat_IDs, list_index, drop_index, xp_goal, xp_index_count ):
         skip = self.remove_zeros and (xp_goal == 0)
         if skip:
-            drop_matrix_index = 'F'
+            drop_index = 'F'
         else:
             self.goals.append( [xp_goal] )
             self.ID_to_index[-6] = [ int(mat_IDs[list_index+1]) ]
-            self.index_to_name.setdefault( drop_matrix_index, 'Class Blaze' )
+            self.index_to_name.setdefault( drop_index, 'Class Blaze' )
             self.drop_index_count += 1
 
-        for i in range(16):
+        for i in range( xp_index_count ):
             self.skip_data_index[list_index] = skip
             list_index += 1
-            self.ID_to_index.setdefault( int(mat_IDs[list_index]), drop_matrix_index )
+            self.ID_to_index.setdefault( int(mat_IDs[list_index]), drop_index )
         
-        self.data_index_count = list_index
+        self.list_size = list_index
 
-    # Creates three dictionaries, 'ID_to_index' maps a Material's ID to placement in Drop Matrix, or notes that it should be skipped with an 'F' value.
+    # Creates three dictionaries: 'ID_to_index' maps a Material's ID to placement in the Drop Matrix, 
+    #   or notes that it should be skipped with an 'F' value.
     # 'index_to_name' maps placement in Drop Matrix to the corresponding Material's name.
     # 'skip_data_index' maps whether or not an entry in the Free Drop Matrix should be skipped.
     # Also transforms the data in the GOALS csv into a computable column matrix.
@@ -315,21 +327,30 @@ class DataFiles:
             goals_csv_row = next(reader)
 
             list_index = 0
-            drop_matrix_index = 0
+            drop_index = 0
 
             # Warn if the gaps between Material groups do not line up.
-            expected_mat = [['Proof of Hero', 'Bronze Mats'],['Seed of Yggdrasil','Silver Mats'],['Claw of Chaos','Gold Mats'], 
-                         ['Gem of Saber','Blue Gems'], ['Magic Gem of Saber','Red Gems'], ['Secret Gem of Saber','Gold Gems'],
-                         ['Saber Piece','Statues'], ['Saber Monument', 'Monuments']]
+            expected_mat = [['Proof of Hero', 'Bronze Mats'],['Seed of Yggdrasil','Silver Mats'],
+                            ['Claw of Chaos','Gold Mats'], ['Gem of Saber','Blue Gems'], 
+                            ['Magic Gem of Saber','Red Gems'], ['Secret Gem of Saber','Gold Gems'],
+                            ['Saber Piece','Statues'], ['Saber Monument', 'Monuments'], ['Saber Blaze', 'XP']]
 
             for gaps in range(8):
-                reader, list_index, drop_matrix_index = self._interpret_group( reader, mat_ID_list, mat_name_list, list_index, drop_matrix_index, gaps, expected_mat[gaps] )
+                reader, list_index, drop_index = self._interpret_group( reader, mat_ID_list, mat_name_list, list_index, 
+                                                                       drop_index, gaps, expected_mat )
+            
+            if mat_name_list[list_index] == expected_mat[gaps+1][0]:
+                list_index -= 1
+                xp_index_count = 14
+            else:
+                xp_index_count = 15
 
-            self.drop_index_count = drop_matrix_index
+            self.drop_index_count = drop_index
 
             goals_csv_row = next(reader)
             if goals_csv_row[0] != 'Saber Blaze':
-                Debug().error_warning( 'Does not seem to be the start of XP. GOALS and/or Material List CSVs may need to be updated.' )
+                Debug().error_warning( 'Does not seem to be the start of XP.' + 
+                                      'GOALS and/or Material List CSVs may need to be updated.' )
             
             try:
                 xp_goal = int(goals_csv_row[1])
@@ -338,7 +359,8 @@ class DataFiles:
 
             f.close()
 
-        self._interpret_XP_data( mat_ID_list, list_index, drop_matrix_index, xp_goal )
+        self._interpret_XP_data( mat_ID_list, list_index, drop_index, xp_goal, xp_index_count )
+
         if self.goals == []:
             Debug().error_warning("You have assigned no goals.")
         self.goals = np.array(self.goals)
@@ -409,7 +431,9 @@ class RunCaps():
         
         return event_caps
     
-    def add_group_info( self, true_name, group, quest_caps ):
+    # Assembles Quests into groups based on their Quest Types
+    # Applies a single Run Cap to all Quests in the same group (such as "Lotto 1")
+    def assemble_group_info( self, true_name, group, quest_caps ):
         if group['Type'] and group['Count'] > 0:
             self.matrix_col += group['Count']
 
@@ -433,7 +457,7 @@ class RunCaps():
                     try:
                         cap_input = cap_list[ (int(group_num) - 1) % len(cap_list) ]
                     except ValueError:
-                        Debug().error_warning('Type Group Number was not an integer.')
+                        Debug().error_warning('Quest Type Group Number was not an integer.')
                 
                 if not type_info in self.group_name_list:
                     self.group_name_list.append(type_info)
@@ -445,21 +469,23 @@ class RunCaps():
                     #else:
                     #    self.ticket_use_list.append([0])
                     
-    
-    def evaluate_group_info( self, add_quest_data, true_name, cur_group_type,  prev_group, quest_caps = False ):
+    # Determines if the current Quest has the same Quest type as the last
+    # If so, increments group size. Otherwise, adds the data to a list and starts a new counter.
+    def add_group_info( self, add_quest_data, true_name, cur_group_type, prev_group, quest_caps = False ):
         if prev_group['Type'] != cur_group_type:
-            self.add_group_info( true_name, prev_group, quest_caps )
+            self.assemble_group_info( true_name, prev_group, quest_caps )
 
-            # If Quest Data is not to be added, does not count as an additional member. If included, members start at 1.
+            # If Quest Data is included, number of members for that group start at 1.
             return {'Type': cur_group_type, 'Count': add_quest_data}
         prev_group['Count'] += add_quest_data
         return prev_group
     
     def build_run_cap_matrix(self):
         run_matrix = np.zeros( ( len(self.run_cap_list), self.matrix_col ), dtype=int)
-        use_ticket_matrix = np.zeros( ( len(self.run_cap_list), self.matrix_col ), dtype=int)
+        #use_ticket_matrix = np.zeros( ( len(self.run_cap_list), self.matrix_col ), dtype=int)
 
-        # For lists in group_to_member_count: [1] is the count, [0] is the matching name/type info, [0][1] is type
+        # For lists in group_to_member_count: i[1] is the count, 
+        #   i[0] is the matching name/type info, [0][1] is type
         col = 0
         for i in self.group_to_member_count:
             start = col
