@@ -11,6 +11,7 @@ Former Plans/
 .vscode
 
 # Ignore GOALSTest#.csv files
+GOALS_Per.csv
 GOALSTest*.csv
 
 # Byte-compiled / optimized / DLL files
