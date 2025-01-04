@@ -5,11 +5,12 @@ import numpy as np
 import cvxpy as cp
 import time
 import Interpret as Inter
-from Quest_Data import QuestData
+from Quest_Data import QuestData  
 
-def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_matrix = False, message = 2 ):
-    run_int = Inter.ConfigList.run_int
-    #use_all_tickets = Inter.ConfigList.use_all_tickets
+def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = False, message = 2 ):
+    plan_debug = {'Status': ''}
+    #run_int = Inter.ConfigList.run_int
+    run_int = Inter.ConfigList.settings['Run Count Integer']
 
     drop_matrix = np.transpose( quest_data.drop_matrix )
     AP_costs = np.transpose( quest_data.AP_costs )
@@ -21,62 +22,126 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_matrix 
         runs = cp.Variable( (run_size,1) , nonneg=True )
 
     # Checks to see if any drops exist for a desired Material.
-    for i in range(data_files.drop_index_count):
+    for i in range(data_files.mat_index_total):
         for j in drop_matrix[i]:
             if j > 0:
                 break
         else:
             if data_files.index_to_name[i] != '':
-                if message >= 2:
-                    Inter.Debug().error_warning( 'Obtaining any ' + data_files.index_to_name[i] + ' is impossible with these restrictions.' )
+                error = 'Obtaining any ' + data_files.index_to_name[i]
+                error += ' is impossible with these restrictions.'
+                Inter.Debug().warning( error, 2, message )
                 data_files.goals[i] = 0
 
     objective = cp.Minimize( AP_costs @ runs )
 
-    constraints = [ drop_matrix @ runs >= data_files.goals ]
-    if run_cap_matrix and run_cap_matrix[0].any():
-        constraints.append( run_cap_matrix[0] @ runs <= run_cap_matrix[1] )
-
-        #if use_all_tickets:
-        #    constraints.append( run_cap_matrix[2] @ runs >= run_cap_matrix[3] )
-
+    constr_ini = [ drop_matrix @ runs >= data_files.goals ]
     if run_int:
-        constraints.append( np.eye(run_size) @ runs >= np.zeros((run_size,1), dtype=int) )
+        constr_ini.append( np.eye(run_size) @ runs >= np.zeros((run_size,1), dtype=int) )
+    
+    constraints = constr_ini.copy()
+
+    if run_cap_mat:
+        if len(run_cap_mat) > 2:
+            if run_cap_mat['Matrix'].any():
+                constraints.append( run_cap_mat['Matrix'] @ runs <= run_cap_mat['List'] )
+        elif run_cap_mat[0].any():
+            constraints.append( run_cap_mat[0] @ runs <= run_cap_mat[1] )
 
     prob = cp.Problem( objective , constraints )
     prob.solve()
-
+    
     if (prob.status != 'optimal') and (message >= 1):
-        Inter.Debug().error_warning( 'This solution is or was: ' + prob.status )
+        Inter.Debug().warning( 'This solution is or was: ' + prob.status )
     
     if prob.status == 'infeasible':
-        if message >= 1:
-            Inter.Debug().error_warning( 'The applied Run Caps likely made the Goals impossible. Analysis will now remove Run Caps.' )
-        constraints = [ drop_matrix @ runs >= data_files.goals ]
-        if run_int:
-            constraints.append( np.eye(run_size) @ runs >= np.zeros((run_size,1), dtype=int) )
-        
-        prob = cp.Problem( objective, constraints )
-        prob.solve()
+        plan_debug['Status'] = 'infeasible'
 
+        error = 'The applied Run Caps likely made the Goals impossible.'
+        Inter.Debug().warning( error, 1, message )
+
+        # Run Count Integer removed because it applies extra constraints which
+        # slow the analysis.
+        if run_int:
+            error = 'Run Count Integer will be removed for further analysis.'
+            Inter.Debug().warning( error, 1, message )
+
+            run_int = False
+            runs = cp.Variable( (run_size,1) , nonneg=True )
+            constr_ini = [ drop_matrix @ runs >= data_files.goals ]
+
+        # Remove Bleached Earth Run Caps first, because of the exclusive mats
+        # If that doesn't work, keep only the constraints for Monthly Tickets.
+        for backup in ['Free Quests', 'Monthly']:
+            if len(run_cap_mat) <= 2:
+                break
+            try:
+                row = run_cap_mat['Event'].index(backup)
+                if backup == 'Free Quests' and len(run_cap_mat['Matrix']) == 1:
+                        continue
+            except ValueError:
+                continue
+
+            if backup == 'Free Quests':
+                error = 'Problem will be run again after removing Bleach Caps.'
+                Inter.Debug().warning( error, 1, message)
+                
+                new_mat = np.delete( run_cap_mat['Matrix'], row, 0)
+                new_list = np.delete( run_cap_mat['List'], row, 0)
+            else:
+                error = 'Problem will be run again after removing all Run Caps.'
+                Inter.Debug().warning( error, 1, message)
+
+                row_num = len(run_cap_mat['Matrix'])
+                col_num = len(run_cap_mat['Matrix'][0])
+                shape = ( row_num - row , col_num )
+
+                dele = np.zeros( ( row_num, col_num ), dtype=bool )
+                dele[row:] = True
+                new_mat = np.reshape( run_cap_mat['Matrix'][dele,...], shape )
+
+                dele = np.zeros( row_num, dtype=bool )
+                dele[row:] = True
+                new_list = run_cap_mat['List'][dele,...]
+            
+            constraints = constr_ini.copy()
+            constraints.append( new_mat @ runs <= new_list )
+
+            prob = cp.Problem( objective, constraints )
+            prob.solve()
+
+            if prob.status == 'optimal':
+                break
+            else:
+                error = 'Analysis was still a failure.'
+                Inter.Debug().warning( error, 1, message)
+    
+    total_AP = ''
+    if prob.status == 'infeasible' and prob.value == math.inf:
+        run_int = runs.value
+        total_AP = prob.value
+    
     # Makes Run counts integers.
-    if run_int:
-        return ( prob , runs.value , int(prob.value) )
+    elif run_int:
+        run_int = runs.value
+        total_AP = int(prob.value)
     else: 
-        run_int_values = np.zeros( (run_size,1) , dtype = int)
+        run_int = np.zeros( (run_size,1) , dtype = int)
         count = 0
         for i in runs.value:
             if count == 511 or count == 512:
                 x=1
             if i[0] < 0.1: 
-                run_int_values[count,0] = 0
+                run_int[count,0] = 0
             elif (i[0] - math.floor(i[0])) < 0.01:
-                run_int_values[count,0] = int(i[0])
+                run_int[count,0] = int(i[0])
             else: 
-                run_int_values[count,0] = int(math.ceil(i[0]))
+                run_int[count,0] = int(math.ceil(i[0]))
             count += 1
+        
+        total_AP = int( AP_costs @ runs.value )
 
-        return ( prob , run_int_values , int( AP_costs @ runs.value ) )
+    return ( prob , run_int , total_AP, plan_debug )
 
 class Output:
     def __init__(self) -> None:
@@ -98,7 +163,7 @@ class Output:
 
         return indent
 
-    def add_gained_materials( self, text, drop_matrix_line, run_count, index_to_name, num_format ):
+    def add_gained_mats( self, text, drop_matrix_line, run_count, index_to_name, num_format ):
         gained_mats = False
         for i in range(len( drop_matrix_line )):
             mat_drop = drop_matrix_line[i]
@@ -114,19 +179,22 @@ class Output:
         
         return text
 
+    # 'text' array formatting: [0] is the Quest name, [1] is the number of runs, 
+    #   [2] is boxes, [3] is average number of [4] acquired. Repeats.
     def format_farming_plan_text( self, text, output_longer, output_basic = False ):
         indent = self.find_indent(text)
 
-        for i in range(len(text)):
-            lead_text = "{:<{}}{:>{}}".format(text[i][0], indent[0], text[i][1], indent[1])
+        for line in text:
+            lead_text = "{:<{}}{:>{}}".format(line[0], indent[0], line[1], indent[1])
             if output_basic:
                 # Adds number of boxes farmed
-                output_basic += self.console_print( lead_text + text[i][2] )
+                output_basic += self.console_print( lead_text + line[2] )
                 lead_text += '  =  '
 
+            # Adds average acquired Mats for 'Farming Plan Drops'
             output_longer += lead_text
-            for j in range( 3, len(text[i]), 2 ):
-                output_longer += "{:>{}}{:<{}}".format(text[i][j], indent[j], text[i][j+1], indent[j+1])
+            for i in range( 3, len(line), 2 ):
+                output_longer += "{:>{}}{:<{}}".format(line[i], indent[i], line[i+1], indent[i+1])
             output_longer += '\n'
         
         return output_longer , output_basic
@@ -150,7 +218,7 @@ class Output:
                     text[-1][2] = '   Boxes Farmed = ' + "{:.2f}".format( run_count / nodes.runs_per_box[i] )
 
                 # For Farming Plan Drops
-                text = self.add_gained_materials( text, nodes.drop_matrix[i], run_count, index_to_name, "{:.2f}" )
+                text = self.add_gained_mats( text, nodes.drop_matrix[i], run_count, index_to_name, "{:.2f}" )
 
         # Formats the drop parts of the output files.
         output_drops, output = self.format_farming_plan_text( text, output_drops, output)
@@ -178,7 +246,8 @@ class Output:
 
                         ticket_text.append([ month_name, '= ', '' ])
                     
-                    ticket_text = self.add_gained_materials( ticket_text, nodes.drop_matrix[i], run_count, index_to_name, "{:.0f}" )
+                    ticket_text = self.add_gained_mats( ticket_text, nodes.drop_matrix[i], run_count, 
+                                                       index_to_name, "{:.0f}" )
 
                     prev_relevant_month = month_name
 
@@ -197,11 +266,15 @@ class Output:
             f.write(text)
             f.close()
 
-    def file_creation( self, plan_name, file_name, text, debug_report = False ):
+    def file_creation( self, plan_name, file_name, text, debug_report = False, failure = False ):
         name_prefix = Inter.path_prefix + 'Former Plans\\'
         name_suffix = time.strftime("%Y%m%d_%H%M%S__", time.localtime()) + file_name
 
-        with open( Inter.path_prefix + file_name, 'w') as f:
+        main_file_name = Inter.path_prefix + file_name
+        if failure:
+            main_file_name = Inter.path_prefix + plan_name + file_name
+
+        with open( main_file_name, 'w') as f:
             f.write(text)
             f.close()
         
@@ -212,7 +285,7 @@ class Output:
                 text += '!! Plan Name not accepted by OS\n\n'
             self.avoid_plan_name_error( name_prefix + name_suffix, text )
 
-    def make_debug_report( self, text, header = '' ):
+    def make_report( self, text, header = '' ):
         if text == []:
             return ''
         
@@ -226,7 +299,7 @@ class Output:
         
         return run_debug
     
-    def create_note_file( self, plan_name = '' ):
+    def create_note_file( self, plan_name = '', failure = False ):
         output = ''
         debug = Inter.Debug()
     
@@ -234,24 +307,24 @@ class Output:
             output = '!! WARNING !!\n'
             output += debug.error + '\n'
     
-        output += self.make_debug_report( debug.config_notes, '__Configurations:' ) + '\n'
-        output += debug.monthly_notes + '\n'
-        output += self.make_debug_report( debug.event_notes, '__The Events included in this analysis were:' )  + '\n\n'
-        output += self.make_debug_report( debug.lotto_notes, '__The Lotto Drop Bonuses for each Quest were:' )  + '\n\n'
-        output += self.make_debug_report( debug.run_cap_debug, '__The following are notes to make sure that Run Caps were applied correctly:' )
+        output += self.make_report( debug.config_notes, '__Configurations:')+'\n'
+        output += debug.monthly_notes +'\n'
+        output += self.make_report( debug.event_notes,'__The Events included in this analysis were:' ) +'\n\n'
+        output += self.make_report( debug.lotto_notes,'__The Lotto Drop Bonuses for each Quest were:' ) +'\n\n'
+        text = '__The following are notes to make sure that Run Caps were applied correctly:'
+        output += self.make_report( debug.run_cap_debug, text )
 
-        self.file_creation( plan_name, 'Config Notes.txt', output, True )
+        self.file_creation( plan_name, 'Config Notes.txt', output, True, failure )
 
-
-    def print_out( self, prob, runs, total_AP, nodes: QuestData, index_to_name, will_output_files = True ):
+    def print_out( self, prob, runs, total_AP, nodes: QuestData, index_to_name ):
         output = self.console_print( 'These results are: ' + prob.status )
         output += self.console_print( 'The total AP required is: ' + "{:,}".format(total_AP) + '\n' )
         output += self.console_print( 'You should run:' )
 
         output, output_drops = self.create_drop_file( output, runs, nodes, index_to_name )
         
-        if will_output_files:
-            plan_name = Inter.ConfigList.plan_name
+        if Inter.ConfigList.settings['Output Files'] :
+            plan_name = Inter.ConfigList.settings['Plan Name']
             if plan_name:
                 plan_name += '_'
 
