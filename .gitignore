@@ -1,6 +1,9 @@
 # Ignore 'OLD Files' folder
 OLD Files
 
+# Debug folder, sometimes
+#*_debug
+
 # Plans
 Config Notes.txt
 Farming Plan Drops.txt

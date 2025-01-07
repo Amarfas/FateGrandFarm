@@ -18,10 +18,10 @@ def main():
 
     quest_data = QuestData()
     quest_data.multi_event( run_caps, data_files.ID_to_index, data_files.mat_index_total )
-    quest_data.add_free_drop( apd_csv, run_caps, data_files.skip_data_index, data_files.csv_col_total )
+    quest_data.add_free_drop( apd_csv, run_caps )
     quest_data.read_monthly_ticket_list( run_caps, data_files.ID_to_index, data_files.mat_index_total )
     run_cap_matrix = run_caps.build_run_cap_matrix()
-
+    
     if goals == []:
         print('FAILED EXECUTION')
         Plan.Output().create_note_file('FAILED_EXECUTION__')
