@@ -30,14 +30,13 @@ import d_Extra as ex
 
 tests = { 'Print': True ,
         'Goals': [ '_Per', 'Test', 'Test1', 'Test2', 'Test3', 'Test4', '_Sample' ] ,
-        'Events': [ 0, 1, 2, 3 ] ,
+        'Events': [] ,
         'Modes': [ 1, 2, 3, 4 ] ,
-        'Modes': [ 7, 9 ]  ,
-        'Modes': [ 1, 2, 3, 4 ] ,
-        'Reps': 100 ,
-        'Config Test': False ,
+        'Modes': [ 9 ]  ,
+        'Reps': 500 ,
+        'Config Test': True ,
         'Check Default': False ,
-        'Check Settings': True ,
+        'Check Settings': False ,
         'Setting Start Num': 0 ,
         'Setting Pause': -1 ,
         'Line Break': False }
@@ -56,6 +55,19 @@ change_config = {'Event Cap':                [2000, 0] ,
                  'Monthly Ticket End Date':  ['', '1/1/25', '15 day', '5 month', '1 year'] ,
                  'Stop Here':                ['', 'Fuyuki', 'Bleach'] }
 
+change_config = {'Event Cap':                [] ,
+                 'Lotto Cap':                [] ,
+                 'Raid Cap':                 [] ,
+                 'Bleach Cap':               [] ,
+                 'Training Grounds Half AP': [] ,
+                 'Training Grounds Third AP':[] ,
+                 'Remove Zeros':             [] ,
+                 'Run Count Integer':        [] ,
+                 'Monthly Ticket Per Day':   [1, 0, 4] ,
+                 'Monthly Ticket Start Date':['', '12/31/24', '2/5/25', '8/20/25'] ,
+                 'Monthly Ticket End Date':  ['', '1/1/25', '15 day', '5 month', '1 year'] ,
+                 'Stop Here':                [] }
+
 def build_matrix( goals, pre, new_code = True ):
     if new_code:
         input_data = Inter.DataFiles( goals, glob.glob( pre[0] + '*Calc.csv' )[0] )
@@ -70,7 +82,7 @@ def build_matrix( goals, pre, new_code = True ):
 
     if new_code:
         nodes = QuestData( input_data, folder )
-        nodes.multi_event( run_caps, input_data.ID_to_index, input_data.mat_index_total )
+        nodes.multi_event( run_caps )
         nodes.add_free_drop( glob.glob( pre[0] + '*APD.csv' )[0], run_caps )
         nodes.read_monthly_ticket_list( run_caps, input_data.ID_to_index, input_data.mat_index_total )
 
@@ -87,20 +99,23 @@ def add_total_time( timer, time_dif, *category ):
     if isinstance(category[0], list):
         category = category[0]
     
-    current = str(category[0])
+    cur = str(category[0])
     if len(category) > 1:
-        addon = list(category)[1:]
         try:
-            timer[current] = add_total_time( timer[current], time_dif, addon )
+            next_lvl = timer[cur]
         except KeyError:
-            timer[current] = add_total_time( {}, time_dif, addon )
+            next_lvl = {}
+        timer[cur] = add_total_time( next_lvl, time_dif, list(category)[1:] )
     else:
         try:
-            timer[current]['Tot'] += time_dif
-            timer[current]['Rep'] += 1
-            timer[current]['Avg'] = timer[current]['Tot'] / timer[current]['Rep']
+            timer[cur]['Tot'] += time_dif
+            timer[cur]['Rep'] += 1
+            timer[cur]['Avg'] = timer[cur]['Tot'] / timer[cur]['Rep']
+            timer[cur]['Max'] = max( time_dif, timer[cur]['Max'] )
+            timer[cur]['Min'] = min( time_dif, timer[cur]['Min'] )
         except KeyError:
-            timer[current] = {'Avg': time_dif, 'Tot': time_dif, 'Rep': 1}
+            timer[cur] = {'Avg': time_dif, 'Tot': time_dif, 'Rep': 1, 
+                              'Max': time_dif, 'Min': time_dif}
 
     return timer
 
@@ -109,19 +124,24 @@ def change_time( test_package, test, t1, t2, mult ):
     ex.PrintText().print( '   Time2 per iter: ' + str(t2) )
 
     time_dif = (t2-t1) * mult
+    time_mult = (t2-t1) / t2 * 100
     mult_text = format(mult,',')
-    ex.PrintText().print( ' ' + test + ' Difference x' + mult_text + ': ' + str(time_dif) + '\n' )
+    ex.PrintText().print( ' ' + test + ' Difference x' + 
+                         mult_text + ': ' + str(time_dif) + '\n' )
 
     timer = test_package['Time']
-    timer = add_total_time( timer, time_dif, test, 'Tot' )
-
     goals = test_package['Goals']
-    goals_test = goals[ max(goals.find('GOALS'), 0): ]
-    timer = add_total_time( timer, time_dif, test, 'Goal',  goals_test )
-
     config = test_package['Config']
-    for i in config:
-        timer = add_total_time( timer, time_dif, test, 'Config',  i, str(config[i]) )
+    t = { '-': time_dif, 'x': time_mult }
+    
+    for i in ['-','x']:
+        timer = add_total_time( timer, t[i], test, 'Tot', i )
+
+        goals_test = goals[ ( max(goals.find('GOALS'), 0) + 5 ): ]
+        timer = add_total_time( timer, t[i], test, 'Goal',  goals_test, i )
+
+        for j in config:
+            timer = add_total_time( timer, t[i], test, 'Config',  j, str(config[j]), i )
 
     test_package['Time'] = timer
     return test_package
@@ -139,9 +159,9 @@ def test_2( valid, goals, pre ):
     eq1 = (i1.ID_to_index == i2.ID_to_index)
     eq2 = (i1.skip_data_index == i2.skip_data_index)
     eq3 = (i1.index_to_name == i2.index_to_name)
-    ex.PrintText().print( 'ID to Index equal: ' + str(eq1) )
-    ex.PrintText().print( 'Skip Data Index equal: ' + str(eq2) )
-    ex.PrintText().print( 'Index to Name equal: ' + str(eq3) )
+    ex.PrintText().print( "{:<{}}{:<{}}".format( 'ID to Index equal:', 24, str(eq1), 0 ) )
+    ex.PrintText().print( "{:<{}}{:<{}}".format( 'Skip Data Index equal:', 24, str(eq2), 0 ) )
+    ex.PrintText().print( "{:<{}}{:<{}}".format( 'Index to Name equal:', 24, str(eq3), 0) )
     return ex.PrintText().check_valid( valid and eq1 and eq2 and eq3 )
 
 def test_3( valid, run_caps: Inter.RunCaps, run_caps2: Inter.RunCaps ):
@@ -159,9 +179,9 @@ def test_4( valid, nodes, nodes2, input_data, input_data2, run_cap_matrix, run_c
     valid = ex.check_matrix( valid, 'Run counts equal:', runs, runs2, True, prob, prob2 )
     if tot_AP == tot_AP2: 
         ex.PrintText().print( "{:<{}}{:<{}}".format( 'Total AP equal:', 24, 'T: AP = ' + str(tot_AP), 0 ) )
-    else: 
-        ex.PrintText().print( "{:<{}}{:<{}}".format( 'Total AP equal:', 24, 'F: norm: '+ str(tot_AP) + 
-                                    ' != test: ' + str(tot_AP2), 0 ) )
+    else:
+        txt = 'F: norm: '+ str(tot_AP) + ' != test: ' + str(tot_AP2)
+        ex.PrintText().print( "{:<{}}{:<{}}".format( 'Total AP equal:', 24, txt, 0 ) )
         valid = False
     return ex.PrintText().check_valid(valid)
 
@@ -187,7 +207,11 @@ def test_time_types( test_num, pre, goals, run_caps, input_data, new_code ):
             nodes = QT(folder)
 
         if test_num == 7:
-            nodes.multi_event( run_caps, input_data.ID_to_index, input_data.mat_index_total )
+            if new_code:
+                nodes.multi_event( run_caps )
+            else:
+                nodes.multi_event( run_caps, input_data.ID_to_index, input_data.mat_index_total )
+
         elif test_num == 8:
             if new_code:
                 nodes.add_free_drop( glob.glob( pre[0] + '*APD.csv' )[0], run_caps )
@@ -258,6 +282,7 @@ del temp
 
 def goals_loop( valid, test_package, tests ):
     pre = test_package['Data_Prefix']
+    removed = []
 
     for goals in tests['Goals']:
         test_package['Goals'] = goals
@@ -300,14 +325,10 @@ for config in config_list:
 print( 'Overall Tests Were: ' + str(valid) )
 for i in test_package['Time']:
     if len(test_package['Time'][i]) > 0:
-        print( test_package['Time'][i] + '\n' )
+        print( str(test_package['Time'][i]) + '\n' )
 
 # Resets .ini files
 with open('fgf_config.ini', 'w') as f:
-    f.writelines(test_package['Temp_ini'])
-    f.close
-
-with open('OLD Files\\fgf_config_test.ini', 'w') as f:
     f.writelines(test_package['Temp_ini'])
     f.close
 

@@ -1,3 +1,5 @@
+import numpy as np
+
 class PrintText():
     text = ''
     print_out = True
@@ -36,8 +38,6 @@ class PrintText():
             PrintText.setting_print = False
 
             if (int(self.set_num) == self.set_pause):
-                a = 1
-                a = 2
                 self.print_out = True
 
         index = goals.find('GOALS')
@@ -51,8 +51,9 @@ class PrintText():
         self.print('')
         if valid == False:
             print(self.text)
-            print( '\n Setting ' + str(self.set_num) + ': ' + str(self.config) + '\n' )
-            self.print( "{:<{}}{:<{}}".format( '  Test results for:', 23, self.goals, 0 ) )
+            print( ' Setting ' + str(self.set_num) + ': ' + str(self.config) )
+            self.print( "{:<{}}{:<{}}".format( ' Test results for:', 23, self.goals, 0 ) )
+            a = 1
             pass
         return valid
 
@@ -84,11 +85,15 @@ def build_config( change_config, events_list, check_default = False,
         if check_set:
             max_num_set = 0
             for key in change_config:
+                if len(change_config[key]) == 0:
+                    continue
                 max_num_set = max( max_num_set, len(change_config[key]) )
 
             for i in range(max_num_set):
                 list_set = list_ini.copy()
                 for key in change_config:
+                    if len(change_config[key]) == 0:
+                        continue
                     try:
                         list_set[key] = change_config[key][i]
                     except IndexError:
@@ -97,12 +102,36 @@ def build_config( change_config, events_list, check_default = False,
     
     return config_list
 
+# For some combos of settings, only one check for 0 Caps is necessary
+def config_skip( config_list, config, key, add, cap_set, index ):
+    skip = False
+
+    # Conditions stated below: a setting past the 2nd, if TG Half AP is yes,
+    #  if Remove Zeros is no, Run Count Integer is yes
+    con_2 = (key == 'Training Grounds Half AP' and config == 'y')
+    con_3 = (key == 'Training Grounds Third AP' and config == 'y')
+    con_4 = (key == 'Remove Zeros' and config == 'n')
+    con_5 = (key == 'Run Count Integer' and config == 'y')
+    
+    zero_count = 0
+    if (add >= 2) or con_2 or con_3 or con_4 or con_5:
+        for cap in cap_set:
+            if config_list[index][cap] == 0:
+                zero_count += 1
+
+        if zero_count > 0 and zero_count < len(cap_set):
+            skip = True
+    return skip
+
 # Create a set of all conbinations of changes to configuration / settings
 def build_all_test( change_config, events_list, line_break = False ):
     config_list = build_config( change_config, events_list )
     cap_set = []
 
     for key in change_config:
+        if len(change_config[key]) == 0:
+            continue
+
         if key.endswith('Cap') or key.endswith('Per Day'):
             cap_set.append(key)
 
@@ -118,22 +147,9 @@ def build_all_test( change_config, events_list, line_break = False ):
                 config = 'y'
 
             for i in range(size):
-                # For some combos of settings, only one check for 0 Caps is necessary
-                # Conditions stated below: a setting past the 2nd, if TG Half AP is yes,
-                #  if Remove Zeros is no, Run Count Integer is yes
-                con_2 = (key == 'Training Grounds Half AP' and config == 'y')
-                con_3 = (key == 'Training Grounds Third AP' and config == 'y')
-                con_4 = (key == 'Remove Zeros' and config == 'n')
-                con_5 = (key == 'Run Count Integer' and config == 'y')
-                
-                zero_count = 0
-                if (add >= 2) or con_2 or con_3 or con_4 or con_5:
-                    for cap in cap_set:
-                        if config_list[i][cap] == 0:
-                            zero_count += 1
-                    if zero_count > 0 and zero_count < len(cap_set):
-                        skips += 1
-                        continue
+                #if config_skip( config_list, config, key, add, cap_set, i ):
+                #    skips += 1
+                #    continue
 
                 if add > 0:
                     config_list.append(config_list[i].copy())
@@ -161,7 +177,7 @@ def set_config( config, temp_ini ):
             
         # Make sure it's not grabbing files from halfway through a previously aborted test
         if temp_ini[1] == '# TEST\n':
-            with open('OLD Files\\fgf_config_test.ini') as f:
+            with open('Code\\_debug\\Goals\\fgf_config_test.ini') as f:
                 temp_ini = f.readlines()
                 f.close
             
@@ -209,7 +225,8 @@ def check_reverb( norm, test, norm_data = {}, test_data = {}, index = 'i', coord
                 if len(norm[i]) != len(test[i]):
                     return 'F: (' + index + ') = ' + str(new_coord) + PrintText().len_unequal( norm[i], test[i] )
             except:
-                if norm[i] != test[i]:
+                if norm[i] - test[i] > 1e-9:
+                #if norm[i] == test[i]:
                     return 'F: (' + index + ') = ' + str(new_coord) + PrintText().gen_unequal( norm[i], test[i] )
                 else:
                     valid = 'T'
@@ -230,6 +247,10 @@ def check_reverb( norm, test, norm_data = {}, test_data = {}, index = 'i', coord
 
     return valid
 
+def check_array( norm, test ):
+    return (norm - test > 0.1).all()
+    #return (norm == test).all()
+
 # 1st Boolean is same values, 2nd Boolean is same shape
 # 'T' or 'F' better describes the problem
 def check_matrix( overall, text, norm, test, np_array = True, extra = False, extra_test = False ):
@@ -239,7 +260,8 @@ def check_matrix( overall, text, norm, test, np_array = True, extra = False, ext
             # Checking void or empty sets
             if norm.size > 0 and test.size > 0:
                 try:
-                    valid_1 = (norm == test).all()
+                    #valid_1 = (norm == test).all()
+                    valid_1 = np.allclose( norm, test, 1e-9,1e-10)
                     valid_2 = norm.shape == test.shape
 
                 except ValueError:

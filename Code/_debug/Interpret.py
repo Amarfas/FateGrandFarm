@@ -309,79 +309,52 @@ class Debug():
         except:
             Debug().warning( 'Lotto Drop Bonus for ' + event_name + ' was not recorded.')
 
+# This class seems to only speed up reading Monthly Ticket.csv's, NOT Event Data. I Dunno.
 class MonthReader:
-    remove_zeros = ConfigList.settings['Remove Zeros']
+    add_data_ini = False
     mat_index_total = 0
     ID_to_index = {-1: [], -2: [], -3: [], -4: [], -5: [], -6: 'F'}
+
     hellfire_range = [9700000,500]
 
     def __init__( self ) -> None:
-        self.data_col = {'ID':[], 'drop':[]}
-        self.csv_line = ''
+        self.data_col_ID = -1
+        self.mat_ID = 0
 
-    def set_ID_index( mat_index_total, ID_to_index ):
-        MonthReader.remove_zeros = ConfigList.settings['Remove Zeros']
+    def set_csv_reader( mat_index_total, ID_to_index ):
+        MonthReader.add_data_ini = True - ConfigList.settings['Remove Zeros']
 
         MonthReader.mat_index_total = mat_index_total
         MonthReader.ID_to_index = ID_to_index
 
     def find_data_columns( self, reader ):
-        while self.data_col['ID'] == []:
+        while self.data_col_ID == -1:
             try:
-                event_node = next(reader)
+                csv_line = next(reader)
             except StopIteration:
-                Debug().warning( 'Sheet does not have columns labeled "ID".' )
+                Debug().warning( 'Monthly sheet does not have a column labeled "ID".' )
+                return reader
 
-            for i in range(len(event_node)):
-                # Multiple Material IDs and their corresponding drops.
-                # data_col addon necessary to avoid error in add_event_line. Made to save lines.
-                if event_node[i] == 'ID': 
-                    self.data_col['ID'].append(i)
-                    self.data_col['drop'].append(i)
-        
-        return reader
-
-    def read_col_mat( self, column_title, col_num ):
-        return self.csv_line[ self.data_col[ column_title ][col_num] ]
+            for i in range(len(csv_line)):
+                if csv_line[i] == 'ID': 
+                    self.data_col_ID = i
+                    return reader
     
-    def read_col( self, column_title ):
-        return self.csv_line[ self.data_col[ column_title ] ]
-    
-    def add_drop_line( self ):
+    def add_drop_line( self, mat_ID ):
         event_drop_add = np.zeros( self.mat_index_total )
 
         # If 0s are meant to be removed, only add data if desired Materials are dropped
-        add_data = True - self.remove_zeros
+        index = self.ID_to_index[mat_ID]
+        if index == 'F':
+            return event_drop_add, self.add_data_ini
 
-        for i in range(len(self.data_col['ID'])):
-            #if self.csv_line[ self.data_col['drop'][i] ] != '':
-            if self.read_col_mat('ID', i) != '':
-                #mat_ID = int(self.csv_line[ self.data_col['ID'][i] ])
-                mat_ID = int(self.read_col_mat('ID', i))
+        # Determines whether Material has one of the XP Hellfire IDs
+        drop_rate = 1
+        if mat_ID >= self.hellfire_range[0] and mat_ID % self.hellfire_range[1] == 0:
+            drop_rate *= 3
 
-                # Skips adding Material if it has no assigned index
-                if self.ID_to_index[mat_ID] == 'F':
-                    continue
-
-                drop_rate = 1
-                #if type != 'Monthly':
-                #    drop_rate = float(csv_line[ self.data_col['drop'][i] ]) / 100
-
-                # Determines whether Material has one of the XP Hellfire IDs
-                if mat_ID >= self.hellfire_range[0] and mat_ID % self.hellfire_range[1] == 0:
-                    drop_rate *= 3
-
-                # Allows certain negative IDs to input data for multiple Materials.
-                if mat_ID < 0:
-                    mat_ID = self.ID_to_index[mat_ID]
-                else:
-                    mat_ID = [mat_ID]
-
-                for j in mat_ID:
-                    add_data = True
-                    event_drop_add[ self.ID_to_index[j] ] += drop_rate
-        
-        return event_drop_add, add_data
+        event_drop_add[ index ] = drop_rate
+        return event_drop_add, True
     
     def add_monthly_choices( self, reader, group, run_caps, quest_names, runs_per_box ):
         matrix = {'AP Cost': [], 'Drop': []}
@@ -389,19 +362,14 @@ class MonthReader:
         # If there is no material assigned in the first slot, skip this line.
         # Add ticket choices as drops to the last made line in the Drop Matrix.
         for csv_line in reader:
-            self.csv_line = csv_line
             try:
                 # Skips adding line if no Material or if Mat has no assigned index, 
                 #   so it's meant be skipped
-                if (self.ID_to_index[ int(self.read_col_mat('ID', 0)) ] == 'F'):
-                #if (ID_to_index[ int(csv_line[ data_col['ID'][0] ]) ] == 'F'):
-                #if (self.ID_to_index[ int(csv_line[ self.data_col['ID'][0] ]) ] == 'F'):
-                    continue
-            
+                mat_ID = int(csv_line[ self.data_col_ID ])
             except ValueError:
                 continue
 
-            drop_data, add_data = self.add_drop_line()
+            drop_data, add_data = self.add_drop_line( mat_ID )
 
             # Keeps count of the number of entries in the month and adds group data
             group = run_caps.add_group_info( add_data, 'Monthly', group )
@@ -420,7 +388,7 @@ class MonthReader:
 # Seems to greatly speed up the program to use this instead of 
 #   keeping it all in QuestData. Same for skip_data_shift
 class FreeReader:
-    remove_zeros = True
+    add_data_ini = False
 
     csv_col_total = 0
     skip_data_index = {}
@@ -431,10 +399,8 @@ class FreeReader:
         self.blaze_to_end = 0
         self.hellfire_start = 0
 
-        self.csv_line = ''
-
     def set_matrix_details( csv_i, skip_data_index ):
-        FreeReader.remove_zeros = ConfigList.settings['Remove Zeros']
+        FreeReader.add_data_ini = True - ConfigList.settings['Remove Zeros']
         FreeReader.csv_col_total = csv_i
         FreeReader.skip_data_index = skip_data_index
 
@@ -483,18 +449,15 @@ class FreeReader:
 
         return reader
     
-    def calc_drop( self, AP_cost, index, XP_mult = 1 ):
-        return XP_mult * AP_cost / float(self.csv_line[index])
-    
-    def add_drop_line( self, AP_cost ):
+    #def add_drop_line( self, AP_cost ):
+    def add_drop_line( self, csv_line, AP_cost ):
         drop_data = []
-        add_data = True - self.remove_zeros
+        add_data = self.add_data_ini
 
         for i in self.start_to_blaze:
             if not self.skip_data_shift[i]:
                 try:
-                    #drop_data.append( AP_cost / float(self.csv_line[i]) )
-                    drop_data.append( self.calc_drop( AP_cost, i ) )
+                    drop_data.append( AP_cost / float(csv_line[i]) )
                     add_data = True
                 except ValueError:
                     drop_data.append(0)
@@ -507,11 +470,10 @@ class FreeReader:
                     XP_mult = 3
 
                 try:
-                    #drop_data[-1] += XP_mult * AP_cost / float(self.csv_line[i])
-                    drop_data[-1] += self.calc_drop( AP_cost, i, XP_mult )
+                    drop_data[-1] += XP_mult * AP_cost / float(csv_line[i])
                     add_data = True
                 except ValueError:
-                    drop_data[-1] += 0
+                    pass
 
         return drop_data, add_data
 
@@ -632,7 +594,7 @@ class DataFiles:
         self.mat_index_total = mat_index_total
         self.csv_col_total = csv_i
 
-        MonthReader.set_ID_index( mat_index_total, self.ID_to_index )
+        MonthReader.set_csv_reader( mat_index_total, self.ID_to_index )
         FreeReader.set_matrix_details( csv_i, self.skip_data_index )
 
     # Creates three dictionaries: 'ID_to_index' maps a Material's ID to placement in the Drop Matrix, 
