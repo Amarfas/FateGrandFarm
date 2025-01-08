@@ -3,6 +3,7 @@ OLD Files
 
 # Debug folder, sometimes
 #*_debug
+#*d_*.py
 
 # Plans
 Config Notes.txt
