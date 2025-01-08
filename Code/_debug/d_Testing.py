@@ -30,13 +30,12 @@ import d_Extra as ex
 
 tests = { 'Print': True ,
         'Goals': [ '_Per', 'Test', 'Test1', 'Test2', 'Test3', 'Test4', '_Sample' ] ,
-        'Events': [] ,
+        'Events': [0, 1, 2, 3] ,
         'Modes': [ 1, 2, 3, 4 ] ,
-        'Modes': [ 9 ]  ,
-        'Reps': 500 ,
+        'Reps': 100 ,
         'Config Test': True ,
         'Check Default': False ,
-        'Check Settings': False ,
+        'Check Settings': True ,
         'Setting Start Num': 0 ,
         'Setting Pause': -1 ,
         'Line Break': False }
@@ -55,19 +54,6 @@ change_config = {'Event Cap':                [2000, 0] ,
                  'Monthly Ticket End Date':  ['', '1/1/25', '15 day', '5 month', '1 year'] ,
                  'Stop Here':                ['', 'Fuyuki', 'Bleach'] }
 
-change_config = {'Event Cap':                [] ,
-                 'Lotto Cap':                [] ,
-                 'Raid Cap':                 [] ,
-                 'Bleach Cap':               [] ,
-                 'Training Grounds Half AP': [] ,
-                 'Training Grounds Third AP':[] ,
-                 'Remove Zeros':             [] ,
-                 'Run Count Integer':        [] ,
-                 'Monthly Ticket Per Day':   [1, 0, 4] ,
-                 'Monthly Ticket Start Date':['', '12/31/24', '2/5/25', '8/20/25'] ,
-                 'Monthly Ticket End Date':  ['', '1/1/25', '15 day', '5 month', '1 year'] ,
-                 'Stop Here':                [] }
-
 def build_matrix( goals, pre, new_code = True ):
     if new_code:
         input_data = Inter.DataFiles( goals, glob.glob( pre[0] + '*Calc.csv' )[0] )
@@ -84,7 +70,7 @@ def build_matrix( goals, pre, new_code = True ):
         nodes = QuestData( input_data, folder )
         nodes.multi_event( run_caps )
         nodes.add_free_drop( glob.glob( pre[0] + '*APD.csv' )[0], run_caps )
-        nodes.read_monthly_ticket_list( run_caps, input_data.ID_to_index, input_data.mat_index_total )
+        nodes.read_monthly_ticket_list( run_caps )
 
     else:
         nodes = QT(folder)
@@ -220,7 +206,7 @@ def test_time_types( test_num, pre, goals, run_caps, input_data, new_code ):
                             run_caps, input_data.skip_data_index, input_data.csv_col_total )
         elif test_num == 9:
             if new_code:
-                nodes.read_monthly_ticket_list( run_caps, input_data.ID_to_index, input_data.mat_index_total )
+                nodes.read_monthly_ticket_list( run_caps )
             else:
                 nodes.read_monthly_ticket_list( run_caps, input_data.ID_to_index, input_data.mat_index_total )
     

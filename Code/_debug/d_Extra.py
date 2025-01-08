@@ -147,9 +147,9 @@ def build_all_test( change_config, events_list, line_break = False ):
                 config = 'y'
 
             for i in range(size):
-                #if config_skip( config_list, config, key, add, cap_set, i ):
-                #    skips += 1
-                #    continue
+                if config_skip( config_list, config, key, add, cap_set, i ):
+                    skips += 1
+                    continue
 
                 if add > 0:
                     config_list.append(config_list[i].copy())

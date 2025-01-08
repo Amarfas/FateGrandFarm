@@ -6,10 +6,18 @@ import Interpret as Inter
 class QuestData:
     def __init__( self, data_files: Inter.DataFiles, folder = 'Events Farm\\' ):
         self.folder = folder
-        self.ID_to_index = data_files.ID_to_index
-        self.mat_index_total = data_files.mat_index_total
         self.add_data_ini = True - Inter.ConfigList.settings['Remove Zeros']
 
+        # Event Quest and Monthly Ticket section
+        self.ID_to_index = data_files.ID_to_index
+        self.mat_index_total = data_files.mat_index_total
+
+        # Free Quest section
+        self.csv_col_total = data_files.csv_col_total
+        self.skip_data_index = data_files.skip_data_index
+        self.skip_data_shift = {}
+
+        # Output data
         self.quest_names = []
         self.AP_costs = []
         self.drop_matrix = np.array([])
@@ -17,6 +25,7 @@ class QuestData:
         self.runs_per_box = []
         self.hellfire_range = [9700000,500]
 
+        # Date range for Monthly Tickets
         self.recorded_months = []
         self.first_monthly = {}
         self.last_monthly = {}
@@ -84,7 +93,7 @@ class QuestData:
 
         return csv_line[start:end]
     
-    def _add_event_line( self, csv_line, data_col, monthly = False ):
+    def _add_event_line( self, csv_line, data_col ):
         event_drop_add = np.zeros( self.mat_index_total )
         ID_to_index = self.ID_to_index
 
@@ -102,9 +111,6 @@ class QuestData:
             if ID_to_index[mat_ID] == 'F':
             #if self.ID_to_index[mat_ID] == 'F':
                 continue
-
-            #if monthly:
-            #    drop_rate = 1
 
             # Determines whether Material has one of the XP Hellfire IDs
             if mat_ID >= self.hellfire_range[0] and mat_ID % self.hellfire_range[1] == 0:
@@ -203,6 +209,78 @@ class QuestData:
 
         for event in events_farm_folder:
             self._add_event_drop( event, run_caps )
+
+    # Assumes first Material data point has a Header with "Bronze" in it, 
+    #   and that "Saber Blaze" is 9 columns after the "Monuments"  start.
+    # Now checks for "Blaze" and "Bond" headers.
+    def _find_free_columns( self, reader ):
+        mat_start = -1
+        blaze_start = -1
+
+        while blaze_start == -1:
+            try:
+                free_drop = next(reader)
+            except StopIteration:
+                Inter.Debug().warning( 'Sheet does not have a column labeled as referencing "Bond".' )
+
+            for i in range(len(free_drop)):
+                if free_drop[i].find('Bronze') >= 0:
+                    mat_start = i
+                if free_drop[i].find('Monument') >= 0:
+                    blaze_start = i + 9
+                if free_drop[i].find('Blaze') >= 0 or free_drop[i].find('XP') >= 0:
+                    blaze_start = i + 1
+                if free_drop[i].find('Bond') >= 0:
+                    mat_end = i
+                    break
+            
+            # Emergency if there is nothing labeled as referencing "Bond".
+            # Uses the original calc.csv list size to determine data end.
+            if mat_start >= -1:
+                mat_end = self.csv_col_total + mat_start
+
+        if mat_start == -1:
+            Inter.Debug().warning( 'Sheet does not have a column labeled as referencing "Bronze" mats.' )
+        if blaze_start == -1:
+            blaze_start = mat_end
+            Inter.Debug().warning( 'Sheet does not have a column labeled with "Monument" or "Blaze".' )
+
+        # Might make the program faster to not have to repeat these calculations
+        for key in self.skip_data_index:
+            self.skip_data_shift[ key + mat_start ] = self.skip_data_index[key]
+        
+        self.start_to_blaze = range( mat_start, blaze_start )
+        self.blaze_to_end = range( blaze_start, mat_end )
+        self.hellfire_start = blaze_start + 6
+
+        return reader
+    
+    def _add_free_line( self, csv_line, AP_cost ):
+        drop_data = []
+        add_data = self.add_data_ini
+
+        for i in self.start_to_blaze:
+            if not self.skip_data_shift[i]:
+                try:
+                    drop_data.append( AP_cost / float(csv_line[i]) )
+                    add_data = True
+                except ValueError:
+                    drop_data.append(0)
+
+        if not self.skip_data_shift[i]:
+            XP_mult = 1
+            for i in self.blaze_to_end:
+                # Assumes Hellfires are about 6 columns after "Saber Blaze."
+                if i == self.hellfire_start:
+                    XP_mult = 3
+
+                try:
+                    drop_data[-1] += XP_mult * AP_cost / float(csv_line[i])
+                    add_data = True
+                except ValueError:
+                    pass
+
+        return drop_data, add_data
     
     def add_free_drop( self, free_csv, run_caps: Inter.RunCaps ):
         with open( free_csv, newline = '', encoding = 'Latin1' ) as f:
@@ -210,8 +288,7 @@ class QuestData:
             tg_cut_AP = Inter.ConfigList.tg_cut_AP
             last_area = Inter.ConfigList.settings['Stop Here']
 
-            free_read = Inter.FreeReader()
-            reader = free_read.find_data_columns(reader)
+            reader = self._find_free_columns(reader)
 
             free_cap = Inter.RunCaps().set_config_caps(True)
 
@@ -233,7 +310,7 @@ class QuestData:
                 except ValueError:
                     continue
 
-                drop_data, add_data = free_read.add_drop_line( csv_line, AP_cost )
+                drop_data, add_data = self._add_free_line( csv_line, AP_cost )
                 
                 group = run_caps.add_group_info( add_data, cur_type, group )
 
@@ -266,12 +343,13 @@ class QuestData:
                 if (year > last['Year']) or (year == last['Year'] and month > last['Month']):
                     self.last_monthly = {'Month': month, 'Year': year, 'Date': month_name}
 
-    def _find_month_ID( self, reader ):
+    def _find_month_ID( self, reader, month_name ):
         while True:
             try:
                 csv_line = next(reader)
             except StopIteration:
-                Inter.Debug().warning( 'Monthly sheet does not have a column labeled "ID".' )
+                error = 'Monthly ' + month_name + ' sheet does not have a column labeled "ID".'
+                Inter.Debug().warning( error )
                 return 2, reader
 
             for i in range(len(csv_line)):
@@ -307,7 +385,6 @@ class QuestData:
             except ValueError:
                 continue
 
-            #drop_data, add_data = month_read.add_drop_line( mat_ID )
             drop_data, add_data = self._add_month_choice( mat_ID )
 
             # Keeps count of the number of entries in the month and adds group data
@@ -320,7 +397,7 @@ class QuestData:
         self.assemble_matrix( matrix )
         
     
-    def _check_month( self, ticket_csv, run_caps: Inter.RunCaps, ID_to_index, mat_index_total ):
+    def _check_month( self, ticket_csv, run_caps: Inter.RunCaps ):
         with open( ticket_csv, newline = '', encoding = 'latin1' ) as f:
             reader = csv.reader(f)
             csv_line = next(reader)
@@ -339,19 +416,19 @@ class QuestData:
                 # Used for properly applying run caps to entire month.
                 group = {'Quest': month_name, 'Type': 'Monthly', 'Count': 0, 'Cap': month_cap}
 
-                data_col_ID, reader = self._find_month_ID(reader)
+                data_col_ID, reader = self._find_month_ID( reader, month_name )
 
                 self._add_monthly_choices( reader, data_col_ID, group, run_caps )
 
                 self._find_ticket_range( month_name, month, year )
             f.close()
 
-    def read_monthly_ticket_list( self, run_caps, ID_to_index, mat_index_total ):
+    def read_monthly_ticket_list( self, run_caps ):
         ticket_mult = min( Inter.ConfigList.settings['Monthly Ticket Per Day'], 4)
         if ticket_mult > 0:
 
             monthly_ticket_folder = glob.glob( Inter.path_prefix + 'Data Files\\*Monthly*\\*' )
             for month in monthly_ticket_folder:
-                self._check_month( month, run_caps, ID_to_index, mat_index_total )
+                self._check_month( month, run_caps )
         
             Inter.Debug().note_monthly_date_range( self.first_monthly, self.last_monthly )

@@ -19,7 +19,7 @@ def main():
     quest_data = QuestData( data_files )
     quest_data.multi_event( run_caps )
     quest_data.add_free_drop( apd_csv, run_caps )
-    quest_data.read_monthly_ticket_list( run_caps, data_files.ID_to_index, data_files.mat_index_total )
+    quest_data.read_monthly_ticket_list( run_caps )
     run_cap_matrix = run_caps.build_run_cap_matrix()
     
     if goals == []:
