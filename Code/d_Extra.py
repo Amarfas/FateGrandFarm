@@ -225,8 +225,8 @@ def check_reverb( norm, test, norm_data = {}, test_data = {}, index = 'i', coord
                 if len(norm[i]) != len(test[i]):
                     return 'F: (' + index + ') = ' + str(new_coord) + PrintText().len_unequal( norm[i], test[i] )
             except:
-                if norm[i] - test[i] > 1e-9:
-                #if norm[i] == test[i]:
+                #if abs(norm[i] - test[i]) > 1e-14:
+                if norm[i] != test[i]:
                     return 'F: (' + index + ') = ' + str(new_coord) + PrintText().gen_unequal( norm[i], test[i] )
                 else:
                     valid = 'T'
@@ -247,10 +247,6 @@ def check_reverb( norm, test, norm_data = {}, test_data = {}, index = 'i', coord
 
     return valid
 
-def check_array( norm, test ):
-    return (norm - test > 0.1).all()
-    #return (norm == test).all()
-
 # 1st Boolean is same values, 2nd Boolean is same shape
 # 'T' or 'F' better describes the problem
 def check_matrix( overall, text, norm, test, np_array = True, extra = False, extra_test = False ):
@@ -260,8 +256,8 @@ def check_matrix( overall, text, norm, test, np_array = True, extra = False, ext
             # Checking void or empty sets
             if norm.size > 0 and test.size > 0:
                 try:
-                    #valid_1 = (norm == test).all()
-                    valid_1 = np.allclose( norm, test, 1e-9,1e-10)
+                    valid_1 = (norm == test).all()
+                    #valid_1 = np.allclose( norm, test, 1e-14,1e-15)
                     valid_2 = norm.shape == test.shape
 
                 except ValueError:

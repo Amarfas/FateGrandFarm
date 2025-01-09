@@ -28,12 +28,12 @@ import d_Extra as ex
 # 'Test3' has thousands of quite a few mats, and a demand for 2 gold gems
 # 'Test4' has 2000 of four Bronze mats, 100 of Gems/Statues, and 3000 XP
 
-tests = { 'Print': True ,
+tests = { 'Print': False ,
         'Goals': [ '_Per', 'Test', 'Test1', 'Test2', 'Test3', 'Test4', '_Sample' ] ,
-        'Events': [0, 1, 2, 3] ,
+        'Events': [ 0, 1, 2, 3 ] ,
         'Modes': [ 1, 2, 3, 4 ] ,
         'Reps': 100 ,
-        'Config Test': True ,
+        'Config Test': False ,
         'Check Default': False ,
         'Check Settings': True ,
         'Setting Start Num': 0 ,
@@ -158,9 +158,9 @@ def test_3( valid, run_caps: Inter.RunCaps, run_caps2: Inter.RunCaps ):
     return ex.PrintText().check_valid(valid)
 
 def test_4( valid, nodes, nodes2, input_data, input_data2, run_cap_matrix, run_cap_matrix2 ):
-    mes = 1 - tests['Config Test']
-    prob , runs , tot_AP, plan_d = planner( nodes, input_data, run_cap_matrix, mes )
-    prob2 , runs2 , tot_AP2, plan_d2 = planner( nodes2, input_data2, run_cap_matrix2, mes )
+    mes = tests['Print']
+    prob , runs , tot_AP = planner( nodes, input_data, run_cap_matrix, mes )
+    prob2 , runs2 , tot_AP2 = planner( nodes2, input_data2, run_cap_matrix2, mes )
 
     valid = ex.check_matrix( valid, 'Run counts equal:', runs, runs2, True, prob, prob2 )
     if tot_AP == tot_AP2: 
@@ -174,7 +174,7 @@ def test_4( valid, nodes, nodes2, input_data, input_data2, run_cap_matrix, run_c
 def test_time_types( test_num, pre, goals, run_caps, input_data, new_code ):
     if test_num == 5:
         nodes, input_data, run_caps, run_cap_matrix = build_matrix( goals, pre, new_code )
-        prob , runs , tot_AP, plan_d = planner( nodes, input_data, run_cap_matrix, 0 )
+        prob , runs , tot_AP = planner( nodes, input_data, run_cap_matrix, 0 )
 
     elif test_num == 6:
         if new_code:

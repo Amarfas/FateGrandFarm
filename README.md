@@ -226,7 +226,7 @@ There are a few special Material IDs that FGF interprets as multiple different M
 
 # Acknowledgements
 
-Current Version: 1.4.0
+Current Version: 1.4.1
 
  * [pyinstaller](https://github.com/pyinstaller/pyinstaller) for making it easy to create an executable.
 

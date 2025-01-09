@@ -8,7 +8,6 @@ import Interpret as Inter
 from Quest_Data import QuestData  
 
 def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = False, message = 2 ):
-    plan_debug = {'Status': ''}
     run_int = Inter.ConfigList.settings['Run Count Integer']
 
     drop_matrix = np.transpose( quest_data.drop_matrix )
@@ -54,8 +53,6 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
         Inter.Debug().warning( 'This solution is or was: ' + prob.status )
     
     if prob.status == 'infeasible':
-        plan_debug['Status'] = 'infeasible'
-
         error = 'The applied Run Caps likely made the Goals impossible.'
         Inter.Debug().warning( error, 1, message )
 
@@ -140,7 +137,7 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
         
         total_AP = int( AP_costs @ runs.value )
 
-    return ( prob , run_int , total_AP, plan_debug )
+    return ( prob , run_int , total_AP )
 
 class Output:
     def __init__(self) -> None:
