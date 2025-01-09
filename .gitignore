@@ -2,8 +2,11 @@
 OLD Files
 
 # Debug folder, sometimes
-#*_debug
-#*d_*.py
+Code/_debug/
+Code/d_Testing.py
+*d_Extra.py
+*d_Interpret.py
+*d_Quest_Data.py
 
 # Plans
 Config Notes.txt
