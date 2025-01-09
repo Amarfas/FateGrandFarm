@@ -1,6 +1,10 @@
 # Ignore 'OLD Files' folder
 OLD Files
 
+# Debug files for main
+*d_*.py
+*_debug/
+
 # Plans
 Config Notes.txt
 Farming Plan Drops.txt
