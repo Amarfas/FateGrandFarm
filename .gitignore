@@ -1,13 +1,6 @@
 # Ignore 'OLD Files' folder
 OLD Files
 
-# Debug folder, sometimes
-Code/_debug/
-Code/d_Testing.py
-*d_Extra.py
-*d_Interpret.py
-*d_Quest_Data.py
-
 # Plans
 Config Notes.txt
 Farming Plan Drops.txt
