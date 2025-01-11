@@ -4,8 +4,6 @@
   <img width="200" src="https://i.imgur.com/7efNMgy.png?1">
 </p>
 
-Current Version: v1.4.0
-
 Fate/Grand Farm is a Python program designed to aid players in the mobile game 'Fate/Grand Order' by utilizing linear programming to create optimal farming plans for Materials.
 
 ## Introduction
@@ -72,6 +70,8 @@ For another note on 'remove_zeros': sometimes there are non-trivial differing so
 For the Monthly Exchange Ticket analysis, the 'Monthly Ticket Per Day' configuration caps at 4. The 'Monthly Ticket End Date' can either be a specific date or a time lapse relative to the starting date. If the starting date was 10/23/2024 and '2 months' was entered, the end date will be 12/23/2024. The program will accept relative time frames in 'days', 'months', or 'years'. Does not have to be plural ('day' will also be accepted).
 
 Cutting Training Grounds AP Costs by 2/3s takes priority over cutting them by 1/2.
+
+For 'Goals File Name', the program will accept either a specific file name with '.csv' added on, or an extension of the word 'GOALS'. Examples: if you input 'Needs.csv' it will look for the file 'Needs.csv'. If you input 'GOALS_Per' it will look for 'GOALS_Per.csv'. If you input 'Per' it will look for 'GOALSPer.csv', 'GOALS Per.csv', and 'GOALS_Per.csv'.
 
 ## 'Events List' Folder
 Contains the drop rate data for various Events in '.csv' format. Lotto Events have their own folders to help organize the data. 
@@ -225,6 +225,8 @@ There are a few special Material IDs that FGF interprets as multiple different M
  4. Input the Material IDs that correspond to the Monthly Exchange Ticket choices on subsequent rows in the same column as 'ID'. These should match the IDs used in 'Calc'.
 
 # Acknowledgements
+
+Current Version: 1.4.1
 
  * [pyinstaller](https://github.com/pyinstaller/pyinstaller) for making it easy to create an executable.
 
