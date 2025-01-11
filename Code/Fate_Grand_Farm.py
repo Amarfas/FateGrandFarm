@@ -22,6 +22,7 @@ def main():
     quest_data.multi_event( run_caps )
     quest_data.add_free_drop( apd_csv, run_caps )
     quest_data.read_monthly_ticket_list( run_caps )
+    
     run_cap_matrix = run_caps.build_run_cap_matrix()
     
     # Run and print core analysis
@@ -30,14 +31,13 @@ def main():
 
         Plan.Output().print_out( prob, runs, total_AP, quest_data, data_files.index_to_name )
     else:
-        print('FAILED EXECUTION')
-        Plan.Output().create_note_file('FAILED_EXECUTION__')
+        Inter.Debug().warning('Goals were not properly read.')
+        Plan.Output().create_debug()
 
 if Inter.ConfigList().settings['Debug on Fail']:
     try:
         main()
     except:
-        print('FAILED EXECUTION')
-        Plan.Output().create_note_file('FAILED_EXECUTION__')
+        Plan.Output().create_debug()
 else:
     main()

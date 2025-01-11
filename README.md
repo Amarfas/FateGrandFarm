@@ -136,7 +136,7 @@ Similar to how the 'Event Quest' tab from the ['FGO Efficiency'](https://docs.go
 Adding new 'Monthly Ticket' '.csv's takes slightly more work. Before downloading the data from the 'Monthly Ticket' tab as a '.csv' file, you have to input the corresponding month in cell B1 and year in cell D1, both as integers. Then the Material IDs corresponding to the choices available must be input into column C. It is recommended that you instead input each Material's name into the next cell in column D, causing the sheet to automatically find and input the Material's ID.
 
 # Troubleshooting
- * Before anything else, check the 'Config Notes' file and see if it mentions anything that went wrong at the top.
+ * Before anything else, check the 'FAILED_EXECUTION__Config Notes' file and see if it mentions anything that went wrong at the top.
 
 If nothing is stated explicitly, and it doesn't list all (or any) of the Events meant to be included in the analysis, the program probably halted before reaching that point. That means it either had a hard time reading the '.csv's in the 'Data Files' folder, the 'GOALS', or an Event '.csv'.
 

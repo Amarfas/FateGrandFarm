@@ -20,7 +20,7 @@ class PrintText():
         PrintText.set_pause = tests['Setting Pause']
 
     def print( self, new_text, override = False ):
-        if self.print_out or (not(self.print_out) and override):
+        if self.print_out or override:
             print(new_text)
         else:
             PrintText.text += new_text + '\n'

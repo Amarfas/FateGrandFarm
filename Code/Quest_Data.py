@@ -301,7 +301,11 @@ class QuestData:
             # If the line is filler because the google sheet copied the old Japanese formatting, skip it.
             # Else, start a new line of drop rate data.
             for csv_line in reader:
-                if csv_line[0].find( last_area ) >= 0: 
+                region = csv_line[0]
+                if region.startswith('Arch.'):
+                    region = 'Archetype Inception'
+                
+                if region.find( last_area ) >= 0: 
                     break
 
                 try:
@@ -321,7 +325,7 @@ class QuestData:
                     AP_cost = int( AP_cost / tg_cut_AP )
 
                 if add_data:
-                    quest_name = csv_line[0] + ', ' + csv_line[1]
+                    quest_name = region + ', ' + csv_line[1]
                     matrix = self._prepare_data( matrix, quest_name, AP_cost, drop_data )
             f.close()
 

@@ -278,7 +278,7 @@ class Output:
             self.avoid_plan_name_error( name_prefix + plan_name + name_suffix, text )
         except OSError:
             if debug_report:
-                text += '!! Plan Name not accepted by OS\n\n'
+                text = '!! Plan Name not accepted by OS\n\n' + text
             self.avoid_plan_name_error( name_prefix + name_suffix, text )
 
     def make_report( self, text, header = '' ):
@@ -311,6 +311,10 @@ class Output:
         output += self.make_report( debug.run_cap_debug, text )
 
         self.file_creation( plan_name, 'Config Notes.txt', output, True, failure )
+
+    def create_debug():
+        print('FAILED EXECUTION')
+        Output().create_note_file( 'FAILED_EXECUTION__', True )
 
     def print_out( self, prob, runs, total_AP, nodes: QuestData, index_to_name ):
         output = self.console_print( 'These results are: ' + prob.status )
