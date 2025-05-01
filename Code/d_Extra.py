@@ -1,3 +1,5 @@
+import os
+import Interpret as Inter
 import numpy as np
 
 class PrintText():
@@ -8,6 +10,7 @@ class PrintText():
     setting_print = True
 
     set_num = -1
+    removed_set = []
     config = {}
     goals = ''
 
@@ -18,6 +21,9 @@ class PrintText():
         PrintText.print_out = tests['Print']
         PrintText.set_start = tests['Setting Start Num']
         PrintText.set_pause = tests['Setting Pause']
+
+    def add_removed( self ):
+        PrintText.removed_set.append( self.set_num )
 
     def print( self, new_text, override = False ):
         if self.print_out or override:
@@ -170,18 +176,20 @@ def make_config( change_config, tests ):
 
 # Change 'fgf_config.ini' to match 'change_config' settings
 def set_config( config, temp_ini ):
+    main_ini_path = os.path.join( Inter.path_prefix, 'fgf_config.ini' )
     if temp_ini == []:
-        with open('fgf_config.ini') as f:
+        with open(main_ini_path) as f:
             temp_ini = f.readlines()
             f.close
             
         # Make sure it's not grabbing files from halfway through a previously aborted test
         if temp_ini[1] == '# TEST\n':
-            with open('Code\\_debug\\Goals\\fgf_config_test.ini') as f:
+            backup_ini = os.path.join( Inter.path_prefix, 'Code', '_debug', 'Goals', 'fgf_config_test.ini' )
+            with open(backup_ini) as f:
                 temp_ini = f.readlines()
                 f.close
             
-            with open('fgf_config.ini', 'w') as f:
+            with open(main_ini_path, 'w') as f:
                 f.writelines(temp_ini)
                 f.close
     else:
@@ -200,7 +208,7 @@ def set_config( config, temp_ini ):
                     new_ini[line] = key + ' = ' + str(config[key]) + '\n'
                     break
 
-        with open('fgf_config.ini', 'w') as f:
+        with open(main_ini_path, 'w') as f:
             f.writelines(new_ini)
             f.close
         

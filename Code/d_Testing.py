@@ -1,4 +1,6 @@
+import os
 import csv
+import json
 import glob
 import numpy as np
 import cvxpy as cp
@@ -15,8 +17,9 @@ import d_Extra as ex
 # Mode 3: Check if 'Run Matrix' and 'Run Caps' are similar or the same.
 # Mode 4: Check if 'Planner' outputs are similar or the same.
 # Mode 5: Compare times to 'Build Matrix' and run the 'Planner', with below 'rep' count.
-# Mode 6-10: Compare times for building 'Data Files', 'Event Matrix',
-#    'Free Matrix', 'Monthly Matrix', and 'Run Cap Matrix', respectively
+# Mode 6-10: Compare times for building: 6 = 'Data Files', 7 = 'Event Matrix',
+#    8 = 'Free Matrix', 9 = 'Monthly Matrix', and 10 = 'Run Cap Matrix'
+# 'Config Test' is checking all combos of settings in change_config
 # 'Check Default' means skipping a flat set of '' for fgf_config.ini
 # 'Check Settings' will put every kind of setting ASAP
 # 'Line Break' will test with one side using APD and Calc csv's with line breaks
@@ -28,13 +31,13 @@ import d_Extra as ex
 # 'Test3' has thousands of quite a few mats, and a demand for 2 gold gems
 # 'Test4' has 2000 of four Bronze mats, 100 of Gems/Statues, and 3000 XP
 
-tests = { 'Print': False ,
-        'Goals': [ '_Per', 'Test', 'Test1', 'Test2', 'Test3', 'Test4', '_Sample' ] ,
+tests = { 'Print': True ,
+        'Goals': [ 'Per', 'Test', 'Test1', 'Test2', 'Test3', 'Test4', 'Sample' ] ,
         'Events': [ 0, 1, 2, 3 ] ,
         'Modes': [ 1, 2, 3, 4 ] ,
         'Reps': 100 ,
-        'Config Test': True ,
-        'Check Default': False ,
+        'Config Test': False ,
+        'Check Default': True ,
         'Check Settings': True ,
         'Setting Start Num': 0 ,
         'Setting Pause': -1 ,
@@ -56,28 +59,31 @@ change_config = {'Event Cap':                [2000, 0] ,
 
 def build_matrix( goals, pre, new_code = True ):
     if new_code:
-        input_data = Inter.DataFiles( goals, glob.glob( pre[0] + '*Calc.csv' )[0] )
+        file_path = glob.glob( os.path.join( pre[0], '*Calc.csv' ) )[0]
+        input_data = Inter.DataFiles( goals, file_path )
         run_caps = Inter.RunCaps()
     else:
-        input_data =    IN.DataFiles( goals, glob.glob( pre[1] + '*Calc.csv' )[0] )
+        file_path = glob.glob( os.path.join( pre[1], '*Calc.csv' ) )[0]
+        input_data =    IN.DataFiles( goals, file_path )
         run_caps =    IN.RunCaps()
     
-    folder = 'Events Farm\\'
+    folder = 'Events Farm'
     if config['Folder'] != '':
-        folder = 'Code\\_debug\\Events_List\\' + config['Folder'] + '\\'
+        folder = os.path.join( 'Code', '_debug', 'Events_List', config['Folder'] )
 
     if new_code:
         nodes = QuestData( input_data, folder )
         nodes.multi_event( run_caps )
-        nodes.add_free_drop( glob.glob( pre[0] + '*APD.csv' )[0], run_caps )
+        file_path = glob.glob( os.path.join( pre[0], '*APD.csv' ) )[0]
+        nodes.add_free_drop( file_path, run_caps )
         nodes.read_monthly_ticket_list( run_caps )
 
     else:
-        nodes = QT(folder)
-        nodes.multi_event( run_caps, input_data.ID_to_index, input_data.mat_index_total )
-        nodes.add_free_drop( glob.glob( pre[1] + '*APD.csv' )[0], 
-                            run_caps, input_data.skip_data_index, input_data.csv_col_total )
-        nodes.read_monthly_ticket_list( run_caps, input_data.ID_to_index, input_data.mat_index_total )
+        nodes = QT( input_data, folder )
+        nodes.multi_event( run_caps )
+        file_path = glob.glob( os.path.join( pre[1], '*APD.csv' ) )[0]
+        nodes.add_free_drop( file_path, run_caps )
+        nodes.read_monthly_ticket_list( run_caps )
 
     return nodes, input_data, run_caps, run_caps.build_run_cap_matrix()
 
@@ -113,7 +119,7 @@ def change_time( test_package, test, t1, t2, mult ):
     time_mult = (t2-t1) / t2 * 100
     mult_text = format(mult,',')
     ex.PrintText().print( ' ' + test + ' Difference x' + 
-                         mult_text + ': ' + str(time_dif) + '\n' )
+                          mult_text + ': ' + str(time_dif) + '\n' )
 
     timer = test_package['Time']
     goals = test_package['Goals']
@@ -139,8 +145,10 @@ def test_1( valid, nodes: QuestData, nodes2: QuestData ):
     return ex.PrintText().check_valid(valid)
 
 def test_2( valid, goals, pre ):
-    i1 = Inter.DataFiles( goals , glob.glob( pre[0] + '*Calc.csv' )[0] )
-    i2 = IN.DataFiles(    goals , glob.glob( pre[1] + '*Calc.csv' )[0] )
+    file_path = glob.glob( os.path.join( pre[0], '*Calc.csv' ) )[0]
+    i1 = Inter.DataFiles( goals , file_path )
+    file_path = glob.glob( os.path.join( pre[1], '*Calc.csv' ) )[0]
+    i2 = IN.DataFiles(    goals , file_path )
 
     eq1 = (i1.ID_to_index == i2.ID_to_index)
     eq2 = (i1.skip_data_index == i2.skip_data_index)
@@ -178,37 +186,39 @@ def test_time_types( test_num, pre, goals, run_caps, input_data, new_code ):
 
     elif test_num == 6:
         if new_code:
-            input_data = Inter.DataFiles( goals, glob.glob( pre[0] + '*Calc.csv' )[0] )
+            file_path = glob.glob( os.path.join( pre[0], '*Calc.csv' ) )[0]
+            input_data = Inter.DataFiles( goals, file_path )
         else:
-            input_data = IN.DataFiles( goals, glob.glob( pre[1] + '*Calc.csv' )[0] )
+            file_path = glob.glob( os.path.join( pre[1], '*Calc.csv' ) )[0]
+            input_data = IN.DataFiles( goals, file_path )
 
     elif test_num >= 7 or test_num <= 9:
-        folder = 'Events Farm\\'
+        folder = 'Events Farm'
         if config['Folder'] != '':
-            folder = 'Code\\_debug\\Events_List\\' + config['Folder'] + '\\'
+            folder = os.path.join( 'Code', '_debug', 'Events_List', config['Folder'] )
 
         if new_code:
             nodes = QuestData( input_data, folder )
         else:
-            nodes = QT(folder)
+            nodes = QT( input_data, folder )
 
         if test_num == 7:
             if new_code:
                 nodes.multi_event( run_caps )
             else:
-                nodes.multi_event( run_caps, input_data.ID_to_index, input_data.mat_index_total )
+                nodes.multi_event( run_caps )
 
         elif test_num == 8:
             if new_code:
-                nodes.add_free_drop( glob.glob( pre[0] + '*APD.csv' )[0], run_caps )
+                file_path = glob.glob( os.path.join( pre[0], '*APD.csv' ) )[0]
             else:
-                nodes.add_free_drop( glob.glob( pre[1] + '*APD.csv' )[0], 
-                            run_caps, input_data.skip_data_index, input_data.csv_col_total )
+                file_path = glob.glob( os.path.join( pre[1], '*APD.csv' ) )[0]
+            nodes.add_free_drop( file_path, run_caps )
         elif test_num == 9:
             if new_code:
                 nodes.read_monthly_ticket_list( run_caps )
             else:
-                nodes.read_monthly_ticket_list( run_caps, input_data.ID_to_index, input_data.mat_index_total )
+                nodes.read_monthly_ticket_list( run_caps )
     
     elif test_num == 10:
         run_cap_matrix = run_caps.build_run_cap_matrix()
@@ -239,19 +249,24 @@ ex.PrintText().main_settings(tests)
 
 valid = True
 test_package = {'Time': {} , 
-                'Data_Prefix': [Inter.path_prefix + 'Data Files\\',
-                                Inter.path_prefix + 'Data Files\\'] ,
+                'Data_Prefix': [os.path.join( Inter.path_prefix, 'Data Files' ),
+                                os.path.join( IN.path_prefix, 'Data Files' )] ,
                 'Reps': tests['Reps'] , 
                 'Temp_ini': [] ,
                 }
 
 # Finding GOALS.csv testing sheets
 for i in range(len(tests['Goals'])):
-    if tests['Goals'][i][:4] == 'Test':
-        temp = 'Code\\_debug\\Goals\\GOALS_'
+    if tests['Line Break']:
+        temp = os.path.join( 'Code', '_debug', 'Data Files Test', 
+                            'Goals', 'GOALS_' )
     else:
-        temp = 'GOALS'
-    tests['Goals'][i] = Inter.path_prefix + temp + tests['Goals'][i] + '.csv'
+        if tests['Goals'][i][:4] == 'Test':
+            temp = os.path.join( 'Code', '_debug', 'Goals', 'GOALS_' )
+        else:
+            temp = 'GOALS_'
+    tests['Goals'][i] = os.path.join( Inter.path_prefix, 
+                                     temp + tests['Goals'][i] + '.csv' )
 
 if len(tests['Events']) == 0:
     tests['Events'] = ['']
@@ -259,23 +274,23 @@ config_list, test_package['Set Num'] = ex.make_config( change_config, tests )
 
 # Finding line break testing sheets:
 if tests['Line Break']:
-    temp = Inter.path_prefix + 'Code\\_debug\\'
-    test_package['Data_Prefix'] = [temp + 'Data Files Test\\',
-                                   temp + 'Data Files Test 2\\']
-    tests['Modes'].remove(3)
+    temp = os.path.join( Inter.path_prefix, 'Code', '_debug' )
+    test_package['Data_Prefix'] = [os.path.join( temp, 'Data Files Test' ),
+                                   os.path.join( temp, 'Data Files Test 2' )]
+    tests['Modes'].remove(1).remove(2).remove(3)
 
 del temp
 
 def goals_loop( valid, test_package, tests ):
     pre = test_package['Data_Prefix']
-    removed = []
 
     for goals in tests['Goals']:
         test_package['Goals'] = goals
 
         nodes, input_data, run_caps, run_cap_matrix = build_matrix(goals, pre)
         if Inter.ConfigList.settings['Run Count Integer'] and len(nodes.AP_costs) > 100:
-            continue
+            ex.PrintText().add_removed()
+            break
         nodes2, input_data2, run_caps2, run_cap_matrix2 = build_matrix(goals, pre, False)
 
         ex.PrintText().print_setting(goals)
@@ -295,29 +310,42 @@ def goals_loop( valid, test_package, tests ):
                                          input_data, input_data2 )
     return valid, test_package
 
+def final_write( valid, test_package ):
+    print( 'Overall Tests Were: ' + str(valid) )
+    for i in test_package['Time']:
+        if len(test_package['Time'][i]) > 0:
+            print( str(test_package['Time'][i]) + '\n' )
+    
+    main_test_path = os.path.join( Inter.path_prefix, 'Code', '_debug', 'Last_Test_Package.json' )
+    with open(main_test_path, 'w', encoding='utf-8') as f:
+        json.dump(test_package, f, ensure_ascii=False, indent=4)
+        f.close
+
+    # Resets .ini files
+    main_ini_path = os.path.join( Inter.path_prefix, 'fgf_config.ini' )
+    with open(main_ini_path, 'w') as f:
+        f.writelines(test_package['Temp_ini'])
+        f.close
+
+    backup_ini = os.path.join( Inter.path_prefix, 'Code', '_debug', 'Goals', 'fgf_config_test.ini' )
+    with open(backup_ini, 'w') as f:
+        f.writelines(test_package['Temp_ini'])
+        f.close
+
 # MAIN algorithm
 for config in config_list:
     test_package['Config'] = config
     test_package['Temp_ini'] = ex.set_config( config, test_package['Temp_ini'] )
 
+    # Skips if Setting # is before the starting Set
     if ex.PrintText().new_config(config):
         continue
 
+    Inter.ConfigList.cut_AP = {'Daily': 1, 'Bleach': 1}
+    IN.ConfigList.tg_cut_AP = 1
     Inter.ConfigList().read_config_ini()
     IN.ConfigList().read_config_ini()
 
     valid, test_package = goals_loop( valid, test_package, tests )
 
-print( 'Overall Tests Were: ' + str(valid) )
-for i in test_package['Time']:
-    if len(test_package['Time'][i]) > 0:
-        print( str(test_package['Time'][i]) + '\n' )
-
-# Resets .ini files
-with open('fgf_config.ini', 'w') as f:
-    f.writelines(test_package['Temp_ini'])
-    f.close
-
-with open('Code\\_debug\\Goals\\fgf_config_test.ini', 'w') as f:
-    f.writelines(test_package['Temp_ini'])
-    f.close
+final_write( valid, test_package )

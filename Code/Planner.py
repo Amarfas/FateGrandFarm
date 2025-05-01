@@ -263,23 +263,25 @@ class Output:
             f.close()
 
     def file_creation( self, plan_name, file_name, text, debug_report = False, failure = False ):
-        name_prefix = Inter.path_prefix + 'Former Plans\\'
+        name_prefix = Inter.make_path( 'Former Plans' )
         name_suffix = time.strftime("%Y%m%d_%H%M%S__", time.localtime()) + file_name
 
-        main_file_name = Inter.path_prefix + file_name
+        main_file_name = Inter.make_path( file_name )
         if failure:
-            main_file_name = Inter.path_prefix + plan_name + file_name
+            main_file_name = Inter.make_path( plan_name + file_name )
 
         with open( main_file_name, 'w') as f:
             f.write(text)
             f.close()
         
         try:
-            self.avoid_plan_name_error( name_prefix + plan_name + name_suffix, text )
+            file_name = os.path.join( name_prefix, plan_name + name_suffix )
+            self.avoid_plan_name_error( file_name, text )
         except OSError:
             if debug_report:
                 text = '!! Plan Name not accepted by OS\n\n' + text
-            self.avoid_plan_name_error( name_prefix + name_suffix, text )
+            file_name = os.path.join( name_prefix, name_suffix )
+            self.avoid_plan_name_error( file_name, text )
 
     def make_report( self, text, header = '' ):
         if text == []:

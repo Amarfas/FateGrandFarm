@@ -4,7 +4,7 @@ import numpy as np
 import Interpret as Inter
 
 class QuestData:
-    def __init__( self, data_files: Inter.DataFiles, folder = 'Events Farm\\' ):
+    def __init__( self, data_files: Inter.DataFiles, folder = 'Events Farm' ):
         self.folder = folder
         self.add_data_ini = True - Inter.ConfigList.settings['Remove Zeros']
 
@@ -77,13 +77,15 @@ class QuestData:
         return data_col, reader
     
     def _find_event_name( self, csv_line ):
-        fluff_to_remove = ['FGO Efficiency ',
+        fluff_to_remove = ['FGO Efficiency',
                             self.folder]
-        
         for i in fluff_to_remove:
             if csv_line.find(i) >= 0:
-                start = csv_line.rfind(i)+len(i)
+                start = csv_line.rfind(i) + len(i)
                 break
+
+        if csv_line[start] == '\\':
+            start += 1
 
         fluff_to_remove = [' - Event', '.csv']
         for i in fluff_to_remove:
@@ -134,7 +136,7 @@ class QuestData:
         debug = Inter.Debug()
         event_name = self._find_event_name(event_csv)
         debug.note_event_list( event_name, 0, 2 )
-        debug._add_runcap_debug( event_name, 0, 6 )
+        debug.add_runcap_debug( event_name, 0, 6 )
 
         with open( event_csv, newline = '', encoding = 'latin1' ) as f:
             reader = csv.reader(f)
@@ -205,7 +207,9 @@ class QuestData:
         self.assemble_matrix( matrix )
     
     def multi_event( self, run_caps ):
-        events_farm_folder = glob.glob( Inter.path_prefix + self.folder + '*' )
+        file_path = Inter.make_path( self.folder, '**', '*.csv' )
+        #file_path = os.path.join( Inter.path_prefix, self.folder, '**', '*.csv' )
+        events_farm_folder = glob.glob( file_path, recursive=True )
 
         for event in events_farm_folder:
             self._add_event_drop( event, run_caps )
@@ -285,7 +289,7 @@ class QuestData:
     def add_free_drop( self, free_csv, run_caps: Inter.RunCaps ):
         with open( free_csv, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
-            tg_cut_AP = Inter.ConfigList.tg_cut_AP
+            cut_AP = Inter.ConfigList.cut_AP
             last_area = Inter.ConfigList.settings['Stop Here']
 
             reader = self._find_free_columns(reader)
@@ -321,8 +325,9 @@ class QuestData:
                 # Drop rate calculated from normal quest AP.
                 # Half AP effectively doubles drop rate when optimizing run counts.
                 # After the rest of the calculations in order to not cancel out the gain.
-                if cur_type == 'Daily' and tg_cut_AP > 1:
-                    AP_cost = int( AP_cost / tg_cut_AP )
+                if cur_type == 'Daily' or cur_type == 'Bleach':
+                    if cut_AP[cur_type] > 1:
+                        AP_cost = int( AP_cost / cut_AP[cur_type] )
 
                 if add_data:
                     quest_name = region + ', ' + csv_line[1]
@@ -412,8 +417,9 @@ class QuestData:
             month_cap, month_name, error = Inter.ConfigList().check_date( month, year )
 
             if error:
-                fluff = 'Data Files\\'
-                csv_name = ticket_csv[( ticket_csv.rfind(fluff) + len(fluff) ):]
+                csv_name = ticket_csv[ticket_csv.rfind('y20'):]
+                if csv_name == -1:
+                    csv_name = ticket_csv[ticket_csv.rfind('Monthly'):]
                 Inter.Debug().warning('Date could not be read in monthly .csv : ' + csv_name)
             
             if month_cap['Monthly'][0] > 0:
@@ -429,9 +435,12 @@ class QuestData:
 
     def read_monthly_ticket_list( self, run_caps ):
         ticket_mult = min( Inter.ConfigList.settings['Monthly Ticket Per Day'], 4)
-        if ticket_mult > 0:
 
-            monthly_ticket_folder = glob.glob( Inter.path_prefix + 'Data Files\\*Monthly*\\*' )
+        if ticket_mult > 0:
+            file_path = Inter.make_path( 'Data Files', '*Monthly*', '*' )
+            #file_path = os.path.join( Inter.path_prefix, 'Data Files', '*Monthly*', '*' )
+            monthly_ticket_folder = glob.glob( file_path )
+
             for month in monthly_ticket_folder:
                 self._check_month( month, run_caps )
         

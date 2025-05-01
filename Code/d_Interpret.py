@@ -1,3 +1,4 @@
+import os
 import configparser
 import csv
 import glob
@@ -52,11 +53,12 @@ class ConfigList():
                 key_value += '.csv'
                 if key_value.startswith('GOALS') == False:
                     for i in [ '', '_', ' ' ]:
-                        if glob.glob( path_prefix + 'GOALS' + i + key_value ) != []:
+                        file_path = os.path.join( path_prefix, 'GOALS' + i + key_value )
+                        if glob.glob( file_path ) != []:
                             break
                     key_value = 'GOALS' + i + key_value
             
-            if glob.glob( path_prefix + key_value ) == []:
+            if glob.glob( os.path.join( path_prefix, key_value ) ) == []:
                 key_value = self._config_error( key, key_value, '', make_note )
 
         elif type == 'int':
@@ -219,7 +221,7 @@ class ConfigList():
         return month_cap, month_name, error
 
     def read_config_ini(self):
-        ConfigList.config.read( path_prefix + 'fgf_config.ini' )
+        ConfigList.config.read( os.path.join( path_prefix, 'fgf_config.ini' ) )
 
         self.set_config('Debug on Fail', 'bool')
         Debug.notifications = self.set_config('Notifications', 'bool', False)
@@ -276,10 +278,24 @@ class Debug():
                 Debug.monthly_notes = 'Monthly Ticket Exchange went from ' + first['Date'] + ' to ' + last['Date']
             Debug.monthly_notes += '.\n\n'
 
-    def add_runcap_debug( self, note, index, new_entry_index_num = False ):
+    def _add_runcap_debug( self, note, index, new_entry_index_num = False ):
         if new_entry_index_num:
             Debug.run_cap_debug.append( [''] * new_entry_index_num )
         Debug.run_cap_debug[-1][index] += note
+
+    def add_runcaps( self, change, type_list, caps ):
+        if change:
+            self._add_runcap_debug( ' , Changed Caps --> ', 1 )
+        else:
+            self._add_runcap_debug( ' ,     is default = ', 1 )
+
+        col = 1
+        space = ' , '
+        for group_type in type_list:
+            col += 1
+            if col == 5:
+                space = ''
+            self._add_runcap_debug( group_type + ': ' + str(caps[group_type]) + space, col )
 
     def note_event_list( self, note, index, new_entry_index_num = False ):
         if new_entry_index_num:
@@ -392,21 +408,24 @@ class DataFiles:
         return reader, csv_i, mat_i
     
     # 'Saber Blaze' index will be used in place of all XP drops.
-    def _interpret_XP_data( self, mat_IDs, csv_i, mat_i, xp_goal, xp_index_count ):
-        skip = self.remove_zeros and (xp_goal == 0)
+    def _interpret_XP_data( self, mat_IDs, csv_i, mat_i, xp_data ):
+        mat_index_total = mat_i
+
+        skip = self.remove_zeros and (xp_data['Goal'] == 0)
         if skip:
             mat_i = 'F'
         else:
-            self.goals.append( [xp_goal] )
+            self.goals.append( [xp_data['Goal']] )
             self.ID_to_index[-6] = [ int(mat_IDs[csv_i+1]) ]
             self.index_to_name.setdefault( mat_i, 'Class Blaze' )
-            self.mat_index_total += 1
+            mat_index_total += 1
 
-        for i in range( xp_index_count ):
+        for i in range( xp_data['Index Count'] ):
             self.skip_data_index[csv_i] = skip
             csv_i += 1
             self.ID_to_index.setdefault( int(mat_IDs[csv_i]), mat_i )
         
+        self.mat_index_total = mat_index_total
         self.csv_col_total = csv_i
 
     # Creates three dictionaries: 'ID_to_index' maps a Material's ID to placement in the Drop Matrix, 
@@ -428,13 +447,11 @@ class DataFiles:
                 reader, csv_i, mat_i = self._interpret_group( reader, ID_list, name_list, csv_i, 
                                                                 mat_i, gaps )
             
+            xp_data = {'Index Count': 14}
             if name_list[csv_i] == 'Saber Blaze':
                 csv_i -= 1
-                xp_index_count = 14
             else:
-                xp_index_count = 15
-
-            self.mat_index_total = mat_i
+                xp_data['Index Count'] += 1
 
             goals_csv_row = next(reader)
             if goals_csv_row[0] != 'Saber Blaze':
@@ -442,13 +459,13 @@ class DataFiles:
                                       'GOALS and/or Material List CSVs may need to be updated.' )
             
             try:
-                xp_goal = int(goals_csv_row[1])
+                xp_data['Goal'] = int(goals_csv_row[1])
             except ValueError:
-                xp_goal = 0
+                xp_data['Goal'] = 0
 
             f.close()
 
-        self._interpret_XP_data( ID_list, csv_i, mat_i, xp_goal, xp_index_count )
+        self._interpret_XP_data( ID_list, csv_i, mat_i, xp_data )
 
         if self.goals == []:
             Debug().warning("You have assigned no goals.")
@@ -474,14 +491,23 @@ class RunCaps():
             if group_cap != None:
                 config_caps[group_type] = [group_cap]
         return config_caps
+    
+    def _add_new_cap( self, caps, cap_read, new_cap, change ):
+        if new_cap != []:
+            # Event Caps are contexually either "Event" or "Lotto" Caps
+            caps[cap_read] = new_cap
+            if cap_read == 'Event':
+                caps['Lotto'] = new_cap
+
+            # Noted as a deviation from fgf_config value
+            Debug().note_event_list( ' , '+ cap_read +' Run Cap was '+ str(new_cap), 1 )
+            change = True
+        
+        return caps, [], change
 
     def determine_event_caps( self, event_csv ):
-        debug = Debug()
-        cap_debug_notes = ' ,     is default = '
-        event_caps = self.config_default.copy()
-        #event_caps = {}
-        #for group_type in self.group_type_list:
-        #    event_caps[group_type] = self.config_default[group_type]
+        change = False
+        caps = self.config_default.copy()
 
         new_cap = []
         cap_read = False
@@ -489,16 +515,7 @@ class RunCaps():
             if col.find('Event Run Caps') >= 0:
                 cap_read = 'Event'
             if col.find('Raid Run Caps') >= 0:
-                if new_cap != []:
-                    # Event Caps are contexually either "Event" or "Lotto" Caps
-                    event_caps[cap_read] = new_cap
-                    event_caps['Lotto'] = new_cap
-
-                    # Noted as a deviation from fgf_config value
-                    debug.note_event_list( ' , Event Run Cap was '+ str(new_cap), 1 )
-                    cap_debug_notes = ' , Changed Caps --> '
-                    new_cap = []
-
+                caps, new_cap, change = self._add_new_cap( caps, cap_read, new_cap, change )
                 cap_read = 'Raid'
             
             if cap_read:
@@ -507,27 +524,15 @@ class RunCaps():
                 except ValueError:
                     pass
 
-        if new_cap != []:
-            event_caps[cap_read] = new_cap
-            debug.note_event_list( ' , Raid Run Cap was ' + str(new_cap), 1 )
-            cap_debug_notes = ' , Changed Caps --> '
-        
-        debug.add_runcap_debug( cap_debug_notes, 1 )
+        caps, new_cap, change = self._add_new_cap( caps, cap_read, new_cap, change )
 
-        col = 1
-        space = ' , '
-        for group_type in self.group_type_list:
-            col += 1
-            if col == 5:
-                space = ''
-            debug.add_runcap_debug( group_type + ': ' + str(event_caps[group_type]) + space, col )
+        Debug().add_runcaps( change, self.group_type_list, caps )
         
-        return event_caps
+        return caps
     
     # Assembles Quests into groups based on their Quest Types
     # Applies a single Run Cap to all Quests in the same group (such as "Lotto 1")
     def assemble_group_info( self, group ):
-    #def assemble_group_info( self, group, caps ):
         if group['Type'] and group['Count'] > 0:
             self.matrix_col += group['Count']
 
@@ -544,7 +549,6 @@ class RunCaps():
             if group_class == 'Pseudo':
                 group_class = 'Lotto'
             cap_list = group['Cap'].get(group_class)
-            #cap_list = caps.get(group_class)
             
             if cap_list == None or len(cap_list) == 0 or cap_list[0] == None:
                 cap_input = None
@@ -564,15 +568,12 @@ class RunCaps():
     # Determines if the current Quest has the same Quest type as the last
     # If so, increments group size. Otherwise, adds the data to a list and starts a new counter.
     def add_group_info( self, add_quest_data, cur_group_type, prev_group ):
-    #def add_group_info( self, add_quest_data, cur_group_type, prev_group, caps = False ):
         if prev_group['Type'] != cur_group_type:
             self.assemble_group_info( prev_group )
-            #self.assemble_group_info( prev_group, caps )
 
             # If Quest Data is included, number of members for that group start at 1.
             new_group = {'Quest': prev_group['Quest'], 'Type': cur_group_type, 
                          'Count': add_quest_data, 'Cap': prev_group['Cap']}
-                         #'Count': add_quest_data}
             return new_group
         
         prev_group['Count'] += add_quest_data
@@ -583,9 +584,7 @@ class RunCaps():
         col_num = self.matrix_col
         matrix = {'Event': [''] * row_num, 
                   'List': np.array(self.run_cap_list),
-                  'Matrix': np.zeros( ( row_num, col_num ), dtype=int),
-                  'Bleach': -1,
-                  'Monthly': -1}
+                  'Matrix': np.zeros( ( row_num, col_num ), dtype=int)}
 
         # For lists in group_to_member_count: group[1] is the count, 
         #   group[0] is the matching name/type info, [0][1] is type
@@ -598,12 +597,5 @@ class RunCaps():
                 row = self.relevant_groups.index(group['Full Type'])
                 matrix['Event'][row] = group['Quest']
                 matrix['Matrix'][row][start:col] = 1
-
-                # Hedge in case the Run Caps for Bleach and others are too high.
-                # Even if Planner removes Run Caps, Monthly limits stay
-                if group['Type'] == 'Bleach':
-                    matrix['Bleach'] = row
-                elif group['Type'] == 'Monthly' and matrix['Monthly'] < 0:
-                    matrix['Monthly'] = row
 
         return matrix

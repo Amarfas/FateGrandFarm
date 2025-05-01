@@ -1,3 +1,4 @@
+import os
 import configparser
 import csv
 import glob
@@ -10,16 +11,26 @@ from zoneinfo import ZoneInfo
 def standardize_path():
     global path_prefix
     if glob.glob('Code') == []:
-        path_prefix = '..\\'
+        path_prefix = '..'
     else:
         path_prefix = ''
 
-    Debug().note_config( 'The Path Prefix is', path_prefix )
+    Debug().note_config( 'The Path Prefix is ', path_prefix )
 
+# Using if statements instead of *kwargs because it seems to run faster for some reason
+def make_path( path1, path2 = '', path3 = '' ):
+    if path3 == '':
+        if path2 == '':
+            return os.path.join( path_prefix, path1 )
+        else:
+            return os.path.join( path_prefix, path1, path2 )
+    else:
+        return os.path.join( path_prefix, path1, path2, path3 )
 class ConfigList():
     settings = {'Plan Name': '',
                 'Training Grounds Half AP': False,
                 'Training Grounds Third AP': False,
+                'Bleached Earth Half AP': False,
                 'Remove Zeros': True,
                 'Run Count Integer': False,
                 'Monthly Ticket Per Day': 1,
@@ -29,7 +40,8 @@ class ConfigList():
                 'Goals File Name': 'GOALS.csv',
                 'Debug on Fail': True,
                 'Output Files': True}
-    tg_cut_AP = 1
+    cut_AP = {'Daily': 1, 
+              'Bleach': 1}
     config = configparser.ConfigParser()
 
     def _config_error( self, key, key_value, text, make_note ):
@@ -52,11 +64,15 @@ class ConfigList():
                 key_value += '.csv'
                 if key_value.startswith('GOALS') == False:
                     for i in [ '', '_', ' ' ]:
-                        if glob.glob( path_prefix + 'GOALS' + i + key_value ) != []:
+                        file_path = make_path( 'GOALS' + i + key_value )
+                        #file_path = os.path.join( path_prefix, 'GOALS' + i + key_value)
+                        if glob.glob( file_path ) != []:
                             break
                     key_value = 'GOALS' + i + key_value
             
-            if glob.glob( path_prefix + key_value ) == []:
+            file_path = make_path( key_value )
+            #file_path = os.path.join( path_prefix, key_value )
+            if glob.glob( file_path ) == []:
                 key_value = self._config_error( key, key_value, '', make_note )
 
         elif type == 'int':
@@ -219,7 +235,9 @@ class ConfigList():
         return month_cap, month_name, error
 
     def read_config_ini(self):
-        ConfigList.config.read( path_prefix + 'fgf_config.ini' )
+        file_path = make_path('fgf_config.ini')
+        #file_path = os.path.join( path_prefix, 'fgf_config.ini' )
+        ConfigList.config.read( file_path )
 
         self.set_config('Debug on Fail', 'bool')
         Debug.notifications = self.set_config('Notifications', 'bool', False)
@@ -227,11 +245,15 @@ class ConfigList():
 
         self.set_config('Training Grounds Half AP', 'bool')
         self.set_config('Training Grounds Third AP', 'bool')
-        ConfigList.tg_cut_AP = 1
+        self.set_config('Bleached Earth Half AP', 'bool')
+        
         if self.settings['Training Grounds Third AP']:
-            ConfigList.tg_cut_AP = 3
+            ConfigList.cut_AP['Daily'] = 3
         elif self.settings['Training Grounds Half AP']:
-            ConfigList.tg_cut_AP = 2
+            ConfigList.cut_AP['Daily'] = 2
+
+        if self.settings['Bleached Earth Half AP']:
+            ConfigList.cut_AP['Bleach'] = 2
 
         self.set_config('Remove Zeros', 'bool')
         self.set_config('Run Count Integer', 'bool')
@@ -276,16 +298,16 @@ class Debug():
                 Debug.monthly_notes = 'Monthly Ticket Exchange went from ' + first['Date'] + ' to ' + last['Date']
             Debug.monthly_notes += '.\n\n'
 
-    def _add_runcap_debug( self, note, index, new_entry_index_num = False ):
+    def add_runcap_debug( self, note, index, new_entry_index_num = False ):
         if new_entry_index_num:
             Debug.run_cap_debug.append( [''] * new_entry_index_num )
         Debug.run_cap_debug[-1][index] += note
 
     def add_runcaps( self, change, type_list, caps ):
         if change:
-            self._add_runcap_debug( ' , Changed Caps --> ', 1 )
+            self.add_runcap_debug( ' , Changed Caps --> ', 1 )
         else:
-            self._add_runcap_debug( ' ,     is default = ', 1 )
+            self.add_runcap_debug( ' ,     is default = ', 1 )
 
         col = 1
         space = ' , '
@@ -293,7 +315,7 @@ class Debug():
             col += 1
             if col == 5:
                 space = ''
-            self._add_runcap_debug( group_type + ': ' + str(caps[group_type]) + space, col )
+            self.add_runcap_debug( group_type + ': ' + str(caps[group_type]) + space, col )
 
     def note_event_list( self, note, index, new_entry_index_num = False ):
         if new_entry_index_num:

@@ -11,10 +11,10 @@ def main():
     run_caps = Inter.RunCaps()
 
     # Initiate reading .csv files
-    goals_file = path_pre + Inter.ConfigList.settings['Goals File Name']
-    calc_csv = glob.glob( path_pre + 'Data Files\\*Calc.csv' )[0]
-    apd_csv = glob.glob( path_pre + 'Data Files\\*APD.csv' )[0]
+    calc_csv = glob.glob( Inter.make_path( 'Data Files', '*Calc.csv' ) )[0]
+    apd_csv = glob.glob( Inter.make_path( 'Data Files', '*APD.csv' ) )[0]
 
+    goals_file = Inter.make_path( Inter.ConfigList.settings['Goals File Name'] )
     data_files = Inter.DataFiles( goals_file, calc_csv )
 
     # Interpret the the above files
