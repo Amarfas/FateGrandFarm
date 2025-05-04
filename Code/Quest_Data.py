@@ -1,3 +1,4 @@
+import os
 import csv
 import glob
 import numpy as np
@@ -207,8 +208,7 @@ class QuestData:
         self.assemble_matrix( matrix )
     
     def multi_event( self, run_caps ):
-        file_path = Inter.make_path( self.folder, '**', '*.csv' )
-        #file_path = os.path.join( Inter.path_prefix, self.folder, '**', '*.csv' )
+        file_path = os.path.join( Inter.path_prefix, self.folder, '**', '*.csv' )
         events_farm_folder = glob.glob( file_path, recursive=True )
 
         for event in events_farm_folder:
@@ -404,7 +404,6 @@ class QuestData:
 
         run_caps.assemble_group_info( group )
         self.assemble_matrix( matrix )
-        
     
     def _check_month( self, ticket_csv, run_caps: Inter.RunCaps ):
         with open( ticket_csv, newline = '', encoding = 'latin1' ) as f:
@@ -424,7 +423,8 @@ class QuestData:
             
             if month_cap['Monthly'][0] > 0:
                 # Used for properly applying run caps to entire month.
-                group = {'Quest': month_name, 'Type': 'Monthly', 'Count': 0, 'Cap': month_cap}
+                group = {'Quest': month_name, 'Type': 'Monthly',
+                         'Count': 0, 'Cap': month_cap}
 
                 data_col_ID, reader = self._find_month_ID( reader, month_name )
 
@@ -437,8 +437,7 @@ class QuestData:
         ticket_mult = min( Inter.ConfigList.settings['Monthly Ticket Per Day'], 4)
 
         if ticket_mult > 0:
-            file_path = Inter.make_path( 'Data Files', '*Monthly*', '*' )
-            #file_path = os.path.join( Inter.path_prefix, 'Data Files', '*Monthly*', '*' )
+            file_path = os.path.join( Inter.path_prefix, 'Data Files', '*Monthly*', '*' )
             monthly_ticket_folder = glob.glob( file_path )
 
             for month in monthly_ticket_folder:

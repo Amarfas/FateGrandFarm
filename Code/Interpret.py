@@ -17,15 +17,6 @@ def standardize_path():
 
     Debug().note_config( 'The Path Prefix is ', path_prefix )
 
-# Using if statements instead of *kwargs because it seems to run faster for some reason
-def make_path( path1, path2 = '', path3 = '' ):
-    if path3 == '':
-        if path2 == '':
-            return os.path.join( path_prefix, path1 )
-        else:
-            return os.path.join( path_prefix, path1, path2 )
-    else:
-        return os.path.join( path_prefix, path1, path2, path3 )
 class ConfigList():
     settings = {'Plan Name': '',
                 'Training Grounds Half AP': False,
@@ -36,6 +27,8 @@ class ConfigList():
                 'Monthly Ticket Per Day': 1,
                 'Monthly Ticket Start Date': '',
                 'Monthly Ticket End Date': '',
+                'AP Saved': False,
+                'Units': 0,
                 'Stop Here': '',
                 'Goals File Name': 'GOALS.csv',
                 'Debug on Fail': True,
@@ -64,14 +57,12 @@ class ConfigList():
                 key_value += '.csv'
                 if key_value.startswith('GOALS') == False:
                     for i in [ '', '_', ' ' ]:
-                        file_path = make_path( 'GOALS' + i + key_value )
-                        #file_path = os.path.join( path_prefix, 'GOALS' + i + key_value)
+                        file_path = os.path.join( path_prefix, 'GOALS' + i + key_value )
                         if glob.glob( file_path ) != []:
                             break
                     key_value = 'GOALS' + i + key_value
             
-            file_path = make_path( key_value )
-            #file_path = os.path.join( path_prefix, key_value )
+            file_path = os.path.join( path_prefix, key_value )
             if glob.glob( file_path ) == []:
                 key_value = self._config_error( key, key_value, '', make_note )
 
@@ -235,8 +226,7 @@ class ConfigList():
         return month_cap, month_name, error
 
     def read_config_ini(self):
-        file_path = make_path('fgf_config.ini')
-        #file_path = os.path.join( path_prefix, 'fgf_config.ini' )
+        file_path = os.path.join( path_prefix, 'fgf_config.ini' )
         ConfigList.config.read( file_path )
 
         self.set_config('Debug on Fail', 'bool')
@@ -262,6 +252,8 @@ class ConfigList():
         self.set_date_config('Monthly Ticket Start Date')
         self.set_date_config('Monthly Ticket End Date')
 
+        #self.set_config('AP Saved', 'bool')
+        #self.set_config('Units', 'int')
         self.set_config('Stop Here')
         self.set_config('Goals File Name', 'goals')
         self.set_config('Output Files', 'bool')
@@ -269,7 +261,7 @@ class ConfigList():
 
 # Compiles statements to be included in the Debug output text file.
 class Debug():
-    error = ''
+    error = [ '', '' ]
     config_notes = []
     monthly_notes = ''
     event_notes = []
@@ -280,12 +272,12 @@ class Debug():
     def __init__(self) -> None:
         pass
     
-    def warning( self, note, threshold = 0, message = 2 ):
+    def warning( self, note, threshold = 0, message = 2, pos = 0 ):
         if message >= threshold:
             note = '!! ' + note
             if self.notifications:
                 print(note)
-            Debug.error += note + '\n'
+            Debug.error[pos] += note + '\n'
 
     def note_config( self, key, key_value ):
         Debug.config_notes.append( [ key, ' = ' + str(key_value) ] )

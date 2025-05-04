@@ -65,13 +65,13 @@ For any y/n (yes/no) question in the configurations, it will also read the follo
  * y = yes , n = no
  * on = yes , off = no
 
-For another note on 'remove_zeros': sometimes there are non-trivial differing solutions which fulfill the same goals for the same AP Cost. Consequently, sometimes an entirely different run plan will be made when 'remove_zeros' is toggled, as the technically different matrices causes the solver to reach its solution in a different way.
+**Training Grounds Reduced AP:** Cutting Training Grounds AP Costs by two-thirds (1/3 AP) takes priority over cutting them by half (1/2 AP).
 
-For the Monthly Exchange Ticket analysis, the 'Monthly Ticket Per Day' configuration caps at 4. The 'Monthly Ticket End Date' can either be a specific date or a time lapse relative to the starting date. If the starting date was 10/23/2024 and '2 months' was entered, the end date will be 12/23/2024. The program will accept relative time frames in 'days', 'months', or 'years'. Does not have to be plural ('day' will also be accepted).
+**'Remove Zeros':** sometimes there are non-trivial differing solutions which fulfill the same goals for the same AP Cost. Consequently, sometimes an entirely different run plan will be made when 'remove_zeros' is toggled, as the technically different matrices causes the solver to reach its solution in a different way.
 
-Cutting Training Grounds AP Costs by 2/3s takes priority over cutting them by 1/2.
+**Monthly Exchange Ticket:** the 'Monthly Ticket Per Day' configuration caps at 4. The 'Monthly Ticket End Date' can be either a specific date or a time lapse relative to the starting date. If the starting date was 10/23/2024 and '2 months' was entered, the end date will be 12/23/2024. The program will accept relative time frames in 'days', 'months', or 'years'. Does not have to be plural ('day' will also be accepted).
 
-For 'Goals File Name', the program will accept either a specific file name with '.csv' added on, or an extension of the word 'GOALS'. Examples: if you input 'Needs.csv' it will look for the file 'Needs.csv'. If you input 'GOALS_Per' it will look for 'GOALS_Per.csv'. If you input 'Per' it will look for 'GOALSPer.csv', 'GOALS Per.csv', and 'GOALS_Per.csv'.
+**'Goals File Name':** the program will accept either a specific file name with '.csv' added on, or an extension of the word 'GOALS'. Examples: if you input 'Needs.csv' it will look for the file 'Needs.csv'. If you input 'GOALS_Per' it will look for 'GOALS_Per.csv'. If you input 'Per' it will look for 'GOALSPer.csv', 'GOALS Per.csv', and 'GOALS_Per.csv'.
 
 ## 'Events List' Folder
 Contains the drop rate data for various Events in '.csv' format. Lotto Events have their own folders to help organize the data. 
@@ -226,7 +226,7 @@ There are a few special Material IDs that FGF interprets as multiple different M
 
 # Acknowledgements
 
-Current Version: 1.4.1
+Current Version: 1.4.2
 
  * [pyinstaller](https://github.com/pyinstaller/pyinstaller) for making it easy to create an executable.
 
