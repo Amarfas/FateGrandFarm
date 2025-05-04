@@ -73,6 +73,10 @@ For any y/n (yes/no) question in the configurations, it will also read the follo
 
 **'Goals File Name':** the program will accept either a specific file name with '.csv' added on, or an extension of the word 'GOALS'. Examples: if you input 'Needs.csv' it will look for the file 'Needs.csv'. If you input 'GOALS_Per' it will look for 'GOALS_Per.csv'. If you input 'Per' it will look for 'GOALSPer.csv', 'GOALS Per.csv', and 'GOALS_Per.csv'.
 
+**'AP Saved':** this feature is currently in beta. It may significantly increase how long the program takes to run, because it is solving a new optimal farming plan for every Free Quest, Event Quest, and Monthly Exchange Ticket that was part of the original optimal farming plan.
+
+**'Units':** it only accepts 0, 1, and 2 as inputs. '0' means that the result will be measured by the total amount of AP saved, including every run/ticket used ('AP'). '1' means that it will instead be measured by the amount of AP saved per run of that Quest, or per day for Monthly Exchange Tickets ('AP / run' or 'AP / day'). '2' means that it will instead be measured by the amount of AP saved for every AP spent on running that Quest, or for every ticket used for Monthly Exchange Tickets ('AP / AP' or "AP / ticket').
+
 ## 'Events List' Folder
 Contains the drop rate data for various Events in '.csv' format. Lotto Events have their own folders to help organize the data. 
 
@@ -226,7 +230,7 @@ There are a few special Material IDs that FGF interprets as multiple different M
 
 # Acknowledgements
 
-Current Version: 1.4.2
+Current Version: 1.5.1
 
  * [pyinstaller](https://github.com/pyinstaller/pyinstaller) for making it easy to create an executable.
 

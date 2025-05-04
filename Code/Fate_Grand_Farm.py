@@ -28,20 +28,18 @@ def main():
     
     # Run and print core analysis
     if data_files.goals.size > 0:
-        #plan = Plan.Planner( quest_data, data_files, run_cap_matrix )
-        #solution = plan.planner()
+        plan = Plan.Planner( quest_data, data_files, run_cap_matrix )
+        solution = plan.planner()
 
-        #Plan.Output().print_out( solution, quest_data )
-        prob , runs , total_AP = Plan.planner( quest_data, data_files, run_cap_matrix )
-        Plan.Output().print_out( prob, runs, total_AP, quest_data, data_files.index_to_name )
+        Plan.Output().print_out( solution, quest_data )
     else:
         Inter.Debug().warning('Goals were not properly read.')
-        Plan.Output.create_debug()
+        Plan.Output().create_debug()
 
 if Inter.ConfigList().settings['Debug on Fail']:
     try:
         main()
     except:
-        Plan.Output.create_debug()
+        Plan.Output().create_debug()
 else:
     main()

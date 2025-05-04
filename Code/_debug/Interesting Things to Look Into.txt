@@ -1,0 +1,9 @@
+ Setting 2: {'Folder': '1', 'Event Cap': 2000, 'Lotto Cap': 2000, 'Raid Cap': 500, 'Bleach Cap': 100, 'Training Grounds Half AP': 'y', 
+'Training Grounds Third AP': 'n', 'Remove Zeros': 'y', 'Run Count Integer': 'y', 'Monthly Ticket Per Day': 1, 
+'Monthly Ticket Start Date': '2/5/25', 'Monthly Ticket End Date': '15 day', 'Stop Here': 'Fuyuki'}
+
+Setting 2 here caused prob.status to be "unbounded", look into further.
+
+ Setting 473: {'Folder': '1', 'Event Cap': 2000, 'Lotto Cap': 2000, 'Raid Cap': 500, 'Bleach Cap': 100, 'Training Grounds Half AP': 'y',
+ 'Training Grounds Third AP': 'y', 'Remove Zeros': 'n', 'Run Count Integer': 'y', 'Monthly Ticket Per Day': 4, 
+'Monthly Ticket Start Date': '2/5/25', 'Monthly Ticket End Date': '15 day', 'Stop Here': 'Fuyuki'

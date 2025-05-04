@@ -252,8 +252,8 @@ class ConfigList():
         self.set_date_config('Monthly Ticket Start Date')
         self.set_date_config('Monthly Ticket End Date')
 
-        #self.set_config('AP Saved', 'bool')
-        #self.set_config('Units', 'int')
+        self.set_config('AP Saved', 'bool')
+        self.set_config('Units', 'int')
         self.set_config('Stop Here')
         self.set_config('Goals File Name', 'goals')
         self.set_config('Output Files', 'bool')

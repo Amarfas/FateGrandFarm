@@ -1,0 +1,409 @@
+import os
+import glob
+import numpy as np
+import cvxpy as cp
+import time
+import random
+import Interpret as Inter
+import d_Interpret as IN
+from Quest_Data import QuestData
+from d_Quest_Data import QuestData as QT
+import Planner as Plan
+import d_Planner as PL
+import d_Extra as ex
+import d_Extra_Temp as ex2
+
+# Mode 1: Check if 'Node Names', 'AP Costs', and 'Drop Matrices' are the same.
+# Mode 2: Check if 'ID to Index', 'Skip Data Index', and 'Index to Name' lists are the same.
+# Mode 3: Check if 'Run Matrix' and 'Run Caps' are similar or the same.
+# Mode 4: Check if 'Planner' outputs are similar or the same.
+# Mode 5: Check if 'Debug' inputs are the same.
+# Mode 6: Check if 'Output' is going to be the same. 
+# Mode 7: Compare times to 'Build Matrix' and run the 'Planner', with below 'rep' count.
+# Mode 8-14: Compare times for building: 8 = 'Data Files', 9 = 'Event Matrix',
+#    10 = 'Free Matrix', 11 = 'Monthly Matrix', 12 = 'Run Cap Matrix',
+#    13 = 'Planner', and 14 = 'Output'
+# 'Config Test' is checking all combos of settings in change_config
+# 'Check Default' means skipping a flat set of '' for fgf_config.ini
+# 'Check Settings' will put every kind of setting ASAP
+# 'Line Break' will test with one side using APD and Calc csv's with line breaks
+
+# 'Sample' has a bit of Bronze/Silver/Gold, no Gems, Statues, or XP.
+# 'Test' has everything but Octuplets, including XP. Notably 1000+ Moonlight to break Run Caps
+# 'Test1' has flat thousands of Bronze/Silver/Gold, but no mats after Traum
+# 'Test2' has select few Bronze mats
+# 'Test3' has thousands of quite a few mats, and a demand for 2 gold gems
+# 'Test4' has 2000 of four Bronze mats, 100 of Gems/Statues, and 3000 XP
+
+tests = {'Print': False ,
+        'Goals': [ 'Per', 'Test', 'Test1', 'Test2', 'Test3', 'Test4', 'Sample' ] ,
+        'Events': [ 0, 1, 2, 3 ] ,
+        'Modes': [ 1, 2, 3, 4, 5, 6 ] ,
+        'Reps': 100 ,
+        'Config Test': False ,
+        'Check Default': True ,
+        'Check Settings': True ,
+        'Setting Start Num': 0 ,
+        'Setting Pause': -1 ,
+        'Line Break': False ,
+        'Random Testing': False ,
+        'No Skip': False
+        }
+
+# Input different configuration changes you would like to automatically be tested
+change_config = {'Event Cap':                [2000, 0] ,
+                 'Lotto Cap':                [2000, 0] ,
+                 'Raid Cap':                 [500, 0] ,
+                 'Bleach Cap':               [100, 0] ,
+                 'Training Grounds Half AP': ['n', 'y'] ,
+                 'Training Grounds Third AP':['n', 'y'] ,
+                 'Bleached Earth Half AP':   ['n', 'y'] ,
+                 'Remove Zeros':             ['y', 'n'] ,
+                 'Run Count Integer':        ['n', 'y'] ,
+                 'Monthly Ticket Per Day':   [1, 0, 4] ,
+                 'Monthly Ticket Start Date':['', '12/31/24', '2/5/25', '8/20/25'] ,
+                 'Monthly Ticket End Date':  ['', '1/1/25', '15 day', '5 month', '1 year'] ,
+                 'Stop Here':                ['', 'Fuyuki', 'Salem', 'Archetype Inception'] }
+
+class Toolkit():
+    def __init__(self, goals, pre, folder = '', new_code = True):
+        toolkit = Toolkit.build_matrix(goals, pre, folder, new_code)
+        self.nodes: QuestData = toolkit['nodes']
+        self.input: Inter.DataFiles = toolkit['input']
+        self.run_caps: Inter.RunCaps = toolkit['runCaps']
+        self.run_mat = toolkit['runMat']
+
+    def build_matrix(goals, pre, folder = '', new_code = True):
+        file_path = glob.glob( os.path.join( pre, '*Calc.csv' ) )[0]
+        if new_code:
+            input_data = Inter.DataFiles( goals, file_path )
+            run_caps = Inter.RunCaps()
+        else:
+            input_data =    IN.DataFiles( goals, file_path )
+            run_caps =    IN.RunCaps()
+
+        if folder != '':
+            folder = os.path.join( 'Code', '_debug', 'Events_List', folder )
+        else:
+            folder = 'Events Farm'
+
+        file_path = glob.glob( os.path.join( pre, '*APD.csv' ) )[0]
+        if new_code:
+            nodes = QuestData( input_data, folder )
+        else:
+            nodes = QT( input_data, folder )
+        
+        nodes.multi_event( run_caps )
+        nodes.add_free_drop( file_path, run_caps )
+        nodes.read_monthly_ticket_list( run_caps )
+
+        toolkit = {'nodes': nodes,
+                'input': input_data,
+                'runCaps': run_caps,
+                'runMat': run_caps.build_run_cap_matrix()}
+        return toolkit
+    
+    def test_planner(self, new_code = True, mes = 0):
+        if new_code:
+            plan = Plan.Planner( self.nodes, self.input, self.run_mat, mes )
+            return plan.planner()
+        else:
+            return PL.planner( self.nodes, self.input, self.run_mat, mes )
+    
+    def add_solution(self, new_code = True):
+        if new_code:
+           self.solution: Plan.Solution = self.test_planner(new_code)
+        else:
+            prob, runs, tot_AP = self.test_planner(new_code)
+            self.prob: cp.Problem = prob
+            self.runs: cp.Variable = runs
+            self.tot_AP = tot_AP
+
+def add_total_time( timer, time_dif, *category ):
+    if isinstance(category[0], list):
+        category = category[0]
+    
+    cur = str(category[0])
+    if len(category) > 1:
+        try:
+            next_lvl = timer[cur]
+        except KeyError:
+            next_lvl = {}
+        timer[cur] = add_total_time( next_lvl, time_dif, list(category)[1:] )
+    else:
+        try:
+            timer[cur]['Tot'] += time_dif
+            timer[cur]['Rep'] += 1
+            timer[cur]['Avg'] = timer[cur]['Tot'] / timer[cur]['Rep']
+            timer[cur]['Max'] = max( time_dif, timer[cur]['Max'] )
+            timer[cur]['Min'] = min( time_dif, timer[cur]['Min'] )
+        except KeyError:
+            timer[cur] = {'Avg': time_dif, 'Tot': time_dif, 'Rep': 1, 
+                              'Max': time_dif, 'Min': time_dif}
+
+    return timer
+
+def change_time( test_package, test, t1, t2, mult ):
+    ex.PrintText().print( '   Time1 per iter: ' + str(t1) )
+    ex.PrintText().print( '   Time2 per iter: ' + str(t2) )
+
+    time_dif = (t2-t1) * mult
+    time_mult = (t2-t1) / t2 * 100
+    mult_text = format(mult,',')
+    ex.PrintText().print( ' ' + test + ' Difference x' + 
+                          mult_text + ': ' + str(time_dif) + '\n' )
+
+    timer = test_package['Time']
+    goals = test_package['Goals']
+    config = test_package['Config']
+    t = { '-': time_dif, 'x': time_mult }
+    
+    for i in ['-','x']:
+        timer = add_total_time( timer, t[i], test, 'Tot', i )
+
+        goals_test = goals[ ( max(goals.find('GOALS'), 0) + 5 ): ]
+        timer = add_total_time( timer, t[i], test, 'Goal',  goals_test, i )
+
+        for j in config:
+            timer = add_total_time( timer, t[i], test, 'Config',  j, str(config[j]), i )
+
+    test_package['Time'] = timer
+    return test_package
+
+def test_1( nodes: QuestData, nodes2: QuestData ):
+    ex.check_matrix( 'Nodes Names', nodes.quest_names, nodes2.quest_names, False )
+    ex.check_matrix( 'AP Cost', nodes.AP_costs, nodes2.AP_costs )
+    ex.check_matrix( 'Drop Matrix', nodes.drop_matrix, nodes2.drop_matrix )
+    ex.PrintText().check_valid()
+
+def test_2( goals, pre ):
+    file_path = glob.glob( os.path.join( pre[0], '*Calc.csv' ) )[0]
+    i1 = Inter.DataFiles( goals , file_path )
+    file_path = glob.glob( os.path.join( pre[1], '*Calc.csv' ) )[0]
+    i2 = IN.DataFiles(    goals , file_path )
+
+    eq1 = (i1.ID_to_index == i2.ID_to_index)
+    eq2 = (i1.skip_data_index == i2.skip_data_index)
+    eq3 = (i1.index_to_name == i2.index_to_name)
+    ex.PrintText().print( "{:<{}}{:<{}}".format( 'ID to Index equal:', 24, str(eq1), 0 ) )
+    ex.PrintText().print( "{:<{}}{:<{}}".format( 'Skip Data Index equal:', 24, str(eq2), 0 ) )
+    ex.PrintText().print( "{:<{}}{:<{}}".format( 'Index to Name equal:', 24, str(eq3), 0) )
+    ex.PrintText().check_valid( eq1 and eq2 and eq3 )
+
+def test_3( run_caps: Inter.RunCaps, run_caps2: Inter.RunCaps ):
+    run_cap_matrix = run_caps.build_run_cap_matrix()
+    run_cap_matrix2 = run_caps2.build_run_cap_matrix()
+    ex.check_matrix( 'Run Matrix', run_cap_matrix['Matrix'], run_cap_matrix2['Matrix'] )
+    ex.check_matrix( 'Run Cap', run_cap_matrix['List'], run_cap_matrix2['List'] )
+    ex.PrintText().check_valid()
+
+def test_4( tool ):
+    mes = tests['Print']
+    sol: Plan.Solution = tool['M'].test_planner( mes = mes)
+    prob2 , runs2 , tot_AP2 = tool['d'].test_planner( False, mes)
+
+    ex.check_matrix( 'Run Counts', sol.run_int, runs2, True, sol, prob2 )
+    if sol.total_AP == tot_AP2: 
+        ex.PrintText().print( "{:<{}}{:<{}}".format('Total AP equal:', 24, 
+                                                    'T: AP = ' + str(sol.total_AP), 0 ) )
+    else:
+        txt = 'F: norm: '+ str(sol.total_AP) + ' != test: ' + str(tot_AP2)
+        ex.PrintText().print( "{:<{}}{:<{}}".format( 'Total AP equal:', 24, txt, 0 ) )
+        ex.PrintText.valid = False
+    ex.PrintText().check_valid()
+
+def test_5():
+    d1 = Inter.Debug()
+    d2 = IN.Debug()
+
+    ex.check_matrix( 'Error', d1.error, d2.error)
+    ex.check_matrix( 'Config Notes', d1.config_notes, d2.config_notes )
+    eq = (d1.monthly_notes == d2.monthly_notes)
+    ex.check_matrix( 'Event Notes', d1.event_notes, d2.event_notes )
+    ex.check_matrix( 'Lotto Notes', d1.lotto_notes, d2.lotto_notes )
+    ex.check_matrix( 'Run Cap Debug', d1.run_cap_debug, d2.run_cap_debug )
+    ex.PrintText().check_valid( eq )
+
+def test_6_sub( plan: Plan, toolkit: Toolkit, new_code = True ):
+    plan.Output.text_written = []
+
+    if toolkit.input.goals.size > 0:
+        if new_code:
+            planner: Plan.Planner = plan.Planner( toolkit.nodes, toolkit.input, toolkit.run_mat )
+            solution = planner.planner()
+            plan.Output().print_out( solution, toolkit.nodes )
+        else:
+            prob , runs , total_AP = plan.planner( toolkit.nodes, toolkit.input, toolkit.run_mat )
+            plan.Output().print_out( prob, runs, total_AP, toolkit.nodes, toolkit.input.index_to_name )
+    else:
+        plan.Output().create_debug()
+
+    return plan.Output.text_written
+
+def test_6( tool ):
+    txt1 = test_6_sub( Plan, tool['M'] )
+    txt2 = test_6_sub( PL,   tool['d'], False )
+
+    ex.check_matrix( 'Output Files', txt1, txt2 )
+    ex.PrintText().check_valid()
+
+def test_building_drop( test_num, config, pre, tool: Toolkit, new_code ):
+    folder = 'Events Farm'
+    if config['Folder'] != '':
+        folder = os.path.join( 'Code', '_debug', 'Events_List', config['Folder'] )
+
+    if new_code:
+        nodes = QuestData( tool.input, folder )
+    else:
+        nodes = QT( tool.input, folder )
+
+    # Actual tests
+    if test_num == 9:
+        nodes.multi_event( tool.run_caps )
+
+    elif test_num == 10:
+        file_path = glob.glob( os.path.join( pre, '*APD.csv' ) )[0]
+        nodes.add_free_drop( file_path, tool.run_caps )
+
+    elif test_num == 11:
+        nodes.read_monthly_ticket_list( tool.run_caps )
+
+def test_time_types( test_num, config, pre, goals, tool: Toolkit, new_code ):
+    if test_num == 7:
+        toolkit = Toolkit( goals, pre, config['Folder'], new_code )
+        toolkit.test_planner(new_code)
+
+    elif test_num == 8:
+        file_path = glob.glob( os.path.join( pre, '*Calc.csv' ) )[0]
+        if new_code:
+            input_data = Inter.DataFiles( goals, file_path )
+        else:
+            input_data = IN.DataFiles( goals, file_path )
+
+    elif test_num >= 9 and test_num <= 11:
+        test_building_drop( test_num, config, pre, tool, new_code )
+    
+    elif test_num == 12:
+        run_cap_matrix = tool.run_caps.build_run_cap_matrix()
+    
+    elif test_num == 13:
+        tool.test_planner(new_code)
+
+    elif test_num >= 14:
+        if new_code:
+            Plan.Output().print_out( tool.solution, tool.nodes )
+        else:
+            PL.Output().print_out( tool.prob, tool.runs, tool.tot_AP, 
+                                   tool.nodes, tool.input.index_to_name )
+
+def time_loop( test_num, test_package, toolkit: Toolkit, new_code = True ):
+    reps = test_package['Reps']
+    goals = test_package['Goals']
+    pre = test_package['Data_Prefix'][1]
+    if new_code:
+        pre = test_package['Data_Prefix'][0]
+    config = test_package['Config']
+
+    if test_num == 14:
+        toolkit.add_solution(new_code)
+
+    t = time.time()
+    for loop in range(reps):
+        test_time_types( test_num, config, pre, goals, toolkit, new_code )
+    t = ( time.time() - t ) / reps
+    return t
+
+def test_time( test_num, test_package, tool ):
+    t1 = time_loop( test_num, test_package, tool['M'] )
+    t2 = time_loop( test_num, test_package, tool['d'], False )
+
+    test_name = {7: 'Build + Planner', 8: 'Data Files', 9: 'Event', 
+                 10: 'Free', 11: 'Month', 12: 'Run Cap Matrix',
+                 13: 'Planner', 14: 'Output'}
+
+    return change_time( test_package, test_name[test_num], t1, t2, 1000000 )
+
+def reset_debug(print):
+    for debug in [ Inter.Debug, IN.Debug ]:
+        debug.error = [ '', '' ]
+        debug.config_notes = []
+        debug.monthly_notes = ''
+        debug.event_notes = []
+        debug.lotto_notes = []
+        debug.run_cap_debug = []
+        debug.notifications = print
+
+def goals_loop( test_package, tests ):
+    pre = test_package['Data_Prefix']
+
+    for goals in tests['Goals']:
+        reset_debug(tests['Print'])
+        test_package['Goals'] = goals
+
+        tool = {}
+        tool['M'] = Toolkit(goals, pre[0], test_package['Config']['Folder'])
+
+        entries = len(tool['M'].nodes.AP_costs)
+        if Inter.ConfigList.settings['Run Count Integer'] and entries > 100:
+            ex.PrintText().add_removed()
+            break
+
+        tool['d'] = Toolkit(goals, pre[1], test_package['Config']['Folder'], False)
+
+        ex.PrintText().print_setting(goals)
+
+        for test_num in tests['Modes']:
+            if test_num == 1:
+                test_1( tool['M'].nodes, tool['d'].nodes )
+            elif test_num == 2:
+                test_2( goals, pre )
+            elif test_num == 3:
+                test_3( tool['M'].run_caps, tool['d'].run_caps )
+            elif test_num == 4:
+                test_4( tool )
+            elif test_num == 5:
+                test_5()
+            elif test_num == 6:
+                test_6( tool )
+            elif test_num >= 7 and test_num <= 14:
+                test_package = test_time( test_num, test_package, tool )
+            elif test_num == 15:
+                ex2.Test_14(tool['M'])
+    return test_package
+
+def config_loop( config_list, test_package, tests ):
+    for config in config_list:
+        test_package['Config'] = config
+        test_package['Temp_ini'] = ex.set_config( config, test_package['Temp_ini'] )
+
+        # Skips if Setting # is before the starting Set
+        if ex.PrintText().new_config(config):
+            continue
+
+        Inter.ConfigList.cut_AP = {'Daily': 1, 'Bleach': 1}
+        IN.ConfigList.cut_AP = {'Daily': 1, 'Bleach': 1}
+        Inter.ConfigList().read_config_ini()
+        IN.ConfigList().read_config_ini()
+
+        test_package = goals_loop( test_package, tests )
+
+    return test_package
+
+# Initializing starts here
+Inter.standardize_path()
+IN.standardize_path()
+Plan.Output.not_test = False
+PL.Output.not_test = False
+Inter.Debug.notifications = tests['Print']
+IN.Debug.notifications = tests['Print']
+
+ex.PrintText().main_settings(tests, Inter.path_prefix, IN.path_prefix)
+valid = True
+config_list, test_package, tests = ex.prepare_test_package(change_config, tests)
+
+if tests['Random Testing']:
+    random.shuffle(config_list)
+
+# MAIN algorithm
+test_package = config_loop( config_list, test_package, tests )
+ex.final_write( test_package )

@@ -1,0 +1,13 @@
+Event
+pure passing ID_to_index through =                    -10.5   , Rep = 724
+pure self.ID_to_index =                               -97.7   , Rep = 693
+set ID_to_index in line read =                        101.2   , Rep = 718
+
+Free
+using function calc_drop w/ self.csv_line             
+
+Monthly
+pure self.ID_to_index + self.csv_line in line read =  185     , Rep = 724
+self.read_csv_line                                   -387.4   , Rep = 692
+pure self.ID_to_index + self.csv_line + read_col   = -393     , Rep = 718
+pure self.ID_to_index + csv_line pass in line read = 

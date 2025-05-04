@@ -1,0 +1,13 @@
+Use 'Windows PowerShell'
+
+File Path:
+
+cd G:\ProgrammingProjects\FateGrandFarm\Code
+
+---
+Run Code:
+
+pyinstaller Fate_Grand_Farm.py -F
+
+---
+Go into 'dist' folder from the '\FateGrandFarm\Code' folder, and move 'Fate_Grand_farm.exe' to wherever you want it to be
