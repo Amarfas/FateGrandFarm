@@ -36,12 +36,12 @@ def main():
         Plan.Output().print_out( prob, runs, total_AP, quest_data, data_files.index_to_name )
     else:
         Inter.Debug().warning('Goals were not properly read.')
-        Plan.Output().create_debug()
+        Plan.Output.create_debug()
 
 if Inter.ConfigList().settings['Debug on Fail']:
     try:
         main()
     except:
-        Plan.Output().create_debug()
+        Plan.Output.create_debug()
 else:
     main()
