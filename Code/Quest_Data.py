@@ -1,10 +1,11 @@
+import os
 import csv
 import glob
 import numpy as np
 import Interpret as Inter
 
 class QuestData:
-    def __init__( self, data_files: Inter.DataFiles, folder = 'Events Farm\\' ):
+    def __init__( self, data_files: Inter.DataFiles, folder = 'Events Farm' ):
         self.folder = folder
         self.add_data_ini = True - Inter.ConfigList.settings['Remove Zeros']
 
@@ -77,13 +78,15 @@ class QuestData:
         return data_col, reader
     
     def _find_event_name( self, csv_line ):
-        fluff_to_remove = ['FGO Efficiency ',
+        fluff_to_remove = ['FGO Efficiency',
                             self.folder]
-        
         for i in fluff_to_remove:
             if csv_line.find(i) >= 0:
-                start = csv_line.rfind(i)+len(i)
+                start = csv_line.rfind(i) + len(i)
                 break
+
+        if csv_line[start] == '\\':
+            start += 1
 
         fluff_to_remove = [' - Event', '.csv']
         for i in fluff_to_remove:
@@ -134,7 +137,7 @@ class QuestData:
         debug = Inter.Debug()
         event_name = self._find_event_name(event_csv)
         debug.note_event_list( event_name, 0, 2 )
-        debug._add_runcap_debug( event_name, 0, 6 )
+        debug.add_runcap_debug( event_name, 0, 6 )
 
         with open( event_csv, newline = '', encoding = 'latin1' ) as f:
             reader = csv.reader(f)
@@ -205,7 +208,8 @@ class QuestData:
         self.assemble_matrix( matrix )
     
     def multi_event( self, run_caps ):
-        events_farm_folder = glob.glob( Inter.path_prefix + self.folder + '*' )
+        file_path = os.path.join( Inter.path_prefix, self.folder, '**', '*.csv' )
+        events_farm_folder = glob.glob( file_path, recursive=True )
 
         for event in events_farm_folder:
             self._add_event_drop( event, run_caps )
@@ -285,7 +289,7 @@ class QuestData:
     def add_free_drop( self, free_csv, run_caps: Inter.RunCaps ):
         with open( free_csv, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
-            tg_cut_AP = Inter.ConfigList.tg_cut_AP
+            cut_AP = Inter.ConfigList.cut_AP
             last_area = Inter.ConfigList.settings['Stop Here']
 
             reader = self._find_free_columns(reader)
@@ -301,7 +305,11 @@ class QuestData:
             # If the line is filler because the google sheet copied the old Japanese formatting, skip it.
             # Else, start a new line of drop rate data.
             for csv_line in reader:
-                if csv_line[0].find( last_area ) >= 0: 
+                region = csv_line[0]
+                if region.startswith('Arch.'):
+                    region = 'Archetype Inception'
+                
+                if region.find( last_area ) >= 0: 
                     break
 
                 try:
@@ -317,11 +325,12 @@ class QuestData:
                 # Drop rate calculated from normal quest AP.
                 # Half AP effectively doubles drop rate when optimizing run counts.
                 # After the rest of the calculations in order to not cancel out the gain.
-                if cur_type == 'Daily' and tg_cut_AP > 1:
-                    AP_cost = int( AP_cost / tg_cut_AP )
+                if cur_type == 'Daily' or cur_type == 'Bleach':
+                    if cut_AP[cur_type] > 1:
+                        AP_cost = int( AP_cost / cut_AP[cur_type] )
 
                 if add_data:
-                    quest_name = csv_line[0] + ', ' + csv_line[1]
+                    quest_name = region + ', ' + csv_line[1]
                     matrix = self._prepare_data( matrix, quest_name, AP_cost, drop_data )
             f.close()
 
@@ -395,7 +404,6 @@ class QuestData:
 
         run_caps.assemble_group_info( group )
         self.assemble_matrix( matrix )
-        
     
     def _check_month( self, ticket_csv, run_caps: Inter.RunCaps ):
         with open( ticket_csv, newline = '', encoding = 'latin1' ) as f:
@@ -408,13 +416,15 @@ class QuestData:
             month_cap, month_name, error = Inter.ConfigList().check_date( month, year )
 
             if error:
-                fluff = 'Data Files\\'
-                csv_name = ticket_csv[( ticket_csv.rfind(fluff) + len(fluff) ):]
+                csv_name = ticket_csv[ticket_csv.rfind('y20'):]
+                if csv_name == -1:
+                    csv_name = ticket_csv[ticket_csv.rfind('Monthly'):]
                 Inter.Debug().warning('Date could not be read in monthly .csv : ' + csv_name)
             
             if month_cap['Monthly'][0] > 0:
                 # Used for properly applying run caps to entire month.
-                group = {'Quest': month_name, 'Type': 'Monthly', 'Count': 0, 'Cap': month_cap}
+                group = {'Quest': month_name, 'Type': 'Monthly',
+                         'Count': 0, 'Cap': month_cap}
 
                 data_col_ID, reader = self._find_month_ID( reader, month_name )
 
@@ -425,9 +435,11 @@ class QuestData:
 
     def read_monthly_ticket_list( self, run_caps ):
         ticket_mult = min( Inter.ConfigList.settings['Monthly Ticket Per Day'], 4)
-        if ticket_mult > 0:
 
-            monthly_ticket_folder = glob.glob( Inter.path_prefix + 'Data Files\\*Monthly*\\*' )
+        if ticket_mult > 0:
+            file_path = os.path.join( Inter.path_prefix, 'Data Files', '*Monthly*', '*' )
+            monthly_ticket_folder = glob.glob( file_path )
+
             for month in monthly_ticket_folder:
                 self._check_month( month, run_caps )
         

@@ -28,7 +28,7 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
             if data_files.index_to_name[i] != '':
                 error = 'Obtaining any ' + data_files.index_to_name[i]
                 error += ' is impossible with these restrictions.'
-                Inter.Debug().warning( error, 2, message )
+                Inter.Debug().warning( error, 2, message, 1 )
                 data_files.goals[i] = 0
 
     objective = cp.Minimize( AP_costs @ runs )
@@ -52,10 +52,7 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
     if (prob.status != 'optimal') and (message >= 1):
         Inter.Debug().warning( 'This solution is or was: ' + prob.status )
     
-    if prob.status == 'infeasible':
-        error = 'The applied Run Caps likely made the Goals impossible.'
-        Inter.Debug().warning( error, 1, message )
-
+    if prob.status == 'infeasible' or prob.status == 'unbounded':
         # Run Count Integer removed because it applies extra constraints which
         #   slow the analysis.
         if run_int:
@@ -63,19 +60,28 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
             Inter.Debug().warning( error, 1, message )
 
             run_int = False
-            runs = cp.Variable( (run_size,1) , nonneg=True )
-            constr_ini = [ drop_matrix @ runs >= data_files.goals ]
+            #runs = cp.Variable( (run_size,1) , nonneg=True )
+            #constr_ini = [ drop_matrix @ runs >= data_files.goals ]
+
+        error = 'The applied Run Caps likely made the Goals impossible.'
+        Inter.Debug().warning( error, 1, message )
 
         # Remove Bleached Earth Run Caps first, because of the exclusive mats
         # If that doesn't work, keep only the constraints for Monthly Tickets.
         for backup in ['Free Quests', 'Monthly']:
             if len(run_cap_mat) <= 2:
                 break
-            try:
-                row = run_cap_mat['Event'].index(backup)
-                if backup == 'Free Quests' and len(run_cap_mat['Matrix']) == 1:
-                        continue
-            except ValueError:
+
+            for i in range(len(run_cap_mat['Event'])):
+                name = run_cap_mat['Event'][i]
+                if name.startswith(backup):
+                    row = i
+                    break
+
+                if (backup == 'Monthly') and (name in quest_data.recorded_months):
+                    row = i
+                    break
+            else:
                 continue
 
             if backup == 'Free Quests':
@@ -100,8 +106,12 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
                 dele[row:] = True
                 new_list = run_cap_mat['List'][dele,...]
             
-            constraints = constr_ini.copy()
-            constraints.append( new_mat @ runs <= new_list )
+            #constraints = constr_ini.copy()
+            runs = cp.Variable( (run_size,1) , nonneg=True )
+            constraints = [ drop_matrix @ runs >= data_files.goals ]
+            objective = cp.Minimize( AP_costs @ runs )
+            if len(new_mat) > 0:
+                constraints.append( new_mat @ runs <= new_list )
 
             prob = cp.Problem( objective, constraints )
             prob.solve()
@@ -113,7 +123,7 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
                 Inter.Debug().warning( error, 1, message)
     
     total_AP = ''
-    if prob.status == 'infeasible' and prob.value == math.inf:
+    if (prob.status == 'infeasible' and prob.value == math.inf) or prob.status == 'unbounded':
         run_int = runs.value
         total_AP = prob.value
     
@@ -140,11 +150,24 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
     return ( prob , run_int , total_AP )
 
 class Output:
+    text_written = []
+    not_test = True
+
     def __init__(self) -> None:
         pass
 
+    def final_write( self, file_name, text, main = False ):
+        if main:
+            Output.text_written.append( [file_name, text.split('\n')] )
+
+        if Output.not_test:
+            with open( file_name, 'w') as f:
+                f.write(text)
+                f.close()
+
     def console_print( self, text, next_line = True ):
-        print( text )
+        if Output.not_test:
+            print( text )
         return text + '\n' * next_line
     
     # Finds an appropriate indentation between each column of data.
@@ -258,28 +281,26 @@ class Output:
     
     def avoid_plan_name_error( self, former_plans, text ):
         os.makedirs(os.path.dirname(former_plans), exist_ok=True)
-        with open( former_plans, 'w') as f:
-            f.write(text)
-            f.close()
+        self.final_write( former_plans, text )
 
     def file_creation( self, plan_name, file_name, text, debug_report = False, failure = False ):
-        name_prefix = Inter.path_prefix + 'Former Plans\\'
+        name_prefix = os.path.join( Inter.path_prefix, 'Former Plans' )
         name_suffix = time.strftime("%Y%m%d_%H%M%S__", time.localtime()) + file_name
 
-        main_file_name = Inter.path_prefix + file_name
+        main_file_name = os.path.join( Inter.path_prefix, file_name )
         if failure:
-            main_file_name = Inter.path_prefix + plan_name + file_name
+            main_file_name = os.path.join( Inter.path_prefix, plan_name + file_name )
 
-        with open( main_file_name, 'w') as f:
-            f.write(text)
-            f.close()
+        self.final_write( main_file_name, text, True )
         
         try:
-            self.avoid_plan_name_error( name_prefix + plan_name + name_suffix, text )
+            file_name = os.path.join( name_prefix, plan_name + name_suffix )
+            self.avoid_plan_name_error( file_name, text )
         except OSError:
             if debug_report:
-                text += '!! Plan Name not accepted by OS\n\n'
-            self.avoid_plan_name_error( name_prefix + name_suffix, text )
+                text = '!! Plan Name not accepted by OS\n\n' + text
+            file_name = os.path.join( name_prefix, name_suffix )
+            self.avoid_plan_name_error( file_name, text )
 
     def make_report( self, text, header = '' ):
         if text == []:
@@ -299,27 +320,45 @@ class Output:
         output = ''
         debug = Inter.Debug()
     
-        if debug.error != '':
+        if debug.error[0] != '':
             output = '!! WARNING !!\n'
-            output += debug.error + '\n'
+            output += debug.error[0] + '\n'
+        
+        if debug.error[1] != '':
+            output += debug.error[1] + '\n'
     
-        output += self.make_report( debug.config_notes, '__Configurations:')+'\n'
+        output += self.make_report( debug.config_notes, '__Configurations:')
+        if debug.config_notes != []:
+            output += '\n'
+
         output += debug.monthly_notes +'\n'
-        output += self.make_report( debug.event_notes,'__The Events included in this analysis were:' ) +'\n\n'
-        output += self.make_report( debug.lotto_notes,'__The Lotto Drop Bonuses for each Quest were:' ) +'\n\n'
+
+        output += self.make_report( debug.event_notes,'__The Events included in this analysis were:' )
+        if debug.event_notes != []:
+            output += '\n\n'
+
+        output += self.make_report( debug.lotto_notes,'__The Lotto Drop Bonuses for each Quest were:' )
+        if debug.lotto_notes != []:
+            output += '\n\n'
+
         text = '__The following are notes to make sure that Run Caps were applied correctly:'
         output += self.make_report( debug.run_cap_debug, text )
 
         self.file_creation( plan_name, 'Config Notes.txt', output, True, failure )
 
-    def print_out( self, prob, runs, total_AP, nodes: QuestData, index_to_name ):
+    def create_debug():
+        if Output.not_test:
+            print('FAILED EXECUTION')
+        Output().create_note_file( 'FAILED_EXECUTION__', True )
+
+    def _print_actual( self, prob, runs, total_AP, nodes: QuestData, index_to_name ):
         output = self.console_print( 'These results are: ' + prob.status )
         output += self.console_print( 'The total AP required is: ' + "{:,}".format(total_AP) + '\n' )
         output += self.console_print( 'You should run:' )
 
         output, output_drops = self.create_drop_file( output, runs, nodes, index_to_name )
         
-        if Inter.ConfigList.settings['Output Files'] :
+        if Inter.ConfigList.settings['Output Files']:
             plan_name = Inter.ConfigList.settings['Plan Name']
             if plan_name:
                 plan_name += '_'
@@ -327,3 +366,9 @@ class Output:
             self.file_creation( plan_name, 'Farming Plan.txt', output )
             self.file_creation( plan_name, 'Farming Plan Drops.txt', output_drops)
             self.create_note_file(plan_name)
+
+    def print_out( self, prob, runs, total_AP, nodes: QuestData, index_to_name ):
+        if runs is None:
+            Output.create_debug()
+        else:
+            self._print_actual( prob, runs, total_AP, nodes, index_to_name )
