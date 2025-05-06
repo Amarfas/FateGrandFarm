@@ -287,7 +287,7 @@ class QuestData:
 
         return drop_data, add_data
     
-    def add_free_drop( self, free_csv, run_caps: Inter.RunCaps ):
+    def add_free_drops( self, free_csv, run_caps: Inter.RunCaps ):
         with open( free_csv, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
             cut_AP = Inter.ConfigList.cut_AP

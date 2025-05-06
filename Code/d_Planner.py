@@ -33,11 +33,9 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
 
     objective = cp.Minimize( AP_costs @ runs )
 
-    constr_ini = [ drop_matrix @ runs >= data_files.goals ]
+    constraints = [ drop_matrix @ runs >= data_files.goals ]
     if run_int:
-        constr_ini.append( np.eye(run_size) @ runs >= np.zeros((run_size,1), dtype=int) )
-    
-    constraints = constr_ini.copy()
+        constraints.append( np.eye(run_size) @ runs >= np.zeros((run_size,1), dtype=int) )
 
     if run_cap_mat:
         if len(run_cap_mat) > 2:
@@ -68,22 +66,19 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
 
         # Remove Bleached Earth Run Caps first, because of the exclusive mats
         # If that doesn't work, keep only the constraints for Monthly Tickets.
+        run_caps = run_cap_mat['Event']
         for backup in ['Free Quests', 'Monthly']:
-            if len(run_cap_mat) <= 2:
-                break
-
-            for i in range(len(run_cap_mat['Event'])):
-                name = run_cap_mat['Event'][i]
+            for i in range(len(run_caps)):
+                name = run_caps[i]
                 if name.startswith(backup):
-                    row = i
                     break
 
-                if (backup == 'Monthly') and (name in quest_data.recorded_months):
-                    row = i
+                elif (backup == 'Monthly') and (name in quest_data.recorded_months):
                     break
             else:
                 continue
 
+            row = i
             if backup == 'Free Quests':
                 error = 'Problem will be run again after removing Bleach Caps.'
                 Inter.Debug().warning( error, 1, message)
@@ -106,7 +101,6 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
                 dele[row:] = True
                 new_list = run_cap_mat['List'][dele,...]
             
-            #constraints = constr_ini.copy()
             runs = cp.Variable( (run_size,1) , nonneg=True )
             constraints = [ drop_matrix @ runs >= data_files.goals ]
             objective = cp.Minimize( AP_costs @ runs )
@@ -172,14 +166,16 @@ class Output:
     
     # Finds an appropriate indentation between each column of data.
     def find_indent( self, text ):
-        indent = [0] * len(max( text, key = len ))
-        for line in text:
-            for j in range(len(line)):
-                # Want a bit of padding if there are entries, but no spacing if there aren't
-                new_longest = len(line[j]) + 1
-                if new_longest > (indent[j] + 1):
-                    indent[j] = new_longest
-
+        if len(text) > 0:
+            indent = [0] * len(max( text, key = len ))
+            for line in text:
+                for j in range(len(line)):
+                    # Want a bit of padding if there are entries, but no spacing if there aren't
+                    new_longest = len(line[j]) + 1
+                    if new_longest > (indent[j] + 1):
+                        indent[j] = new_longest
+        else:
+            indent = 0
         return indent
 
     def add_gained_mats( self, text, drop_matrix_line, run_count, index_to_name, num_format ):

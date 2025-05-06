@@ -1,5 +1,6 @@
 import os
 import glob
+import math
 import numpy as np
 import cvxpy as cp
 import time
@@ -13,12 +14,9 @@ import d_Planner as PL
 import d_Extra as ex
 import d_Extra_Temp as ex2
 
-# Mode 1: Check if 'Node Names', 'AP Costs', and 'Drop Matrices' are the same.
-# Mode 2: Check if 'ID to Index', 'Skip Data Index', and 'Index to Name' lists are the same.
-# Mode 3: Check if 'Run Matrix' and 'Run Caps' are similar or the same.
-# Mode 4: Check if 'Planner' outputs are similar or the same.
-# Mode 5: Check if 'Debug' inputs are the same.
-# Mode 6: Check if 'Output' is going to be the same. 
+# Mode 1-6: Compare variable values: 1 = 'Node Names', 'AP Costs', and 'Drop Matrices';
+#    2 = 'ID to Index', 'Skip Data Index', and 'Index to Name';
+#    3 = 'Run Matrix' and 'Run Caps'; 4 = 'Planner'; 5 = 'Debug'; 6 = 'Output'
 # Mode 7: Compare times to 'Build Matrix' and run the 'Planner', with below 'rep' count.
 # Mode 8-14: Compare times for building: 8 = 'Data Files', 9 = 'Event Matrix',
 #    10 = 'Free Matrix', 11 = 'Monthly Matrix', 12 = 'Run Cap Matrix',
@@ -27,6 +25,8 @@ import d_Extra_Temp as ex2
 # 'Check Default' means skipping a flat set of '' for fgf_config.ini
 # 'Check Settings' will put every kind of setting ASAP
 # 'Line Break' will test with one side using APD and Calc csv's with line breaks
+# 'No Skip' will cause every variation of 'change_config' to be included
+# 'No Extreme' excludes results over 10,000 from timer data
 
 # 'Sample' has a bit of Bronze/Silver/Gold, no Gems, Statues, or XP.
 # 'Test' has everything but Octuplets, including XP. Notably 1000+ Moonlight to break Run Caps
@@ -35,26 +35,27 @@ import d_Extra_Temp as ex2
 # 'Test3' has thousands of quite a few mats, and a demand for 2 gold gems
 # 'Test4' has 2000 of four Bronze mats, 100 of Gems/Statues, and 3000 XP
 
-tests = {'Print': False ,
+tests = {'Print': True ,
         'Goals': [ 'Per', 'Test', 'Test1', 'Test2', 'Test3', 'Test4', 'Sample' ] ,
-        'Events': [ 0, 1, 2, 3 ] ,
-        'Modes': [ 1, 2, 3, 4, 5, 6 ] ,
+        'Folders': [ 0, 1, 2, 3 ] ,
+        'Modes': [ 8, 9, 10 ] ,
         'Reps': 100 ,
-        'Config Test': False ,
+        'Config Test': True ,
         'Check Default': True ,
         'Check Settings': True ,
         'Setting Start Num': 0 ,
         'Setting Pause': -1 ,
         'Line Break': False ,
-        'Random Testing': False ,
-        'No Skip': False
+        'Random Testing': True ,
+        'No Skip': True ,
+        'No Extreme': True
         }
 
 # Input different configuration changes you would like to automatically be tested
-change_config = {'Event Cap':                [2000, 0] ,
-                 'Lotto Cap':                [2000, 0] ,
-                 'Raid Cap':                 [500, 0] ,
-                 'Bleach Cap':               [100, 0] ,
+change_config = {'Event Cap':                [2000, 0, 1000] ,
+                 'Lotto Cap':                [2000, 0, 1000] ,
+                 'Raid Cap':                 [500, 0, 200] ,
+                 'Bleach Cap':               [100, 0, 500] ,
                  'Training Grounds Half AP': ['n', 'y'] ,
                  'Training Grounds Third AP':['n', 'y'] ,
                  'Bleached Earth Half AP':   ['n', 'y'] ,
@@ -63,7 +64,8 @@ change_config = {'Event Cap':                [2000, 0] ,
                  'Monthly Ticket Per Day':   [1, 0, 4] ,
                  'Monthly Ticket Start Date':['', '12/31/24', '2/5/25', '8/20/25'] ,
                  'Monthly Ticket End Date':  ['', '1/1/25', '15 day', '5 month', '1 year'] ,
-                 'Stop Here':                ['', 'Fuyuki', 'Salem', 'Archetype Inception'] }
+                 'Stop Here':                ['', 'Fuyuki', 'Salem', 'Paper Moon'] }
+
 
 class Toolkit():
     def __init__(self, goals, pre, folder = '', new_code = True):
@@ -94,7 +96,7 @@ class Toolkit():
             nodes = QT( input_data, folder )
         
         nodes.multi_event( run_caps )
-        nodes.add_free_drop( file_path, run_caps )
+        nodes.add_free_drops( file_path, run_caps )
         nodes.read_monthly_ticket_list( run_caps )
 
         toolkit = {'nodes': nodes,
@@ -119,56 +121,114 @@ class Toolkit():
             self.runs: cp.Variable = runs
             self.tot_AP = tot_AP
 
-def add_total_time( timer, time_dif, *category ):
+def add_time2( time, time_dif, data, cur ):
+    total = time_dif + time[cur].get( 'Tot', 0 )
+    rep = 1 + time[cur].get( 'Rep', 0 )
+    time[cur]['Avg'] = total / rep
+    time[cur]['Tot'] = total
+    time[cur]['Rep'] = rep
+    time[cur]['Max'] = max( time_dif, time[cur].get('Max', -1*math.inf) )
+    time[cur]['Min'] = min( time_dif, time[cur].get('Min', math.inf) )
+
+    if cur == 'x':
+        t1 = data[0] + time[cur].get( 'M Tot', 0 )
+        t2 = data[1] + time[cur].get( 'd Tot', 0 )
+        time[cur]['Md Avg'] = ( t2 - t1 ) / t2 * 100
+        time[cur]['M Tot'] = t1
+        time[cur]['d Tot'] = t2
+
+    return time
+
+def add_time( timer, time_dif, data, cur ):
+    t1, t2 = data
+    try:
+        timer[cur]['Tot'] += time_dif
+        timer[cur]['Rep'] += 1
+        timer[cur]['Avg'] = timer[cur]['Tot'] / timer[cur]['Rep']
+        timer[cur]['Max'] = max( time_dif, timer[cur]['Max'] )
+        timer[cur]['Min'] = min( time_dif, timer[cur]['Min'] )
+
+        if cur == 'x':
+            timer[cur]['M Tot'] += t1
+            timer[cur]['d Tot'] += t2
+            timer[cur]['Md Avg'] = (timer[cur]['d Tot'] - timer[cur]['M Tot'])
+            timer[cur]['Md Avg'] *= 100 / timer[cur]['d Tot']
+
+    except KeyError:
+        timer[cur] = {'Avg': time_dif, 'Tot': time_dif, 'Rep': 1, 
+                    'Max': time_dif, 'Min': time_dif}
+        if cur == 'x':
+            timer[cur].update({'Md Avg': (t2-t1) / t2 * 100, 
+                                'M Tot': t1, 'd Tot': t2})
+    
+    total = time_dif + timer[cur].get( 'tTot', 0 )
+    rep = 1 + timer[cur].get( 'tRep', 0 )
+    timer[cur]['tAvg'] = total / rep
+    timer[cur]['tTot'] = total
+    timer[cur]['tRep'] = rep
+    timer[cur]['tMax'] = max( time_dif, timer[cur].get('tMax', -1*math.inf) )
+    timer[cur]['tMin'] = min( time_dif, timer[cur].get('tMin', math.inf) )
+
+    if cur == 'x':
+        t1 = data[0] + timer[cur].get( 'tM Tot', 0 )
+        t2 = data[1] + timer[cur].get( 'td Tot', 0 )
+        timer[cur]['tMd Avg'] = ( t2 - t1 ) / t2 * 100
+        timer[cur]['tM Tot'] = t1
+        timer[cur]['td Tot'] = t2
+
+    for key in timer[cur].keys():
+        if not key.startswith('t'):
+            a = timer[cur][key]
+            b = timer[cur]['t' + key]
+            c = a - b
+            if c / b > 0.0000001:
+                a = 1
+                b = 2
+
+    return timer
+
+def add_time_fld( timer: dict, time_dif, data, *category ):
     if isinstance(category[0], list):
         category = category[0]
     
     cur = str(category[0])
     if len(category) > 1:
-        try:
-            next_lvl = timer[cur]
-        except KeyError:
-            next_lvl = {}
-        timer[cur] = add_total_time( next_lvl, time_dif, list(category)[1:] )
+        nxt_lvl = timer.setdefault( cur, {} )
+        timer[cur] = add_time_fld( nxt_lvl, time_dif, data, list(category)[1:] )
     else:
-        try:
-            timer[cur]['Tot'] += time_dif
-            timer[cur]['Rep'] += 1
-            timer[cur]['Avg'] = timer[cur]['Tot'] / timer[cur]['Rep']
-            timer[cur]['Max'] = max( time_dif, timer[cur]['Max'] )
-            timer[cur]['Min'] = min( time_dif, timer[cur]['Min'] )
-        except KeyError:
-            timer[cur] = {'Avg': time_dif, 'Tot': time_dif, 'Rep': 1, 
-                              'Max': time_dif, 'Min': time_dif}
-
+        timer = add_time( timer, time_dif, data, cur )
+    
     return timer
 
-def change_time( test_package, test, t1, t2, mult ):
+def change_time( test_package, test, timer, t1, t2 ):
     ex.PrintText().print( '   Time1 per iter: ' + str(t1) )
     ex.PrintText().print( '   Time2 per iter: ' + str(t2) )
+
+    mult = 1000000
 
     time_dif = (t2-t1) * mult
     time_mult = (t2-t1) / t2 * 100
     mult_text = format(mult,',')
     ex.PrintText().print( ' ' + test + ' Difference x' + 
                           mult_text + ': ' + str(time_dif) + '\n' )
+    
+    if timer['No Extreme'] and time_dif > 10000:
+        return timer
 
-    timer = test_package['Time']
     goals = test_package['Goals']
     config = test_package['Config']
     t = { '-': time_dif, 'x': time_mult }
+    d = [ t1, t2 ]
     
     for i in ['-','x']:
-        timer = add_total_time( timer, t[i], test, 'Tot', i )
+        timer = add_time_fld( timer, t[i], d, test, 'Tot', i )
 
         goals_test = goals[ ( max(goals.find('GOALS'), 0) + 5 ): ]
-        timer = add_total_time( timer, t[i], test, 'Goal',  goals_test, i )
+        timer = add_time_fld( timer, t[i], d, test, 'Goal',  goals_test, i )
 
         for j in config:
-            timer = add_total_time( timer, t[i], test, 'Config',  j, str(config[j]), i )
-
-    test_package['Time'] = timer
-    return test_package
+            timer = add_time_fld(timer, t[i], d, test, 'Config', 
+                                 j, str(config[j]), i )
 
 def test_1( nodes: QuestData, nodes2: QuestData ):
     ex.check_matrix( 'Nodes Names', nodes.quest_names, nodes2.quest_names, False )
@@ -224,25 +284,23 @@ def test_5():
     ex.check_matrix( 'Run Cap Debug', d1.run_cap_debug, d2.run_cap_debug )
     ex.PrintText().check_valid( eq )
 
-def test_6_sub( plan: Plan, toolkit: Toolkit, new_code = True ):
-    plan.Output.text_written = []
-
-    if toolkit.input.goals.size > 0:
-        if new_code:
-            planner: Plan.Planner = plan.Planner( toolkit.nodes, toolkit.input, toolkit.run_mat )
-            solution = planner.planner()
-            plan.Output().print_out( solution, toolkit.nodes )
-        else:
-            prob , runs , total_AP = plan.planner( toolkit.nodes, toolkit.input, toolkit.run_mat )
-            plan.Output().print_out( prob, runs, total_AP, toolkit.nodes, toolkit.input.index_to_name )
-    else:
-        plan.Output().create_debug()
-
-    return plan.Output.text_written
-
 def test_6( tool ):
-    txt1 = test_6_sub( Plan, tool['M'] )
-    txt2 = test_6_sub( PL,   tool['d'], False )
+    Plan.Output.text_written = []
+    if tool['M'].input.goals.size > 0:
+        solution = tool['M'].test_planner()
+        Plan.Output().print_out( solution, tool['M'].nodes )
+    else:
+        Plan.Output().create_debug_report()
+    txt1 = Plan.Output.text_written
+
+    PL.Output.text_written = []
+    if tool['d'].input.goals.size > 0:
+        prob , runs , total_AP = tool['d'].test_planner(False)
+        PL.Output().print_out(prob, runs, total_AP, tool['d'].nodes, 
+                              tool['d'].input.index_to_name )
+    else:
+        PL.Output().create_debug()
+    txt2 = PL.Output.text_written
 
     ex.check_matrix( 'Output Files', txt1, txt2 )
     ex.PrintText().check_valid()
@@ -263,7 +321,7 @@ def test_building_drop( test_num, config, pre, tool: Toolkit, new_code ):
 
     elif test_num == 10:
         file_path = glob.glob( os.path.join( pre, '*APD.csv' ) )[0]
-        nodes.add_free_drop( file_path, tool.run_caps )
+        nodes.add_free_drops( file_path, tool.run_caps )
 
     elif test_num == 11:
         nodes.read_monthly_ticket_list( tool.run_caps )
@@ -313,7 +371,7 @@ def time_loop( test_num, test_package, toolkit: Toolkit, new_code = True ):
     t = ( time.time() - t ) / reps
     return t
 
-def test_time( test_num, test_package, tool ):
+def test_time( test_num, test_package, timer, tool ):
     t1 = time_loop( test_num, test_package, tool['M'] )
     t2 = time_loop( test_num, test_package, tool['d'], False )
 
@@ -321,7 +379,7 @@ def test_time( test_num, test_package, tool ):
                  10: 'Free', 11: 'Month', 12: 'Run Cap Matrix',
                  13: 'Planner', 14: 'Output'}
 
-    return change_time( test_package, test_name[test_num], t1, t2, 1000000 )
+    change_time( test_package, test_name[test_num], timer, t1, t2 )
 
 def reset_debug(print):
     for debug in [ Inter.Debug, IN.Debug ]:
@@ -333,46 +391,12 @@ def reset_debug(print):
         debug.run_cap_debug = []
         debug.notifications = print
 
-def goals_loop( test_package, tests ):
-    pre = test_package['Data_Prefix']
-
-    for goals in tests['Goals']:
-        reset_debug(tests['Print'])
-        test_package['Goals'] = goals
-
-        tool = {}
-        tool['M'] = Toolkit(goals, pre[0], test_package['Config']['Folder'])
-
-        entries = len(tool['M'].nodes.AP_costs)
-        if Inter.ConfigList.settings['Run Count Integer'] and entries > 100:
-            ex.PrintText().add_removed()
-            break
-
-        tool['d'] = Toolkit(goals, pre[1], test_package['Config']['Folder'], False)
-
-        ex.PrintText().print_setting(goals)
-
-        for test_num in tests['Modes']:
-            if test_num == 1:
-                test_1( tool['M'].nodes, tool['d'].nodes )
-            elif test_num == 2:
-                test_2( goals, pre )
-            elif test_num == 3:
-                test_3( tool['M'].run_caps, tool['d'].run_caps )
-            elif test_num == 4:
-                test_4( tool )
-            elif test_num == 5:
-                test_5()
-            elif test_num == 6:
-                test_6( tool )
-            elif test_num >= 7 and test_num <= 14:
-                test_package = test_time( test_num, test_package, tool )
-            elif test_num == 15:
-                ex2.Test_14(tool['M'])
-    return test_package
-
-def config_loop( config_list, test_package, tests ):
+def config_loop( config, test_package, tests, timer ):
     for config in config_list:
+        a = -236.19 - 165
+        b = -11.056
+        a = -266.125 - 667
+        b = -9.84
         test_package['Config'] = config
         test_package['Temp_ini'] = ex.set_config( config, test_package['Temp_ini'] )
 
@@ -385,9 +409,40 @@ def config_loop( config_list, test_package, tests ):
         Inter.ConfigList().read_config_ini()
         IN.ConfigList().read_config_ini()
 
-        test_package = goals_loop( test_package, tests )
+        pre = test_package['Data_Prefix']
+        for goals in tests['Goals']:
+            reset_debug(tests['Print'])
+            test_package['Goals'] = goals
 
-    return test_package
+            tool = {}
+            tool['M'] = Toolkit(goals, pre[0], test_package['Config']['Folder'])
+
+            entries = len(tool['M'].nodes.AP_costs)
+            if Inter.ConfigList.settings['Run Count Integer'] and entries > 100:
+                ex.PrintText().add_removed()
+                break
+
+            tool['d'] = Toolkit(goals, pre[1], test_package['Config']['Folder'], False)
+
+            ex.PrintText().print_setting(goals)
+
+            for test_num in tests['Modes']:
+                if test_num == 1:
+                    test_1( tool['M'].nodes, tool['d'].nodes )
+                elif test_num == 2:
+                    test_2( goals, pre )
+                elif test_num == 3:
+                    test_3( tool['M'].run_caps, tool['d'].run_caps )
+                elif test_num == 4:
+                    test_4( tool )
+                elif test_num == 5:
+                    test_5()
+                elif test_num == 6:
+                    test_6( tool )
+                elif test_num >= 7 and test_num <= 14:
+                    test_time( test_num, test_package, timer, tool )
+                elif test_num == 15:
+                    ex2.Test_14(tool['M'])
 
 # Initializing starts here
 Inter.standardize_path()
@@ -398,12 +453,13 @@ Inter.Debug.notifications = tests['Print']
 IN.Debug.notifications = tests['Print']
 
 ex.PrintText().main_settings(tests, Inter.path_prefix, IN.path_prefix)
-valid = True
 config_list, test_package, tests = ex.prepare_test_package(change_config, tests)
+timer = {'No Extreme': tests['No Extreme']}
 
 if tests['Random Testing']:
     random.shuffle(config_list)
 
 # MAIN algorithm
-test_package = config_loop( config_list, test_package, tests )
-ex.final_write( test_package )
+for config in config_list:
+    config_loop( config, test_package, tests, timer )
+ex.final_write( test_package, timer )

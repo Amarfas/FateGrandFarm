@@ -164,7 +164,7 @@ def config_skip( config_list, config, key, add, cap_set, index ):
 
 # Create a set of all conbinations of changes to configuration / settings
 def build_all_test( change_config, tests, line_break = False ):
-    events_list = tests['Events']
+    events_list = tests['Folders']
     no_skip = tests['No Skip']
     config_list = build_config( change_config, events_list )
     cap_set = []
@@ -200,10 +200,10 @@ def build_all_test( change_config, tests, line_break = False ):
     return config_list
 
 def make_config_list( change_config, tests ):
-    if len(tests['Events']) == 0:
-        tests['Events'] = ['']
+    if len(tests['Folders']) == 0:
+        tests['Folders'] = ['']
 
-    config_list = build_config( change_config, tests['Events'], 
+    config_list = build_config( change_config, tests['Folders'], 
                                tests['Check Default'], tests['Check Settings'] )
     if tests['Config Test']:
         config_list += build_all_test( change_config, tests, tests['Line Break'] )
@@ -239,8 +239,7 @@ def find_line_break_tests(test_package: dict, tests: list):
     return test_package, tests
 
 def prepare_test_package( change_config, tests ):
-    test_package = {'Time': {} , 
-                    'Data_Prefix': PrintText().data_prefix() ,
+    test_package = {'Data_Prefix': PrintText().data_prefix() ,
                     'Reps': tests['Reps'] , 
                     'Temp_ini': [] ,
                     }
@@ -301,8 +300,12 @@ def check_reverb( norm, test, norm_data = {}, test_data = {}, index = 'i', coord
 
         # If string, will just keep repeating otherwise
         if isinstance(norm[i], str):
-            if norm[i].rstrip() != test[i].rstrip():
-                return 'F: (' + index + ') = ' + str(new_coord) + PrintText().gen_unequal( norm[i], test[i] )
+            if norm[i] != test[i]:
+                if norm[i].rstrip() != test[i].rstrip():
+                    return 'F: (' + index + ') = ' + str(new_coord) + PrintText().gen_unequal( norm[i], test[i] )
+                else:
+                    a = [ norm[i], test[i] ]
+                    valid = 'T'
             else:
                 valid = 'T'
         else:
@@ -378,15 +381,17 @@ def check_matrix( text, norm, test, np_array = True, extra = False, extra_test =
         valid_2 = True
     PrintText.valid = PrintText.valid and valid_1 and valid_2 and (valid_3[0] == 'T')
 
-def final_write( test_package ):
+def final_write( test_package, timer: dict ):
     print( 'Overall Tests Were: ' + str(PrintText.valid) )
-    for i in test_package['Time']:
-        if len(test_package['Time'][i]) > 0:
-            print( str(test_package['Time'][i]) + '\n' )
+    for key in timer.keys():
+        if len(timer[key]) > 0:
+            print( str(timer[key]) + '\n' )
     
     main_test_path = os.path.join( PrintText().debug_path(), 'Last_Test_Package.json' )
     with open(main_test_path, 'w', encoding='utf-8') as f:
         json.dump(test_package, f, ensure_ascii=False, indent=4)
+        f.write('\n')
+        json.dump(timer, f, ensure_ascii=False, indent=4)
         f.close
 
     # Resets .ini files

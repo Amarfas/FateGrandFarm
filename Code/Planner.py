@@ -14,18 +14,16 @@ class Solution():
     run_count_int = False
 
     def __init__(self, prob: cp.Problem, runs: cp.Variable, AP_costs,
-                 index_to_name, run_cap_matrix ):
+                 index_to_name = '' ):
+        # Results primarily used for Output
         self.status = prob.status
-        self.AP_costs = AP_costs
         self.index_to_name = index_to_name
-        self.run_caps = run_cap_matrix
+        self.AP_costs = AP_costs
 
         self.run_int, self.total_AP = self._interpret_data( prob, runs )
-        self.ap_saved = []
 
-        self.ap_empty = ['','','']
-        if Solution.saved_format >= 1:
-            self.ap_empty = ['','','','']
+        # AP Saved Section, AP_costs should be down but needed for interpret
+        self.ap_saved = []
 
     def _interpret_data( self, prob: cp.Problem, runs: cp.Variable ):
         if prob.status == 'infeasible' and prob.value == math.inf:
@@ -53,79 +51,74 @@ class Solution():
             total_AP = int( self.AP_costs @ runs.value )
             
             return run_int, total_AP
-        
+    
+
+    # AP Saved section
     def get_AP_saved( self, read: list, i ):
-        if Solution.saved_format >= 0:
-            if i < 0:
-                read.append( self.ap_empty )
-            else:
-                read.append( self.ap_saved[i] )
+        if self.saved_format < 0  or i < 0:
+            read.append( [''] )
+        else:
+            read.append( self.ap_saved[i] )
 
     def _finish_saved( self, *entries ):
         final = ['  AP Saved =']
         for add in entries:
             final.append(add)
         return final
+    
+    def _decimal_format( self, result:str, units ):
+        res = result.split('.')
+        if len(res) == 1:
+            res.append('')
+        else:
+            res[1] = '.' + res[1]
+        return self._finish_saved( res[0], res[1], units )
         
     def _saved_format( self, ap_diff, units, format = '' ):
         f = '  '
         if format == '':
-            result = f"{ap_diff:,}"
+            return self._finish_saved( f"{ap_diff:,}", f + units )
         elif format == '2f':
-            result = f"{ap_diff:,.2f}"
+            return self._decimal_format( f"{ap_diff:,.2f}", f + units )
         elif format == '3g':
-            result = f"{ap_diff:,.3g}"
-
-        if format == '2f' or format == '3g':
-            res = result.split('.')
-            if len(res) == 1:
-                res.append('')
-            else:
-                res[1] = '.' + res[1]
-            return self._finish_saved( res[0], res[1], f + units )
-
-        else:
-            return self._finish_saved( result, f + units )
+            return self._decimal_format( f"{ap_diff:,.3g}", f + units )
         
     def _units_convert( self, ap_diff, i ):
         units_setting = Solution.saved_format
-        ap_cost = self.AP_costs[0][i]
+        ap_cost = self.AP_costs[0][i[0]]
         
         if units_setting == 0:
             units, format = 'AP', ''
-        
-        elif units_setting > 0:
+        else:
+            runs = np.sum(self.run_int[i[0]:(i[-1] + 1)])
             if (ap_cost == 0):
-                caps = self.run_caps
-                for j in range(len(caps['Matrix'])):
-                    if caps['Matrix'][j][i] > 0:
-                        break
-                total_tickets = caps['List'][j][0]
-
                 if units_setting == 1:
-                    ap_diff *= self.daily_ticket / total_tickets
+                    ap_diff *= self.daily_ticket / runs
                     units, format = 'AP / day', '2f'
                 else:
-                    ap_diff /= total_tickets
+                    ap_diff /= runs
                     units, format = 'AP / ticket', '2f'
 
             else:
-                ap_diff /= self.run_int[i][0]
                 if units_setting == 1:
+                    ap_diff /= runs
                     units, format = 'AP / run', '3g'
                 else:
-                    ap_diff /= ap_cost
+                    ap_diff /= ( runs * ap_cost )
                     units, format = 'AP / AP', '3g'
                 
         return self._saved_format( ap_diff, units, format )
     
-    def add_saved_ap( self, new_AP, index ):
+    def add_saved_ap( self, cut_planner_output ):
+        new_AP = cut_planner_output[0]
+        index = cut_planner_output[1]
+
         if new_AP == 'F':
-            new_val = self.ap_empty
+            new_val = ['']
 
         elif isinstance( new_AP, int ):
             new_AP -= self.total_AP
-            new_val = self._units_convert( new_AP, index[0] )
+            new_val = self._units_convert( new_AP, index )
 
         elif new_AP == 'infeasible' or new_AP == 'unbounded':
             new_val = self._finish_saved('inf')
@@ -136,6 +129,7 @@ class Solution():
         for i in range(len(index)):
             self.ap_saved.append(new_val)
 
+    # Initialization helped by 'Planner'
     def read_settings(settings):
         Solution.run_count_int = settings['Run Count Integer']
         Solution.daily_ticket = settings['Monthly Ticket Per Day']
@@ -166,21 +160,16 @@ class Planner():
         self.AP_costs = np.transpose( quest_data.AP_costs )
         self.run_size = np.size( self.AP_costs )
         self.goals = data_files.goals.copy()
-        self.run_caps = run_cap_mat.copy()
+        self.run_caps = run_cap_mat
 
         # Data to Help Interpret Analysis
         self.mat_index_total = data_files.mat_index_total
-        self.index_to_name = data_files.index_to_name.copy()
+        self.index_to_name = data_files.index_to_name
 
-        self.recorded_months = quest_data.recorded_months
+        self.first_month = quest_data.first_monthly['Date']
         self.quest_names = quest_data.quest_names
 
         Solution.read_settings(settings)
-
-        # Primarily for debugging
-        self.debug = {'Goals': self.goals.copy(),
-                      'Index to Name': self.index_to_name.copy(),
-                      'Run Caps': self.run_caps.copy()}
 
     def _warning( self, error, threshold = 1, message = '', pos = 0 ):
         if message == '':
@@ -197,10 +186,10 @@ class Planner():
                     error = 'Obtaining any ' + self.index_to_name[i]
                     error += ' is impossible with these restrictions.'
                     self._warning( error, 2, pos = 1 )
-                    self.index_to_name[i] = ''
                     self.goals[i] = 0
     
-    def _solver( self, cut = False, drop_matrix = False, run_caps = False, AP_costs = False ):
+    def _solver(self, cut = False, drop_matrix = False, run_caps = False, 
+                AP_costs = False):
         # Checks to see if this is for AP Saved using modified data
         run_size = self.run_size - cut
         if not cut:
@@ -217,7 +206,8 @@ class Planner():
         # Set 'constraints' conditions 
         constraints = [ drop_matrix @ runs >= self.goals ]
         if self.run_count_int:
-            constraints.append( np.eye(run_size) @ runs >= np.zeros((run_size,1), dtype=int) )
+            constraints.append(np.eye(run_size) @ runs >= 
+                               np.zeros((run_size,1), dtype=int) )
         if run_caps['Matrix'].any():
             constraints.append( run_caps['Matrix'] @ runs <= run_caps['List'] )
 
@@ -229,6 +219,7 @@ class Planner():
 
         return prob, runs
 
+    # Backup section, if the initial Solution fails
     def _backup_remove_non_months( self, row ):
         self._warning('Problem will be run again after removing all Run Caps.')
 
@@ -244,16 +235,20 @@ class Planner():
         dele = np.zeros( row_num, dtype=bool )
         dele[row:] = True
         self.run_caps['List'] = self.run_caps['List'][dele,...]
+
+        self.run_caps['Event'] = self.run_caps['Event'][row:]
     
     def _backup_remove_bleach( self, row ):
         self._warning('Problem will be run again after removing Bleach Caps.')
         self.run_caps['Matrix'] = np.delete( self.run_caps['Matrix'], row, 0)
         self.run_caps['List'] = np.delete( self.run_caps['List'], row, 0)
+        self.run_caps['Event'].pop(row)
     
     # Remove Bleached Earth Run Caps first, because of the exclusive mats
     # If that doesn't work, keep only the constraints for Monthly Tickets.
     def _remove_runcaps( self, prob, runs ):
-        run_caps = self.run_caps['Event']
+        run_caps = self.run_caps['Event'].copy()
+        failure = False
 
         for row in range(len(run_caps)):
             if run_caps[row] == 'Free Quests':
@@ -263,10 +258,12 @@ class Planner():
                 if prob.status == 'optimal':
                     break
                 else:
+                    # Accounting for reduction in matrix size
+                    failure = True
                     self._warning('Analysis was still a failure.')
             
-            if run_caps[row] in self.recorded_months:
-                self._backup_remove_non_months(row)
+            if run_caps[row] == self.first_month:
+                self._backup_remove_non_months( row - failure )
                 prob, runs = self._solver()
 
                 if prob.status != 'optimal':
@@ -298,6 +295,8 @@ class Planner():
 
         return prob, runs
     
+    # Saved AP section: selectively removes specific rows and columns from
+    #  the data and rerunning the solver.
     def _correct_end( self, end_i, default ):
         if end_i == '':
             return default
@@ -351,7 +350,7 @@ class Planner():
                         new_mat[i].pop(index[0])
         return new_mat
     
-    def _cut_i_dict( self, matrix, index, monthly = False ):
+    def _cut_i_dict( self, matrix, index, monthly = True ):
         new_mat = {}
         new_cut = self._cut_i_matrix( matrix['Matrix'], index, 1 )
 
@@ -368,7 +367,10 @@ class Planner():
         new_mat['Matrix'] = new_cut
         return new_mat
 
-    def _cut_planner( self, index, monthly = False ):
+    def _cut_planner( self, logic, index, monthly = False ):
+        if not logic:
+            return 'F', index
+        
         new_drops = self._cut_i_matrix( self.drop_matrix, index, 1 )
         new_run_caps = self._cut_i_dict( self.run_caps, index, monthly )
         new_costs = self._cut_i_matrix( self.AP_costs, index, 1 )
@@ -376,10 +378,10 @@ class Planner():
         prob, runs = self._solver( len(index), new_drops, new_run_caps, new_costs )
 
         if prob.status == 'optimal':
-            sol = Solution( prob, runs, new_costs, self.index_to_name, new_run_caps )
-            return sol.total_AP
+            sol = Solution( prob, runs, new_costs )
+            return sol.total_AP, index
         else:
-            return prob.status
+            return prob.status, index
         
     def _calculate_saved_months( self, sol: Solution, start ):
         prev_month = self.quest_names[start]
@@ -390,11 +392,8 @@ class Planner():
             cur_month = self.quest_names[i]
 
             if cur_month != prev_month:
-                if len(used) > 0:
-                    new_AP = self._cut_planner( index, True )
-                else:
-                    new_AP = 'F'
-                sol.add_saved_ap( new_AP, index )
+                logic = (len(used) > 0)
+                sol.add_saved_ap(self._cut_planner(logic, index))
                 
                 index = []
                 used = []
@@ -405,23 +404,17 @@ class Planner():
                 
             prev_month = cur_month
         
-        if len(used) > 0:
-            new_AP = self._cut_planner( index, True )
-        else:
-            new_AP = 'F'
-        sol.add_saved_ap( new_AP, index )
+        logic = (len(used) > 0)
+        sol.add_saved_ap(self._cut_planner(logic, index))
 
     def _calculate_AP_saved( self, sol: Solution ):
         for i in range(len(sol.run_int)):
-            if self.quest_names[i] in self.recorded_months:
-                sol = self._calculate_saved_months( sol, i )
+            if self.quest_names[i] == self.first_month:
+                self._calculate_saved_months( sol, i )
                 break
 
-            if int(sol.run_int[i]) > 0:
-                new_AP = self._cut_planner([i])
-            else:
-                new_AP = 'F'
-            sol.add_saved_ap( new_AP, [i] )
+            logic = (int(sol.run_int[i]) > 0)
+            sol.add_saved_ap( self._cut_planner( logic, [i], False ) )
 
     # 'message' corresponds to how important the warnings for this run will be.
     # If 'message' is not higher than 'warning's threshold (default = 0),
@@ -434,8 +427,7 @@ class Planner():
         if prob.status != 'optimal':
             prob, runs = self._backup_planner( prob, runs ) 
 
-        sol = Solution(prob, runs, self.AP_costs, 
-                       self.index_to_name, self.run_caps)
+        sol = Solution(prob, runs, self.AP_costs, self.index_to_name)
 
         if (prob.status == 'optimal') and (sol.saved_format >= 0) and self.run_size > 1:
             self._calculate_AP_saved(sol)
@@ -449,15 +441,6 @@ class Output:
     def __init__(self) -> None:
         pass
 
-    def final_write( self, file_name, text, main = False ):
-        if main:
-            Output.text_written.append( [file_name, text.split('\n')] )
-
-        if Output.not_test:
-            with open( file_name, 'w') as f:
-                f.write(text)
-                f.close()
-
     def console_print( self, text, next_line = True ):
         if Output.not_test:
             print( text )
@@ -465,13 +448,7 @@ class Output:
     
     # Finds an appropriate indentation between each column of data.
     def find_indent( self, text ):
-        if isinstance( text, dict ):
-            indent = {}
-            for key in text.keys():
-                indent[key] = self.find_indent(text[key])
-                return indent
-            
-        elif len(text) > 0 and isinstance( text[0], list ):
+        if len(text) > 0 and isinstance( text[0], list ):
             indent = [0] * len(max( text, key = len ))
             for line in text:
                 for j in range(len(line)):
@@ -490,68 +467,65 @@ class Output:
                     indent = new_longest
             return indent
         
+    # Drop Data: Writing section
     def read_AP_saved( self, ap, ind ):
-        if len(ap) == 3:
-            return "{:<{}}{:>{}}{:<{}}".format(ap[0], ind[0], ap[1], 
-                                               ind[1], ap[2], ind[2])
+        if len(ap) < 3:
+            return False
+        
+        elif len(ap) == 3:
+            return "{:<{}}{:>{}}{:<{}}".format(ap[0], ind[0], 
+                                               ap[1], ind[1], 
+                                               ap[2], ind[2])
         else:
             txt1 = "{:<{}}{:>{}}".format(ap[0], ind[0], ap[1], ind[1])
             txt2 = "{:<{}}{:<{}}".format(ap[2], ind[2], ap[3], ind[3])
             return txt1 + txt2
 
-    def write_farming_plan( self, txt, two = False ):
+
+    def write_farming_plan( self, txt: dict, monthly = True ):
         output = ''
         output_m = ''
         
-        fmt = {'Qst': "{:<{}}", 'Run': "{:>{}}", 'Box': "{:<{}}",
-               'Drop': "{:>{}}", 'Mat': "{:<{}}", 'Save': "{:>{}}"}
         ind = {}
         for key in txt.keys():
             ind[key] = self.find_indent(txt[key])
 
         for i in range(len(txt['Qst'])):
-            lead = ''
-            for key in [ 'Qst', 'Run' ]:
-                lead += fmt[key].format( txt[key][i], ind[key] )
+            lead = "{:<{}}{:>{}}".format(txt['Qst'][i], ind['Qst'],
+                                         txt['Run'][i], ind['Run'])
 
-            tail = ''
-            if txt['Save'] != []:
-                tail = self.read_AP_saved( txt['Save'][i], ind['Save'] )
+            tail = self.read_AP_saved( txt['Save'][i], ind['Save'] )
 
-            if two:
-                # Adds number of boxes farmed
+            # Adds number of boxes farmed
+            if not monthly:
                 if tail:
-                    new_m = lead + fmt['Box'].format( txt['Box'][i], ind['Box'] )
+                    new_m = lead + "{:<{}}".format( txt['Box'][i], ind['Box'] )
                     new_m += tail
                 else:
                     new_m = lead + txt['Box'][i]
+                
                 output_m += self.console_print( new_m )
                 lead += '  =  '
 
             # Adds average acquired Mats for 'Farming Plan Drops'
             output += lead
-            for j in range(len(ind['Drop'])):
-                if j > len(txt['Drop'][i]) - 1:
-                    if two or Solution.saved_format < 0:
-                        break
-                    else:
+            for j in range(len(txt['Drop'][i])):
+                output += "{:>{}}{:<{}}".format(txt['Drop'][i][j], ind['Drop'][j],
+                                                txt['Mat'][i][j],  ind['Mat'][j])
+
+            if monthly and tail:
+                if j + 1 < len(ind['Drop']):
+                    for j in range( j + 1, len(ind['Drop'])):
                         output += ' ' * ( ind['Drop'][j] + ind['Mat'][j] )
-
-                elif txt['Drop'][i][j] == '' or txt['Drop'][i][j] is None:
-                    continue
-                else:
-                    for key in [ 'Drop', 'Mat' ]:
-                        output += fmt[key].format( txt[key][i][j], ind[key][j] )
-
-            if not two and Solution.saved_format >= 0:
                 output += ' ' * 10 + tail
             output += '\n'
         
-        if two:
-            return output_m , output
-        else:
+        if monthly:
             return output
+        else:
+            return output_m , output
     
+    # Drop Data: Reading section
     def add_drops( self, txt, drop_line, runs, index_to_name, fmt ):
         gained_mats = False
         if txt['Drop'] == []:
@@ -565,23 +539,23 @@ class Output:
                 txt['Mat'][-1].append( index_to_name[i] + ' , ')
                 gained_mats = True
         
-        # Remove the ', ' from the last mat. 'gained_mats' flag just for extra security
+        # Remove ', ' from the last mat. 'gained_mats' flag just for security
         if gained_mats:
             last_mat = txt['Mat'][-1][-1]
             txt['Mat'][-1][-1] = last_mat[0:( len(last_mat) - 2 )]
-        
-        return txt
     
-    def new_month( self, txt, sol: Solution, new_Qst, new_Run, new_Drop, i = -1 ):
+
+    def new_month( self, txt, sol: Solution, new_Qst, new_Run, i = -1 ):
         txt['Qst'].append(new_Qst)
         txt['Run'].append(new_Run)
-        txt['Drop'].append(new_Drop)
-        txt['Mat'].append(new_Drop.copy())
+        txt['Drop'].append([])
+        txt['Mat'].append([])
 
         sol.get_AP_saved( txt['Save'], i )
-        return txt
     
-    def read_ticket_data(self, txt, start, sol: Solution, nodes: QuestData ):
+
+    def read_ticket_data(self, start, sol: Solution, nodes: QuestData ):
+        txt = self.make_drop_dict(True)
         prev_relevant_month = False
         prev_relevant_year = False
 
@@ -596,23 +570,24 @@ class Output:
                     cur_year = month_name.split()[1]
                     if cur_year != prev_relevant_year:
                         if prev_relevant_year != False:
-                            txt = self.new_month( txt, sol, '----', '', [''] )
+                            self.new_month( txt, sol, '----', '' )
                         prev_relevant_year = cur_year
 
-                    txt = self.new_month( txt, sol, month_name, '= ', [], i )
+                    self.new_month( txt, sol, month_name, '= ', i )
                 
-                txt = self.add_drops(txt, nodes.drop_matrix[i], run_count, 
-                                     sol.index_to_name, "{:.0f}" )
+                self.add_drops(txt, nodes.drop_matrix[i], run_count, 
+                               sol.index_to_name, "{:.0f}" )
 
                 prev_relevant_month = month_name
-
         return txt
     
-    def read_drop_data( self, txt, sol: Solution, nodes: QuestData ):
+
+    def read_drop_data( self, sol: Solution, nodes: QuestData ):
+        txt = self.make_drop_dict()
         ticket_start = -1
 
         for i in range(len(sol.run_int)):
-            if nodes.quest_names[i] in nodes.recorded_months:
+            if nodes.quest_names[i] == nodes.first_monthly['Date']:
                 ticket_start = i
                 break
 
@@ -633,27 +608,34 @@ class Output:
                 # For Farming Plan Drops
                 txt['Drop'].append([])
                 txt['Mat'].append([])
-                txt = self.add_drops(txt, nodes.drop_matrix[i], run_count, 
-                                     sol.index_to_name, "{:.2f}" )
+
+                self.add_drops(txt, nodes.drop_matrix[i], run_count, 
+                               sol.index_to_name, "{:.2f}" )
+
         return txt, ticket_start
 
-    def create_drop_file(self, sol: Solution, nodes: QuestData ):
-        txt = {}
-        for key in [ 'Qst', 'Run', 'Box', 'Mat', 'Drop', 'Save' ]:
-            txt[key] = []
 
+    # Drop Data: Main section
+    def make_drop_dict( self, monthly = False ):
+        keys = [ 'Qst', 'Run', 'Box', 'Mat', 'Drop', 'Save' ]
+        if monthly:
+            keys.remove('Box')
+        
+        txt = {}
+        for k in keys:
+            txt[k] = []
+        return txt
+
+    def create_drop_file(self, sol: Solution, nodes: QuestData ):
         # Creates matrix of drop data information for each quest.
-        txt, ticket_start = self.read_drop_data( txt, sol, nodes )
+        txt, ticket_start = self.read_drop_data(sol, nodes)
 
         # Formats the drop parts of the output files.
-        output_m, output_d = self.write_farming_plan( txt, True )
+        output_m, output_d = self.write_farming_plan( txt, False )
 
         # Creates matrix of ticket choice information for each month.
         if ticket_start != -1 and ticket_start < (len(sol.run_int) - 1):
-            txt_t = {}
-            for key in txt.keys():
-                txt_t[key] = []
-            txt_t = self.read_ticket_data(txt_t, ticket_start, sol, nodes )
+            txt_t = self.read_ticket_data(ticket_start, sol, nodes)
 
             # Formats the ticket parts of the output files.
             if txt_t['Qst'] != []:
@@ -667,6 +649,16 @@ class Output:
         return output_m, output_d
 
 
+    # End-Point Writing section
+    def final_write( self, file_name, text, main = False ):
+        if main:
+            Output.text_written.append( [file_name, text.split('\n')] )
+
+        if Output.not_test:
+            with open( file_name, 'w') as f:
+                f.write(text)
+                f.close()
+    
     def avoid_plan_name_error( self, former_plans, text ):
         os.makedirs(os.path.dirname(former_plans), exist_ok=True)
         self.final_write( former_plans, text )
@@ -694,6 +686,7 @@ class Output:
             self.avoid_plan_name_error( file_name, text )
 
 
+    # Debug Writing section
     def make_report( self, text, header = '', extra = 0 ):
         if text == []:
             return ''
@@ -738,15 +731,16 @@ class Output:
         self.file_creation( plan_name, 'Config Notes.txt', output, True, fail )
 
 
-    def create_debug(self):
+    def create_debug_report(self):
         if Output.not_test:
             print('FAILED EXECUTION')
         Output().create_note_file( 'FAILED_EXECUTION__', True )
 
 
+    # Initial section
     def print_out( self, sol: Solution, nodes: QuestData ):
         if sol.run_int is None:
-            Output().create_debug()
+            Output().create_debug_report()
         else:
             out = self.console_print( 'These results are: ' + sol.status )
             txt = 'The total AP required is: ' + "{:,}".format(sol.total_AP)+'\n'
