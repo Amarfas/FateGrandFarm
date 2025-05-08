@@ -39,7 +39,7 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
 
     if run_cap_mat:
         if len(run_cap_mat) > 2:
-            if run_cap_mat['Matrix'].any():
+            if np.size(run_cap_mat['Matrix']) > 0 and run_cap_mat['Matrix'].any():
                 constraints.append( run_cap_mat['Matrix'] @ runs <= run_cap_mat['List'] )
         elif run_cap_mat[0].any():
             constraints.append( run_cap_mat[0] @ runs <= run_cap_mat[1] )

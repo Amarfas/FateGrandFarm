@@ -33,6 +33,7 @@ class ConfigList():
                 'Goals File Name': 'GOALS.csv',
                 'Debug on Fail': True,
                 'Output Files': True}
+    
     cut_AP = {'Daily': 1, 
               'Bleach': 1}
     config = configparser.ConfigParser()

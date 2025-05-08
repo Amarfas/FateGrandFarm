@@ -166,7 +166,7 @@ class Planner():
         self.mat_index_total = data_files.mat_index_total
         self.index_to_name = data_files.index_to_name
 
-        self.first_month = quest_data.first_monthly['Date']
+        self.first_month = quest_data.first_monthly.get( 'Date', False )
         self.quest_names = quest_data.quest_names
 
         Solution.read_settings(settings)
@@ -208,7 +208,8 @@ class Planner():
         if self.run_count_int:
             constraints.append(np.eye(run_size) @ runs >= 
                                np.zeros((run_size,1), dtype=int) )
-        if run_caps['Matrix'].any():
+            
+        if np.size(run_caps['Matrix']) > 0 and run_caps['Matrix'].any():
             constraints.append( run_caps['Matrix'] @ runs <= run_caps['List'] )
 
         # Set the 'objective' condition and run analysis

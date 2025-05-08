@@ -35,10 +35,10 @@ import d_Extra_Temp as ex2
 # 'Test3' has thousands of quite a few mats, and a demand for 2 gold gems
 # 'Test4' has 2000 of four Bronze mats, 100 of Gems/Statues, and 3000 XP
 
-tests = {'Print': True ,
+tests = {'Print': False ,
         'Goals': [ 'Per', 'Test', 'Test1', 'Test2', 'Test3', 'Test4', 'Sample' ] ,
-        'Folders': [ 0, 1, 2, 3 ] ,
-        'Modes': [ 8, 9, 10 ] ,
+        'Folder': [ 0, 1, 2, 3 ] ,
+        'Modes': [ 1, 2, 3, 4 ] ,
         'Reps': 100 ,
         'Config Test': True ,
         'Check Default': True ,
@@ -121,25 +121,30 @@ class Toolkit():
             self.runs: cp.Variable = runs
             self.tot_AP = tot_AP
 
-def add_time2( time, time_dif, data, cur ):
-    total = time_dif + time[cur].get( 'Tot', 0 )
-    rep = 1 + time[cur].get( 'Rep', 0 )
-    time[cur]['Avg'] = total / rep
-    time[cur]['Tot'] = total
-    time[cur]['Rep'] = rep
-    time[cur]['Max'] = max( time_dif, time[cur].get('Max', -1*math.inf) )
-    time[cur]['Min'] = min( time_dif, time[cur].get('Min', math.inf) )
+def add_time( timer: dict, time_dif, data, cur ):
+    total = time_dif + timer.setdefault( cur, {} ).get( 'Tot', 0 )
+    rep = 1 + timer[cur].get( 'Rep', 0 )
+    timer[cur]['Avg'] = total / rep
+    timer[cur]['Tot'] = total
+    timer[cur]['Rep'] = rep
+    timer[cur]['Max'] = max( time_dif, timer[cur].get('Max', -1*math.inf) )
+    timer[cur]['Min'] = min( time_dif, timer[cur].get('Min', math.inf) )
 
     if cur == 'x':
-        t1 = data[0] + time[cur].get( 'M Tot', 0 )
-        t2 = data[1] + time[cur].get( 'd Tot', 0 )
-        time[cur]['Md Avg'] = ( t2 - t1 ) / t2 * 100
-        time[cur]['M Tot'] = t1
-        time[cur]['d Tot'] = t2
+        t1 = data[0] + timer[cur].get( 'M Tot', 0 )
+        t2 = data[1] + timer[cur].get( 'd Tot', 0 )
+        if t2 == 0:
+            time_mult = -100 * (t1 != 0)
+        else:
+            time_mult = (t2-t1) / t2 * 100
+        
+        timer[cur]['Md Avg'] = time_mult
+        timer[cur]['M Tot'] = t1
+        timer[cur]['d Tot'] = t2
 
-    return time
+    return timer
 
-def add_time( timer, time_dif, data, cur ):
+def add_time2( timer, time_dif, data, cur ):
     t1, t2 = data
     try:
         timer[cur]['Tot'] += time_dif
@@ -160,30 +165,6 @@ def add_time( timer, time_dif, data, cur ):
         if cur == 'x':
             timer[cur].update({'Md Avg': (t2-t1) / t2 * 100, 
                                 'M Tot': t1, 'd Tot': t2})
-    
-    total = time_dif + timer[cur].get( 'tTot', 0 )
-    rep = 1 + timer[cur].get( 'tRep', 0 )
-    timer[cur]['tAvg'] = total / rep
-    timer[cur]['tTot'] = total
-    timer[cur]['tRep'] = rep
-    timer[cur]['tMax'] = max( time_dif, timer[cur].get('tMax', -1*math.inf) )
-    timer[cur]['tMin'] = min( time_dif, timer[cur].get('tMin', math.inf) )
-
-    if cur == 'x':
-        t1 = data[0] + timer[cur].get( 'tM Tot', 0 )
-        t2 = data[1] + timer[cur].get( 'td Tot', 0 )
-        timer[cur]['tMd Avg'] = ( t2 - t1 ) / t2 * 100
-        timer[cur]['tM Tot'] = t1
-        timer[cur]['td Tot'] = t2
-
-    for key in timer[cur].keys():
-        if not key.startswith('t'):
-            a = timer[cur][key]
-            b = timer[cur]['t' + key]
-            c = a - b
-            if c / b > 0.0000001:
-                a = 1
-                b = 2
 
     return timer
 
@@ -207,16 +188,23 @@ def change_time( test_package, test, timer, t1, t2 ):
     mult = 1000000
 
     time_dif = (t2-t1) * mult
-    time_mult = (t2-t1) / t2 * 100
+    if t2 == 0:
+        time_mult = -100 * (t1 != 0)
+    else:
+        time_mult = (t2-t1) / t2 * 100
+    
     mult_text = format(mult,',')
     ex.PrintText().print( ' ' + test + ' Difference x' + 
                           mult_text + ': ' + str(time_dif) + '\n' )
     
-    if timer['No Extreme'] and time_dif > 10000:
-        return timer
 
     goals = test_package['Goals']
     config = test_package['Config']
+
+    if timer['No Extreme'] and time_dif > 10000:
+        timer['Skip'].append({'Time': time_dif, 'Goals': goals, 'Config': config})
+        return timer
+
     t = { '-': time_dif, 'x': time_mult }
     d = [ t1, t2 ]
     
@@ -382,7 +370,7 @@ def test_time( test_num, test_package, timer, tool ):
     change_time( test_package, test_name[test_num], timer, t1, t2 )
 
 def reset_debug(print):
-    for debug in [ Inter.Debug, IN.Debug ]:
+    for debug in [ Inter, IN ]:
         debug.error = [ '', '' ]
         debug.config_notes = []
         debug.monthly_notes = ''
@@ -391,58 +379,53 @@ def reset_debug(print):
         debug.run_cap_debug = []
         debug.notifications = print
 
-def config_loop( config, test_package, tests, timer ):
-    for config in config_list:
-        a = -236.19 - 165
-        b = -11.056
-        a = -266.125 - 667
-        b = -9.84
-        test_package['Config'] = config
-        test_package['Temp_ini'] = ex.set_config( config, test_package['Temp_ini'] )
+def config_loop( test_package, tests, timer ):
+    # data_files = -9% ish? maybe? -4.77 or -0.8% (6841s)
+    # output = -9.84% or -11.056%? and -266.125 (667 samples) or -236.19 (165 samples)?
+    # Run_Cap_Matrix is -1.247 and -3.4%? (80s) or 1.94 and 5.13% (93s) or 1.07 and 1.31% (176s) or 2.06 and -3.04% (483s) or 0 and -4% / 0 Md (1544s)
+    # Planner is ~.12% (80 samples) or -327.27 and -2.16% (93 samples) or -419 and -1.7% (176s) or 104.3 and -0.3% /8.54 MD (483s) or -17 and 0%/Md (1544s)
+    # Monthly is +15.25 or -1.73% / 0.3? (6839s)
+    # Event is -197.5 or -0.85% (867s) or -145 and -0.5 (2186s)
+    # Free is 25.4 or -0.1% (870s)or -70 and -0.45 (2193s)
+    ex.set_config(test_package)
 
-        # Skips if Setting # is before the starting Set
-        if ex.PrintText().new_config(config):
-            continue
+    # Skips if Setting # is before the starting Set
+    if ex.PrintText().new_config(test_package['Config']):
+        return
 
-        Inter.ConfigList.cut_AP = {'Daily': 1, 'Bleach': 1}
-        IN.ConfigList.cut_AP = {'Daily': 1, 'Bleach': 1}
-        Inter.ConfigList().read_config_ini()
-        IN.ConfigList().read_config_ini()
+    Inter.ConfigList.cut_AP = {'Daily': 1, 'Bleach': 1}
+    IN.ConfigList.cut_AP = {'Daily': 1, 'Bleach': 1}
+    Inter.ConfigList().read_config_ini()
+    IN.ConfigList().read_config_ini()
 
-        pre = test_package['Data_Prefix']
-        for goals in tests['Goals']:
-            reset_debug(tests['Print'])
-            test_package['Goals'] = goals
+    pre = test_package['Data_Prefix']
+    for goals in tests['Goals']:
+        reset_debug(tests['Print'])
+        test_package['Goals'] = goals
 
-            tool = {}
-            tool['M'] = Toolkit(goals, pre[0], test_package['Config']['Folder'])
+        tool = {'M': Toolkit(goals, pre[0], test_package['Config']['Folder'])}
 
-            entries = len(tool['M'].nodes.AP_costs)
-            if Inter.ConfigList.settings['Run Count Integer'] and entries > 100:
-                ex.PrintText().add_removed()
-                break
+        if ex.PrintText().check_failure(IN.ConfigList.settings['Run Count Integer'], 
+                                        tool['M'], goals ): break
+        tool['d'] = Toolkit(goals, pre[1], test_package['Config']['Folder'], False)
 
-            tool['d'] = Toolkit(goals, pre[1], test_package['Config']['Folder'], False)
-
-            ex.PrintText().print_setting(goals)
-
-            for test_num in tests['Modes']:
-                if test_num == 1:
-                    test_1( tool['M'].nodes, tool['d'].nodes )
-                elif test_num == 2:
-                    test_2( goals, pre )
-                elif test_num == 3:
-                    test_3( tool['M'].run_caps, tool['d'].run_caps )
-                elif test_num == 4:
-                    test_4( tool )
-                elif test_num == 5:
-                    test_5()
-                elif test_num == 6:
-                    test_6( tool )
-                elif test_num >= 7 and test_num <= 14:
-                    test_time( test_num, test_package, timer, tool )
-                elif test_num == 15:
-                    ex2.Test_14(tool['M'])
+        for test_num in tests['Modes']:
+            if test_num == 1:
+                test_1( tool['M'].nodes, tool['d'].nodes )
+            elif test_num == 2:
+                test_2( goals, pre )
+            elif test_num == 3:
+                test_3( tool['M'].run_caps, tool['d'].run_caps )
+            elif test_num == 4:
+                test_4( tool )
+            elif test_num == 5:
+                test_5()
+            elif test_num == 6:
+                test_6( tool )
+            elif test_num >= 7 and test_num <= 14:
+                test_time( test_num, test_package, timer, tool )
+            elif test_num == 15:
+                ex2.Test_14(tool['M'])
 
 # Initializing starts here
 Inter.standardize_path()
@@ -454,12 +437,20 @@ IN.Debug.notifications = tests['Print']
 
 ex.PrintText().main_settings(tests, Inter.path_prefix, IN.path_prefix)
 config_list, test_package, tests = ex.prepare_test_package(change_config, tests)
-timer = {'No Extreme': tests['No Extreme']}
+timer = {'No Extreme': tests['No Extreme'], 'Skip': []}
+
+config_main = ex.initial_config(test_package)
+config_list = config_main + config_list
 
 if tests['Random Testing']:
     random.shuffle(config_list)
+    if tests['No Skip'] and len(config_list) > 10000:
+        config_list = config_list[:10000]
 
 # MAIN algorithm
 for config in config_list:
-    config_loop( config, test_package, tests, timer )
-ex.final_write( test_package, timer )
+    test_package['Config'] = config
+    config_loop( test_package, tests, timer )
+    ex.record_last( test_package, timer )
+
+ex.reset_ini( test_package, timer )

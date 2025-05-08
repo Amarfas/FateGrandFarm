@@ -1,6 +1,7 @@
 import os
 import json
 import numpy as np
+import math
 
 class PrintText():
     text = ''
@@ -10,7 +11,8 @@ class PrintText():
     setting_print = True
 
     set_num = -1
-    removed_set = []
+    run_int = {'Removed Sets': [], 'Min Removed': {'Name': 'Min; '}, 
+               'Max Run Int': {'Name': 'Max; '}}
     config = {}
     goals = ''
 
@@ -34,6 +36,14 @@ class PrintText():
             print(new_text)
         else:
             PrintText.text += new_text + '\n'
+
+    def write_print( self, new_text, file ):
+        if new_text != '':
+            self.print(new_text)
+            file_path = os.path.join( PrintText().debug_path(), file )
+            with open(file_path, 'w') as f:
+                f.write(new_text)
+                f.close()
     
     def new_config( self, config ):
         PrintText.config = config
@@ -42,7 +52,7 @@ class PrintText():
         PrintText.set_num = self.set_num + 1
         return (self.set_num < self.set_start)
 
-    def print_setting( self, goals = '' ):
+    def print_setting(self):
         if self.setting_print:
             print( '\n Setting ' + str(self.set_num) + ': ' + str(self.config) + '\n' )
             PrintText.setting_print = False
@@ -50,6 +60,7 @@ class PrintText():
             if (int(self.set_num) == self.set_pause):
                 self.print_out = True
 
+    def print_goals_line(self, goals = ''):
         index = goals.find('GOALS')
         if index >= 0:
             goals = goals[index:]
@@ -79,8 +90,68 @@ class PrintText():
     def len_unequal( self, norm, test ):
         return ' , len norm != test ; ' + str(len(norm)) + ' != ' + str(len(test))
     
-    def add_removed( self ):
-        PrintText.removed_set.append( self.set_num )
+    def add_run_int( self, size: dict, set = 'Min Removed' ):
+        original: dict = PrintText.run_int[set]
+        p = 2 * (set == 'Min Removed') - 1
+
+        for key in size.keys():    
+            test = (original.get(key, 'F') == 'F')
+            test = test or ((p * size[key]) < (p * original[key][key]))
+            if test:
+                original[key] = size  
+
+    def _write_run_line( self, mat ):
+        runs = ' x ' + "{:,}".format(mat['Runs'])
+        txt = 'Drop Matrix = ' + "{:,}".format(mat['Drop Mat']) + ' ; '
+        txt += 'Goals x Runs = ' + str(mat['Goals']) + runs + ' ; '
+        txt += 'Run Matrix = ' + "{:,}".format(mat['Run Mat']) + ' ; '
+        txt += 'Run List x Runs = ' + str(mat['Run List']) + runs + '\n'
+        return txt
+
+    def _write_run_dim( self, size ):
+        txt = ''
+        min_set = PrintText.run_int['Min Removed']
+        max_set = PrintText.run_int['Max Run Int']
+        size_set = {'Name': 'Cur; ', ' ': size}
+
+        for mat in [min_set, max_set, size_set]:
+            if len(mat) < 2:
+                continue
+
+            for key in mat.keys():
+                if key == 'Name': continue
+
+                if key == 'Runs' or key == ' ':
+                    txt += mat['Name']
+                else:
+                    txt += '     '
+                txt += "{:<{}}".format(key, 8) + ': '
+                txt += self._write_run_line(mat[key])
+                txt += '\n'
+        return txt
+
+    def check_failure( self, config, tool, goals ):
+        txt = ''
+        if config:
+            size = {'Runs':     np.size(tool.nodes.AP_costs),
+                    'Drop Mat': np.size(tool.nodes.drop_matrix),
+                    'Goals':    len(    tool.input.goals),
+                    'Run Mat':  np.size(tool.run_mat['Matrix'])}
+            size['Run List'] = int(size['Run Mat'] / size['Runs'])
+
+            if size['Runs'] > 100:
+                PrintText.run_int['Removed Sets'].append( self.set_num )
+                self.add_run_int(size, 'Min Removed')
+                return True
+
+            txt = self._write_run_dim(size)
+
+            self.add_run_int(size, 'Max Run Int')
+
+        self.print_setting()
+        self.write_print(txt, 'Run_Cap_Matrix_Dimensions.txt')
+        self.print_goals_line(goals)
+        return False
     
     def ini_path( self ):
         return os.path.join( PrintText.path_pre, 'fgf_config.ini' )
@@ -106,8 +177,10 @@ class PrintText():
                          os.path.join( PrintText.path_pre_d, 'Data Files' )]
         return file_path
 
-def build_config( change_config, events_list, check_default = False, 
-                 check_set = False ):
+def build_config( change_config, tests, first = False ):
+    events_list = tests['Folder']
+    check_default = (first and tests['Check Default'])
+    check_set = (first and tests['Check Settings'])
     config_list = []
     for i in range(len(events_list)):
         list_ini = {'Folder': str(events_list[i])}
@@ -163,10 +236,10 @@ def config_skip( config_list, config, key, add, cap_set, index ):
     return skip
 
 # Create a set of all conbinations of changes to configuration / settings
-def build_all_test( change_config, tests, line_break = False ):
-    events_list = tests['Folders']
+def build_all_test( change_config, tests ):
     no_skip = tests['No Skip']
-    config_list = build_config( change_config, events_list )
+    line_break = tests['Line Break']
+    config_list = build_config( change_config, tests )
     cap_set = []
 
     for key in change_config:
@@ -200,13 +273,12 @@ def build_all_test( change_config, tests, line_break = False ):
     return config_list
 
 def make_config_list( change_config, tests ):
-    if len(tests['Folders']) == 0:
-        tests['Folders'] = ['']
+    if len(tests['Folder']) == 0:
+        tests['Folder'] = ['']
 
-    config_list = build_config( change_config, tests['Folders'], 
-                               tests['Check Default'], tests['Check Settings'] )
+    config_list = build_config( change_config, tests, True )
     if tests['Config Test']:
-        config_list += build_all_test( change_config, tests, tests['Line Break'] )
+        config_list += build_all_test( change_config, tests )
     
     num_set = len(config_list)
     print( 'Number of Settings: ' + str(num_set) + '\n' )
@@ -241,8 +313,7 @@ def find_line_break_tests(test_package: dict, tests: list):
 def prepare_test_package( change_config, tests ):
     test_package = {'Data_Prefix': PrintText().data_prefix() ,
                     'Reps': tests['Reps'] , 
-                    'Temp_ini': [] ,
-                    }
+                    'Temp_ini': [] }
 
     tests = find_GOALS_tests(tests)
     config_list, test_package['Set Num'] = make_config_list( change_config, tests )
@@ -250,45 +321,56 @@ def prepare_test_package( change_config, tests ):
     
     return config_list, test_package, tests
 
-# Change 'fgf_config.ini' to match 'change_config' settings
-def set_config( config, temp_ini: list ):
+def initial_config(test_package: dict):
     main_ini_path = PrintText().ini_path()
-    if temp_ini == []:
-        with open(main_ini_path) as f:
+    with open(main_ini_path) as f:
+        temp_ini = f.readlines()
+        f.close
+        
+    # Make sure it's not grabbing files from halfway through a previously aborted test
+    if temp_ini[1] == '# TEST\n':
+        backup_ini = PrintText().ini_debug_path()
+        with open(backup_ini) as f:
             temp_ini = f.readlines()
             f.close
-            
-        # Make sure it's not grabbing files from halfway through a previously aborted test
-        if temp_ini[1] == '# TEST\n':
-            backup_ini = PrintText().ini_debug_path()
-            with open(backup_ini) as f:
-                temp_ini = f.readlines()
-                f.close
-            
-            with open(main_ini_path, 'w') as f:
-                f.writelines(temp_ini)
-                f.close
-    else:
-        new_ini = temp_ini.copy()
-        new_ini[1] = '# TEST\n'
-        line = 0
-        for key in config:
-            if key == 'Folder':
-                continue
 
-            while(True):
-                line += 1
-                if line > len(new_ini):
-                    break
-                if new_ini[line].startswith(key):
-                    new_ini[line] = key + ' = ' + str(config[key]) + '\n'
-                    break
+    config = {'Folder': ''}
+    for line in temp_ini:
+        test = False
+        for char in [' ' , '\n', '\t', '[', '#']:
+            if line[0] == char: test = True
+        if (test or line.startswith('List of Areas')):
+            continue
 
-        with open(main_ini_path, 'w') as f:
-            f.writelines(new_ini)
-            f.close
-        
-    return temp_ini
+        text = line.split('=')
+        key = text[0].rstrip()
+        config[key] = text[1].lstrip().rstrip()
+
+    test_package['Temp_ini'] = temp_ini
+    return [config]
+
+# Change 'fgf_config.ini' to match 'change_config' settings
+def set_config(test_package: dict):
+    config: dict = test_package['Config']
+    new_ini: list = test_package['Temp_ini'].copy()
+    new_ini[1] = '# TEST\n'
+
+    line = 0
+    for key in config:
+        if key == 'Folder' or key == 'Original Setting':
+            continue
+
+        while(True):
+            line += 1
+            if line > len(new_ini):
+                break
+            if new_ini[line].startswith(key):
+                new_ini[line] = key + ' = ' + str(config[key]) + '\n'
+                break
+
+    with open(PrintText().ini_path(), 'w') as f:
+        f.writelines(new_ini)
+        f.close
 
 def check_reverb( norm, test, norm_data = {}, test_data = {}, index = 'i', coord = [], layer = 0 ):
     index_list = ['i', 'j', 'k', 'l', 'm', 'n']
@@ -381,19 +463,23 @@ def check_matrix( text, norm, test, np_array = True, extra = False, extra_test =
         valid_2 = True
     PrintText.valid = PrintText.valid and valid_1 and valid_2 and (valid_3[0] == 'T')
 
-def final_write( test_package, timer: dict ):
+def record_last( test_package: dict, timer: dict ):
+    last_test_path = os.path.join( PrintText().debug_path(), 'Last_Test_Package.json' )
+    with open(last_test_path, 'w', encoding='utf-8') as f:
+        json.dump(test_package, f, ensure_ascii=False, indent=4)
+        f.close
+
+    last_time_path = os.path.join( PrintText().debug_path(), 'Last_Time.json' )
+    with open(last_time_path, 'w', encoding='utf-8') as f:
+        json.dump(timer, f, ensure_ascii=False, indent=4)
+        f.close
+
+def reset_ini( test_package: dict, timer: dict ):
     print( 'Overall Tests Were: ' + str(PrintText.valid) )
     for key in timer.keys():
         if len(timer[key]) > 0:
             print( str(timer[key]) + '\n' )
     
-    main_test_path = os.path.join( PrintText().debug_path(), 'Last_Test_Package.json' )
-    with open(main_test_path, 'w', encoding='utf-8') as f:
-        json.dump(test_package, f, ensure_ascii=False, indent=4)
-        f.write('\n')
-        json.dump(timer, f, ensure_ascii=False, indent=4)
-        f.close
-
     # Resets .ini files
     main_ini_path = PrintText().ini_path()
     with open(main_ini_path, 'w') as f:

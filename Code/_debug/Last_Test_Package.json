@@ -1,5 +1,4 @@
 {
-    "Time": {},
     "Data_Prefix": [
         "Data Files",
         "Data Files"
@@ -86,22 +85,22 @@
         "# Turns on printing out a plan. (Default = y)\n",
         "Output Files = y"
     ],
-    "Set Num": 28,
+    "Set Num": 2488348,
     "Config": {
-        "Folder": "3",
-        "Event Cap": 2000,
-        "Lotto Cap": 2000,
+        "Folder": "2",
+        "Event Cap": 0,
+        "Lotto Cap": 0,
         "Raid Cap": 500,
-        "Bleach Cap": 100,
+        "Bleach Cap": 0,
         "Training Grounds Half AP": "n",
         "Training Grounds Third AP": "n",
-        "Bleached Earth Half AP": "n",
-        "Remove Zeros": "y",
+        "Bleached Earth Half AP": "y",
+        "Remove Zeros": "n",
         "Run Count Integer": "n",
         "Monthly Ticket Per Day": 1,
-        "Monthly Ticket Start Date": "",
-        "Monthly Ticket End Date": "1 year",
-        "Stop Here": ""
+        "Monthly Ticket Start Date": "2/5/25",
+        "Monthly Ticket End Date": "",
+        "Stop Here": "Paper Moon"
     },
     "Goals": "GOALS_Sample.csv"
 }
