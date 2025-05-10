@@ -35,10 +35,10 @@ import d_Extra_Temp as ex2
 # 'Test3' has thousands of quite a few mats, and a demand for 2 gold gems
 # 'Test4' has 2000 of four Bronze mats, 100 of Gems/Statues, and 3000 XP
 
-tests = {'Print': False ,
+tests = {'Print': True ,
         'Goals': [ 'Per', 'Test', 'Test1', 'Test2', 'Test3', 'Test4', 'Sample' ] ,
         'Folder': [ 0, 1, 2, 3 ] ,
-        'Modes': [ 1, 2, 3, 4 ] ,
+        'Modes': [ 8, 11, 13 ] ,
         'Reps': 100 ,
         'Config Test': True ,
         'Check Default': True ,
@@ -370,7 +370,7 @@ def test_time( test_num, test_package, timer, tool ):
     change_time( test_package, test_name[test_num], timer, t1, t2 )
 
 def reset_debug(print):
-    for debug in [ Inter, IN ]:
+    for debug in [ Inter.Debug, IN.Debug ]:
         debug.error = [ '', '' ]
         debug.config_notes = []
         debug.monthly_notes = ''
@@ -380,11 +380,11 @@ def reset_debug(print):
         debug.notifications = print
 
 def config_loop( test_package, tests, timer ):
-    # data_files = -9% ish? maybe? -4.77 or -0.8% (6841s)
+    # data_files = -9% ish? maybe? -4.77 or -0.8% (6841s) or after change, -2.85 and -0.65% (1269s)
     # output = -9.84% or -11.056%? and -266.125 (667 samples) or -236.19 (165 samples)?
     # Run_Cap_Matrix is -1.247 and -3.4%? (80s) or 1.94 and 5.13% (93s) or 1.07 and 1.31% (176s) or 2.06 and -3.04% (483s) or 0 and -4% / 0 Md (1544s)
     # Planner is ~.12% (80 samples) or -327.27 and -2.16% (93 samples) or -419 and -1.7% (176s) or 104.3 and -0.3% /8.54 MD (483s) or -17 and 0%/Md (1544s)
-    # Monthly is +15.25 or -1.73% / 0.3? (6839s)
+    # Monthly is +15.25 or -1.73% / 0.3? (6839s) or after change, 7.44 and -2.37%/0.17 Md (1269s)
     # Event is -197.5 or -0.85% (867s) or -145 and -0.5 (2186s)
     # Free is 25.4 or -0.1% (870s)or -70 and -0.45 (2193s)
     ex.set_config(test_package)

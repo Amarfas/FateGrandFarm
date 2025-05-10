@@ -40,36 +40,49 @@ class ConfigList():
 
     def _config_error( self, key, key_value, text, make_note ):
         if key_value != '' and key_value != 'None' and make_note:
-            if key == 'Goals File Name':
-                Debug().warning('Input Goals File Name could not be found.')
-            else:
-                Debug().warning('Configuration "'+ key +'" was not '+ text +'.')
+            Debug().warning('Configuration "'+ key +'" was not '+ text +'.')
         return None
     
+    def read_goals_ext( self, key_value, ext ):
+        if not key_value.endswith(ext):
+            key_value += ext
+
+            if not key_value.startswith('GOALS'):
+                for i in [ '', '_', ' ' ]:
+                    file_path = os.path.join( path_prefix, 'GOALS' + i + key_value )
+                    if glob.glob(file_path) != []:
+                        return 'GOALS' + i + key_value
+                else:
+                    return False
+                
+        file_path = os.path.join( path_prefix, key_value )
+        if glob.glob(file_path) == []:
+            return False
+        else:
+            return key_value
+
     # Checks input GOALS file name. If it ends in .csv, 
     #   assumes the file name is exactly correct.
     # Otherwise, checks if user just input an append to 'GOALS'.
     # Also checks if they thought a '_' or space were assumed.
     # If file name cannot be found, returns to default.
-    def read_goals( self, key, key_value, make_note = True ):
-        if key_value.endswith('.csv') == False:
-            key_value += '.csv'
-            if key_value.startswith('GOALS') == False:
-                for i in [ '', '_', ' ' ]:
-                    file_path = os.path.join( path_prefix, 'GOALS' + i + key_value )
-                    if glob.glob( file_path ) != []:
-                        break
-                key_value = 'GOALS' + i + key_value
-        
-        file_path = os.path.join( path_prefix, key_value )
-        if glob.glob( file_path ) == []:
-            key_value = self._config_error( key, key_value, '', make_note )
-        
-        return key_value
+    def read_goals( self, key_value ):
+        for ext in ['.csv', '.txt']:
+            key_value_ext = self.read_goals_ext( key_value, ext )
+            if key_value_ext:
+                return key_value_ext
+        else:
+            if key_value != '':
+                Debug().warning('Input "Goals File Name" could not be found.')
+
+            file_path = os.path.join( path_prefix, 'GOALS.csv' )
+            if glob.glob(file_path) == []:
+                Debug().warning('"GOALS.csv" could not be found.')
+            return None
     
     def read_config( self, key, key_value: str, type, make_note = True ):
         if type == 'goals':
-            return self.read_goals( key, key_value, make_note )
+            return self.read_goals(key_value)
 
         elif type == 'int':
             try:

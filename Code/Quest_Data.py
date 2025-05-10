@@ -27,9 +27,10 @@ class QuestData:
         self.hellfire_range = [9700000,500]
 
         # Date range for Monthly Tickets
-        self.first_month = []
+        self.recorded_months = []
         self.first_monthly = {}
         self.last_monthly = {}
+        self.first_useful = False
 
     def assemble_matrix( self, add_matrix ):
         if add_matrix['Drop'] != []:
@@ -359,19 +360,19 @@ class QuestData:
 
     # Monthly Ticket Data section
     def _find_ticket_range( self, month_name, month, year ):
-        self.first_month.append(month_name)
+        self.recorded_months.append(month_name)
 
         first = self.first_monthly
         if first == {}:
             self.first_monthly = {'Month': month, 'Year': year, 'Date': month_name}
             self.last_monthly = {'Month': month, 'Year': year, 'Date': month_name}
+
+        elif (year < first['Year']) or (year == first['Year'] and month < first['Month']):
+            self.first_monthly = {'Month': month, 'Year': year, 'Date': month_name}
         else:
-            if (year < first['Year']) or (year == first['Year'] and month < first['Month']):
-                self.first_monthly = {'Month': month, 'Year': year, 'Date': month_name}
-            else:
-                last = self.last_monthly
-                if (year > last['Year']) or (year == last['Year'] and month > last['Month']):
-                    self.last_monthly = {'Month': month, 'Year': year, 'Date': month_name}
+            last = self.last_monthly
+            if (year > last['Year']) or (year == last['Year'] and month > last['Month']):
+                self.last_monthly = {'Month': month, 'Year': year, 'Date': month_name}
 
     def _find_month_ID( self, reader, month_name ):
         while True:
@@ -425,6 +426,9 @@ class QuestData:
 
         run_caps.assemble_group_info( group )
         self.assemble_matrix( matrix )
+
+        if not self.first_useful and  (matrix['Drop'] != []):
+            self.first_useful = group['Quest']
     
     def _check_month( self, ticket_csv, run_caps: Inter.RunCaps ):
         with open( ticket_csv, newline = '', encoding = 'latin1' ) as f:

@@ -166,7 +166,7 @@ class Planner():
         self.mat_index_total = data_files.mat_index_total
         self.index_to_name = data_files.index_to_name
 
-        self.first_month = quest_data.first_monthly.get( 'Date', False )
+        self.first_month = quest_data.first_useful
         self.quest_names = quest_data.quest_names
 
         Solution.read_settings(settings)
@@ -588,7 +588,7 @@ class Output:
         ticket_start = -1
 
         for i in range(len(sol.run_int)):
-            if nodes.quest_names[i] == nodes.first_monthly['Date']:
+            if nodes.quest_names[i] == nodes.first_useful:
                 ticket_start = i
                 break
 

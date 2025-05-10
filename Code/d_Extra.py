@@ -9,6 +9,7 @@ class PrintText():
     set_start = 0
     set_pause = -1
     setting_print = True
+    setting = ''
 
     set_num = -1
     run_int = {'Removed Sets': [], 'Min Removed': {'Name': 'Min; '}, 
@@ -54,7 +55,10 @@ class PrintText():
 
     def print_setting(self):
         if self.setting_print:
-            print( '\n Setting ' + str(self.set_num) + ': ' + str(self.config) + '\n' )
+            sett = '\n Setting ' + str(self.set_num)
+            sett += ': ' + str(self.config) + '\n'
+            PrintText.setting = sett
+            print( sett )
             PrintText.setting_print = False
 
             if (int(self.set_num) == self.set_pause):
@@ -74,7 +78,7 @@ class PrintText():
         self.print('')
         if PrintText.valid == False:
             print(self.text)
-            print( ' Setting ' + str(self.set_num) + ': ' + str(self.config) )
+            self.print( ' Setting ' + str(self.set_num) + ': ' + str(self.config) )
             self.print( "{:<{}}{:<{}}".format( ' Test results for:', 23, self.goals, 0 ) )
             a = 1
             pass
@@ -139,7 +143,9 @@ class PrintText():
                     'Run Mat':  np.size(tool.run_mat['Matrix'])}
             size['Run List'] = int(size['Run Mat'] / size['Runs'])
 
-            if size['Runs'] > 100:
+            lgc1 = (size['Runs'] > 200)
+            lgc2 = (size['Drop Mat'] > 4000 and size['Run Mat'] == 0)
+            if lgc1 or lgc2:
                 PrintText.run_int['Removed Sets'].append( self.set_num )
                 self.add_run_int(size, 'Min Removed')
                 return True
@@ -149,6 +155,7 @@ class PrintText():
             self.add_run_int(size, 'Max Run Int')
 
         self.print_setting()
+        txt = PrintText.setting + '\n' + txt
         self.write_print(txt, 'Run_Cap_Matrix_Dimensions.txt')
         self.print_goals_line(goals)
         return False
@@ -462,6 +469,7 @@ def check_matrix( text, norm, test, np_array = True, extra = False, extra_test =
     if valid_2 == 'NA':
         valid_2 = True
     PrintText.valid = PrintText.valid and valid_1 and valid_2 and (valid_3[0] == 'T')
+    #PrintText().check_valid()
 
 def record_last( test_package: dict, timer: dict ):
     last_test_path = os.path.join( PrintText().debug_path(), 'Last_Test_Package.json' )
@@ -477,6 +485,7 @@ def record_last( test_package: dict, timer: dict ):
 def reset_ini( test_package: dict, timer: dict ):
     print( 'Overall Tests Were: ' + str(PrintText.valid) )
     for key in timer.keys():
+        if key == 'No Extreme' or key == 'Skip': continue
         if len(timer[key]) > 0:
             print( str(timer[key]) + '\n' )
     

@@ -24,6 +24,8 @@ The executable only works for Windows. If you use another Operating System (or r
 
 For more details on configuring the analysis or managing/upkeeping Event data, scroll down to the 'Set Up' section. This is mostly helpful for creating Event-specific Run Caps.
 
+Note on '.csv' files: any spreadsheet program should be able to open them, you don't need Microsoft Excel. They can also be opened and edited using any text editor, such as Notepad.
+
 ## How to Read the Output
 After running the program, you will find 3 output files in the main directory ('FateGrandFarm'). These will replace those files from previous runs. These are 'Farming Plan.txt', 'Farming Plan Drops.txt', and 'Config Notes.txt'. Copies are placed in the 'Former Plans' folder, using the 'Plan Name' configured in 'fgf_config.ini' if one was chosen.
 
@@ -45,6 +47,8 @@ If the 'Monthly Ticket Per Day' configuration in 'fgf_config.ini' was greater th
 'Config Notes' contains all the information necessary to properly understand the context for the corresponding 'Farming Plans'. This includes all the Errors that came up, Configuration Settings, the Monthly Exchange Ticket date range, the Events included, Lotto Currency Drop Rate boosts, and the applied Run Caps.
 
 ## Python Environment Set Up
+Note: this is unnecessary if you only plan to use the executable.
+
 Fate/Grand Farm was programmed in Python 3.9, and the necessary libraries are: [NumPy](https://numpy.org/), [SciPy](https://scipy.org/), and [CVXPY](https://www.cvxpy.org/).
 
 It is recommended to download and install [Anaconda.](https://www.anaconda.com/) If you encounter any issues finding CVXPY, you may need to add the 'conda-forge' channel.

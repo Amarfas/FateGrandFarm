@@ -1,22 +1,3 @@
-Min; Runs    : Drop Matrix = 9,690 ; Goals x Runs = 95 x 102 ; Run Matrix = 1,224 ; Run List x Runs = 12 x 102
 
-     Drop Mat: Drop Matrix = 4,664 ; Goals x Runs = 44 x 106 ; Run Matrix = 2,014 ; Run List x Runs = 19 x 106
-
-     Goals   : Drop Matrix = 26,796 ; Goals x Runs = 44 x 609 ; Run Matrix = 18,879 ; Run List x Runs = 31 x 609
-
-     Run Mat : Drop Matrix = 15,485 ; Goals x Runs = 95 x 163 ; Run Matrix = 163 ; Run List x Runs = 1 x 163
-
-     Run List: Drop Matrix = 12,100 ; Goals x Runs = 44 x 275 ; Run Matrix = 275 ; Run List x Runs = 1 x 275
-
-Max; Runs    : Drop Matrix = 6,768 ; Goals x Runs = 94 x 72 ; Run Matrix = 432 ; Run List x Runs = 6 x 72
-
-     Drop Mat: Drop Matrix = 6,840 ; Goals x Runs = 95 x 72 ; Run Matrix = 432 ; Run List x Runs = 6 x 72
-
-     Goals   : Drop Matrix = 6,175 ; Goals x Runs = 95 x 65 ; Run Matrix = 390 ; Run List x Runs = 6 x 65
-
-     Run Mat : Drop Matrix = 6,768 ; Goals x Runs = 94 x 72 ; Run Matrix = 432 ; Run List x Runs = 6 x 72
-
-     Run List: Drop Matrix = 2,816 ; Goals x Runs = 44 x 64 ; Run Matrix = 384 ; Run List x Runs = 6 x 64
-
-Cur;         : Drop Matrix = 4,136 ; Goals x Runs = 44 x 94 ; Run Matrix = 0 ; Run List x Runs = 0 x 94
+ Setting 308: {'Folder': '2', 'Event Cap': 0, 'Lotto Cap': 0, 'Raid Cap': 200, 'Bleach Cap': 500, 'Training Grounds Half AP': 'n', 'Training Grounds Third AP': 'y', 'Bleached Earth Half AP': 'n', 'Remove Zeros': 'n', 'Run Count Integer': 'n', 'Monthly Ticket Per Day': 0, 'Monthly Ticket Start Date': '2/5/25', 'Monthly Ticket End Date': '', 'Stop Here': 'Paper Moon'}
 
