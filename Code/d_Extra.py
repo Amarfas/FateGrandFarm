@@ -38,12 +38,12 @@ class PrintText():
         else:
             PrintText.text += new_text + '\n'
 
-    def write_print( self, new_text, file ):
+    def write_print( self, new_text, add, file ):
         if new_text != '':
             self.print(new_text)
             file_path = os.path.join( PrintText().debug_path(), file )
             with open(file_path, 'w') as f:
-                f.write(new_text)
+                f.write(add + new_text)
                 f.close()
     
     def new_config( self, config ):
@@ -78,7 +78,7 @@ class PrintText():
         self.print('')
         if PrintText.valid == False:
             print(self.text)
-            self.print( ' Setting ' + str(self.set_num) + ': ' + str(self.config) )
+            print( ' Setting ' + str(self.set_num) + ': ' + str(self.config) )
             self.print( "{:<{}}{:<{}}".format( ' Test results for:', 23, self.goals, 0 ) )
             a = 1
             pass
@@ -155,8 +155,8 @@ class PrintText():
             self.add_run_int(size, 'Max Run Int')
 
         self.print_setting()
-        txt = PrintText.setting + '\n' + txt
-        self.write_print(txt, 'Run_Cap_Matrix_Dimensions.txt')
+        add = PrintText.setting + '\n'
+        self.write_print(txt, add, 'Run_Cap_Matrix_Dimensions.txt')
         self.print_goals_line(goals)
         return False
     

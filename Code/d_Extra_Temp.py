@@ -1,21 +1,23 @@
 import Planner as Plan
 import numpy as np
 
-class Test_14():
+class Test_15(Plan.Planner):
+    valid = True
+
     def __init__(self, toolkit):
-        nodes = toolkit['nodes']
-        input_data = toolkit['input']
-        run_cap_matrix = toolkit['runMat']
+        nodes = toolkit.nodes
+        input_data = toolkit.input
+        run_cap_matrix = toolkit.run_mat
 
         plan = Plan.Planner( nodes, input_data, run_cap_matrix, 0 )
-        prob , runs , tot_AP = plan.planner()
+        sol: Plan.Solution = plan.planner()
 
         self.drop_matrix = plan.drop_matrix
         self.run_caps = plan.run_caps
         self.AP_costs = plan.AP_costs
 
-        if prob.status == 'optimal' and plan.run_size > 1:
-            self._saved_AP( runs, tot_AP )
+        if sol.status == 'optimal' and plan.run_size > 1:
+            self._calculate_AP_saved
     
     def check_matrix( self, m1, m2, index, axis = 0, mat = False ):
         if len(m1) == 0:
@@ -61,8 +63,8 @@ class Test_14():
             self.hole()
     
     def hole(self):
+        Test_15.valid = False
         a = 1
-        b = 1
     
     def check_dict( self, m1, m2: dict, index ):
         for key in m2.keys():
@@ -82,59 +84,31 @@ class Test_14():
         self.check_dict( run_caps, self.run_caps, index )
         self.check_matrix( costs, self.AP_costs, index, 1 )
 
-    def _cut_index( self, matrix, index, axis = 0 ):
-        if isinstance( matrix, np.ndarray ):
-            new_mat = np.copy( matrix )
+    def _cut_i_dict( self, matrix, index, monthly = True ):
+        new_mat = {}
+        new_cut = self._cut_i_matrix( matrix['Matrix'], index, 1 )
 
-        elif isinstance( matrix, list ):
-            new_mat = matrix.copy()
-
-        elif isinstance( matrix, dict ):
-            try:
-                mat = matrix['Matrix']
-            except:
-                return matrix
-
-            new_mat = {}
-            new_cut = self._cut_index( matrix['Matrix'], index, 1 )
-            for i in range(len(mat)):
-                if mat[i][index] > 0:
-                    col = i
-                    break
-            else:
-                col = 'F'
-            
-            if col != 'F':
-                if np.sum(mat, axis = 1)[i] == 1:
+        if monthly:
+            for i in range(len(matrix['Matrix'])):
+                if matrix['Matrix'][i][index[0]] > 0:
                     self.test = i
-                    new_mat['Event'] = self._cut_index( matrix['Event'], i )
-                    new_mat['List'] = self._cut_index( matrix['List'], i )
-                    new_mat['Matrix'] = self._cut_index( new_cut, i )
+                    new_mat['Event'] = self._cut_i_matrix( matrix['Event'], [i] )
+                    new_mat['List'] = self._cut_i_matrix( matrix['List'], [i] )
+                    new_mat['Matrix'] = self._cut_i_matrix( new_cut, [i] )
                     return new_mat
 
-            new_mat['Event'] = np.copy( matrix['Event'] )
-            new_mat['List'] = matrix['List'].copy()
-            new_mat['Matrix'] = new_cut
-            return new_mat
+        new_mat['Event'] = np.copy( matrix['Event'] )
+        new_mat['List'] = matrix['List'].copy()
+        new_mat['Matrix'] = new_cut
+        return new_mat
 
-        return np.delete( new_mat, index, axis )
-
-    def _cut_planner( self, index ):
+    def _cut_planner( self, logic, index, monthly = False ):
+        if not logic:
+            return 'F', index
+        
         self.test = ''
-        new_drops = self._cut_index( self.drop_matrix, index, 1 )
-        new_run_caps = self._cut_index( self.run_caps, index )
-        new_costs = self._cut_index( self.AP_costs, index, 1 )
+        new_drops = self._cut_i_matrix( self.drop_matrix, index, 1 )
+        new_run_caps = self._cut_i_dict( self.run_caps, index, monthly )
+        new_costs = self._cut_i_matrix( self.AP_costs, index, 1 )
+
         self.check( new_drops, new_run_caps, new_costs, index )
-
-    def _saved_AP( self, run_int, total_AP ):
-        AP_saved = []
-        for i in range(len(run_int)):
-            if int(run_int[i]) > 0:
-                new_AP = self._cut_planner(i)
-
-                if isinstance( new_AP, int ):
-                    new_AP -= total_AP
-                AP_saved.append(new_AP)
-
-            else:
-                AP_saved.append(0)

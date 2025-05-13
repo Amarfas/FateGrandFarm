@@ -153,7 +153,7 @@ class Planner():
 
         # Main Settings
         self.run_count_int = settings['Run Count Integer']
-        self.message = message
+        self.message = message * Inter.Debug.notifications
 
         # Main Data for Analysis
         self.drop_matrix = np.transpose( quest_data.drop_matrix )
@@ -188,11 +188,15 @@ class Planner():
                     self._warning( error, 2, pos = 1 )
                     self.goals[i] = 0
     
-    def _solver(self, cut = False, drop_matrix = False, run_caps = False, 
+    def _solver(self, index = [], drop_matrix = False, run_caps = False, 
                 AP_costs = False):
         # Checks to see if this is for AP Saved using modified data
-        run_size = self.run_size - cut
-        if not cut:
+        run_size = self.run_size - len(index)
+
+        if index:
+            mes = 'Cutting "' + self.quest_names[index[0]] + '" and rerunning analysis...'
+        else:
+            mes = 'Running analysis...'
             drop_matrix = self.drop_matrix
             run_caps = self.run_caps
             AP_costs = self.AP_costs
@@ -215,8 +219,10 @@ class Planner():
         # Set the 'objective' condition and run analysis
         objective = cp.Minimize( AP_costs @ runs )
 
+        if self.message: print(mes, end=' ')
         prob = cp.Problem( objective , constraints )
         prob.solve()
+        if self.message: print('Complete!')
 
         return prob, runs
 
@@ -376,7 +382,7 @@ class Planner():
         new_run_caps = self._cut_i_dict( self.run_caps, index, monthly )
         new_costs = self._cut_i_matrix( self.AP_costs, index, 1 )
 
-        prob, runs = self._solver( len(index), new_drops, new_run_caps, new_costs )
+        prob, runs = self._solver( index, new_drops, new_run_caps, new_costs )
 
         if prob.status == 'optimal':
             sol = Solution( prob, runs, new_costs )
@@ -433,6 +439,7 @@ class Planner():
         if (prob.status == 'optimal') and (sol.saved_format >= 0) and self.run_size > 1:
             self._calculate_AP_saved(sol)
 
+        print('')
         return sol
 
 class Output:

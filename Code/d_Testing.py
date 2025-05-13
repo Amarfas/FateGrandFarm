@@ -35,10 +35,10 @@ import d_Extra_Temp as ex2
 # 'Test3' has thousands of quite a few mats, and a demand for 2 gold gems
 # 'Test4' has 2000 of four Bronze mats, 100 of Gems/Statues, and 3000 XP
 
-tests = {'Print': True ,
+tests = {'Print': False ,
         'Goals': [ 'Per', 'Test', 'Test1', 'Test2', 'Test3', 'Test4', 'Sample' ] ,
         'Folder': [ 0, 1, 2, 3 ] ,
-        'Modes': [ 8, 11, 13 ] ,
+        'Modes': [ 1, 2, 3, 4 ] ,
         'Reps': 100 ,
         'Config Test': True ,
         'Check Default': True ,
@@ -425,7 +425,8 @@ def config_loop( test_package, tests, timer ):
             elif test_num >= 7 and test_num <= 14:
                 test_time( test_num, test_package, timer, tool )
             elif test_num == 15:
-                ex2.Test_14(tool['M'])
+                ex2.Test_15(tool['M'])
+                ex.PrintText().check_valid(ex2.Test_15.valid)
 
 # Initializing starts here
 Inter.standardize_path()
