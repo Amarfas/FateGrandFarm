@@ -439,7 +439,7 @@ class Planner():
         if (prob.status == 'optimal') and (sol.saved_format >= 0) and self.run_size > 1:
             self._calculate_AP_saved(sol)
 
-        print('')
+        if self.message: print('')
         return sol
 
 class Output:
