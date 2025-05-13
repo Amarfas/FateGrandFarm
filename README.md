@@ -24,6 +24,8 @@ The executable only works for Windows. If you use another Operating System (or r
 
 For more details on configuring the analysis or managing/upkeeping Event data, scroll down to the 'Set Up' section. This is mostly helpful for creating Event-specific Run Caps.
 
+Note on '.csv' files: any spreadsheet program should be able to open them, you don't need Microsoft Excel. They can also be opened and edited using any text editor, such as Notepad.
+
 ## How to Read the Output
 After running the program, you will find 3 output files in the main directory ('FateGrandFarm'). These will replace those files from previous runs. These are 'Farming Plan.txt', 'Farming Plan Drops.txt', and 'Config Notes.txt'. Copies are placed in the 'Former Plans' folder, using the 'Plan Name' configured in 'fgf_config.ini' if one was chosen.
 
@@ -45,6 +47,8 @@ If the 'Monthly Ticket Per Day' configuration in 'fgf_config.ini' was greater th
 'Config Notes' contains all the information necessary to properly understand the context for the corresponding 'Farming Plans'. This includes all the Errors that came up, Configuration Settings, the Monthly Exchange Ticket date range, the Events included, Lotto Currency Drop Rate boosts, and the applied Run Caps.
 
 ## Python Environment Set Up
+Note: this is unnecessary if you only plan to use the executable.
+
 Fate/Grand Farm was programmed in Python 3.9, and the necessary libraries are: [NumPy](https://numpy.org/), [SciPy](https://scipy.org/), and [CVXPY](https://www.cvxpy.org/).
 
 It is recommended to download and install [Anaconda.](https://www.anaconda.com/) If you encounter any issues finding CVXPY, you may need to add the 'conda-forge' channel.
@@ -72,6 +76,10 @@ For any y/n (yes/no) question in the configurations, it will also read the follo
 **Monthly Exchange Ticket:** the 'Monthly Ticket Per Day' configuration caps at 4. The 'Monthly Ticket End Date' can be either a specific date or a time lapse relative to the starting date. If the starting date was 10/23/2024 and '2 months' was entered, the end date will be 12/23/2024. The program will accept relative time frames in 'days', 'months', or 'years'. Does not have to be plural ('day' will also be accepted).
 
 **'Goals File Name':** the program will accept either a specific file name with '.csv' added on, or an extension of the word 'GOALS'. Examples: if you input 'Needs.csv' it will look for the file 'Needs.csv'. If you input 'GOALS_Per' it will look for 'GOALS_Per.csv'. If you input 'Per' it will look for 'GOALSPer.csv', 'GOALS Per.csv', and 'GOALS_Per.csv'.
+
+**'AP Saved':** this feature is currently in beta. It may significantly increase how long the program takes to run, because it is solving a new optimal farming plan for every Free Quest, Event Quest, and Monthly Exchange Ticket that was part of the original optimal farming plan.
+
+**'Units':** it only accepts 0, 1, and 2 as inputs. '0' means that the result will be measured by the total amount of AP saved, including every run/ticket used ('AP'). '1' means that it will instead be measured by the amount of AP saved per run of that Quest, or per day for Monthly Exchange Tickets ('AP / run' or 'AP / day'). '2' means that it will instead be measured by the amount of AP saved for every AP spent on running that Quest, or for every Monthly Exchange Ticket used that month ('AP / AP' or "AP / ticket').
 
 ## 'Events List' Folder
 Contains the drop rate data for various Events in '.csv' format. Lotto Events have their own folders to help organize the data. 
@@ -106,6 +114,16 @@ Relevant Configurations:
  * Determine if you want Box Apple AP 'Buyback' to affect the AP Costs of the Quests.
  * 'Event' and 'Raid Run Caps' for that specific Event.
 
+Details on configuring the Run Caps:
+ * Any integer to the right of the a 'Run Cap' overwrites the corresponding value in 'fgf_config.ini'.
+ * For 'Lotto' Type Quests, values to the right of 'Event Run Caps:' overwrite 'Lotto Cap' in 'fgf_config.ini'.
+ * Multiple entries for Run Caps are relevant for Quests with numbered Types (like 'Lotto 1', 'Lotto 2', etc).
+ * If only 1 value is entered, that Run Cap will be applied separately to EACH of 'Lotto 1' and 'Lotto 2'.
+ * If 2 or more values are entered, the 1st will be applied to 'Lotto 1' and the 2nd applied to 'Lotto 2.'
+ * If there are more numbered Types than entries, the Run Caps will be cycled through for later numbers.
+
+As an example, if only 2 values are given, 'Lotto 3' will use the 1st Run Cap. If there are 3 or more values, 'Lotto 3' will use the 3rd Run Cap. 'Raids' work the same.
+
 Note that in addition to the above, Fate/Grand Farm only reads:
  * 'Actual Event Name' in cell C1 (hidden by default), used so that the program recognizes 'Christmas 2023 w/ Claw' and 'Christmas 2023 w/ Feather' as the same Event when determining Run Caps.
  * Whether 'Apple AP Buyback' is active or not from cell M1.
@@ -118,20 +136,12 @@ Note that in addition to the above, Fate/Grand Farm only reads:
    - Each column with a Material ID (hidden by default, used to prevent translation changes from affecting the program).
    - Each column with a Material Drop Rate.
 
-Efficiency values from the sheet are not relevant for this program, so any settings from the 'Mat' or 'Inputs tab do not affect this analysis.
-
-Details on configuring the Run Caps:
- * Any integer to the right of the a 'Run Cap' overwrites the corresponding value in 'fgf_config.ini'.
- * For 'Lotto' Type Quests, values to the right of 'Event Run Caps:' overwrite 'Lotto Cap' in 'fgf_config.ini'.
- * Multiple entries for Run Caps are relevant for Quests with numbered Types (like 'Lotto 1', 'Lotto 2', etc).
- * If only 1 value is entered, that Run Cap will be applied separately to EACH of 'Lotto 1' and 'Lotto 2'.
- * If 2 or more values are entered, the 1st will be applied to 'Lotto 1' and the 2nd applied to 'Lotto 2.'
- * If there are more numbered Types than entries, the Run Caps will be cycled through for later numbers.
-
-As an example, if only 2 values are given, 'Lotto 3' will use the 1st Run Cap. If there are 3 or more values, 'Lotto 3' will use the 3rd Run Cap. 'Raids' work the same.
+Efficiency values from the sheet are not relevant for this program, so any settings from the 'Mat' or 'Inputs' tabs do not affect this analysis.
 
 ## Upkeep
 Similar to how the 'Event Quest' tab from the ['FGO Efficiency'](https://docs.google.com/spreadsheets/d/1CDQYB2Oa3YT1gfD6eT3hqRR7sVshQIQMKB_BOqDzTRU/) google sheet was used to produce the relevant Event '.csv's, the 'APD', 'Calc', and 'Monthly Ticket' tabs were used to produce the relevant '.csv' files in the 'Data Files' Folder. If you want to update Fate/Grand Farm with new information, for 'APD' and 'Calc" you merely need to download the relevant files and place them in the 'Data Files' folder. For a more extensive explanation, read section 'Making Your Own Readable CSVs'.
+
+To get an accurate 'APD.csv' file, make sure that 'Extreme Training Grounds' and 'Bleached Earth Drops' are included in the 'Inputs' tab. When those features are toggled off, the google sheet omits that data entirely from the 'APD' tab.
 
 Adding new 'Monthly Ticket' '.csv's takes slightly more work. Before downloading the data from the 'Monthly Ticket' tab as a '.csv' file, you have to input the corresponding month in cell B1 and year in cell D1, both as integers. Then the Material IDs corresponding to the choices available must be input into column C. It is recommended that you instead input each Material's name into the next cell in column D, causing the sheet to automatically find and input the Material's ID.
 
@@ -199,7 +209,7 @@ Specifically, in the 1st row:
  * FGF looks for the string 'Event Run Caps:' and adds every integer in subsequent columns to the 'Event Run Cap' matrix until it finds...
  * FGF looks for the string 'Raid Run Caps:' and adds every integer in subsequent columns to the 'Raid Run Cap' matrix.
 
-However, after the 1st row, FGF does not look for specific column numbers. It instead looks for a row with columns containing a value of 'ID' (if it's set up like my sheet, this should be the 2nd row), and uses strings in that row to determine where it should find the data. Note that the column number is set by the first column it finds matching the following strings, except for 'ID' and 'Drop%'; FGF records the numbers of all columns with 'ID' and 'Drop%'. The strings it looks for to find the corresponding data are:
+However, after the 1st row, FGF does not look for specific column numbers. It instead looks for a row with cells containing the string 'ID' (if it's set up like my sheet, this should be the 2nd row), and looks for specific strings in that row to determine which columns contain the data it's looking for. Note that the column number is set by the first column it finds matching the following strings, except for 'ID' and 'Drop%': FGF records the location of all columns with 'ID' and 'Drop%'. The strings it looks for to find the corresponding data are:
  * 'Location' for the Quest Name.
  * 'AP' for the AP Costs.
  * 'Type' for the Quest Type.
@@ -226,7 +236,7 @@ There are a few special Material IDs that FGF interprets as multiple different M
 
 # Acknowledgements
 
-Current Version: 1.4.2
+Current Version: 1.5.0
 
  * [pyinstaller](https://github.com/pyinstaller/pyinstaller) for making it easy to create an executable.
 

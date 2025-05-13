@@ -33,59 +33,84 @@ class ConfigList():
                 'Goals File Name': 'GOALS.csv',
                 'Debug on Fail': True,
                 'Output Files': True}
+    
     cut_AP = {'Daily': 1, 
               'Bleach': 1}
     config = configparser.ConfigParser()
 
     def _config_error( self, key, key_value, text, make_note ):
         if key_value != '' and key_value != 'None' and make_note:
-            if key == 'Goals File Name':
-                Debug().warning('Input Goals File Name could not be found.')
-            else:
-                Debug().warning('Configuration "'+ key +'" was not '+ text +'.')
+            Debug().warning('Configuration "'+ key +'" was not '+ text +'.')
         return None
     
-    def set_config( self, key, type = '', internal = True, make_note = True, section = 'DEFAULT' ):
-        key_value = self.config[section][key]
+    def read_goals_ext( self, key_value, ext ):
+        if not key_value.endswith(ext):
+            key_value += ext
 
-        # Checks input GOALS file name. If it ends in .csv, assumes the file name is exactly correct.
-        # Otherwise, checks if user just input an append to 'GOALS'.
-        # Also checks if they thought a '_' or space were assumed.
-        # If file name cannot be found, returns to default.
+            if not key_value.startswith('GOALS'):
+                for i in [ '', '_', ' ' ]:
+                    file_path = os.path.join( path_prefix, 'GOALS' + i + key_value )
+                    if glob.glob(file_path) != []:
+                        return 'GOALS' + i + key_value
+                else:
+                    return False
+                
+        file_path = os.path.join( path_prefix, key_value )
+        if glob.glob(file_path) == []:
+            return False
+        else:
+            return key_value
+
+    # Checks input GOALS file name. If it ends in .csv, 
+    #   assumes the file name is exactly correct.
+    # Otherwise, checks if user just input an append to 'GOALS'.
+    # Also checks if they thought a '_' or space were assumed.
+    # If file name cannot be found, returns to default.
+    def read_goals( self, key_value ):
+        for ext in ['.csv', '.txt']:
+            key_value_ext = self.read_goals_ext( key_value, ext )
+            if key_value_ext:
+                return key_value_ext
+        else:
+            if key_value != '':
+                Debug().warning('Input "Goals File Name" could not be found.')
+
+            file_path = os.path.join( path_prefix, 'GOALS.csv' )
+            if glob.glob(file_path) == []:
+                Debug().warning('"GOALS.csv" could not be found.')
+            return None
+    
+    def read_config( self, key, key_value: str, type, make_note = True ):
         if type == 'goals':
-            if key_value.endswith('.csv') == False:
-                key_value += '.csv'
-                if key_value.startswith('GOALS') == False:
-                    for i in [ '', '_', ' ' ]:
-                        file_path = os.path.join( path_prefix, 'GOALS' + i + key_value )
-                        if glob.glob( file_path ) != []:
-                            break
-                    key_value = 'GOALS' + i + key_value
-            
-            file_path = os.path.join( path_prefix, key_value )
-            if glob.glob( file_path ) == []:
-                key_value = self._config_error( key, key_value, '', make_note )
+            return self.read_goals(key_value)
 
         elif type == 'int':
             try:
-                key_value = int(key_value.replace(',',''))
+                return int(key_value.replace(',',''))
             except ValueError:
-                key_value = self._config_error( key, key_value, 'an integer', make_note )
+                return self._config_error( key, key_value, 'an integer', make_note )
 
         elif type == 'float':
             try:
-                key_value = float(key_value.replace(',',''))
+                return float(key_value.replace(',',''))
             except ValueError:
-                key_value = self._config_error( key, key_value, 'a number', make_note )
+                return self._config_error( key, key_value, 'a number', make_note )
 
         elif type == 'bool':
             x = key_value.lower()
             if x == '1' or x == 'true' or x == 't' or x == 'yes' or x == 'y' or x == 'on':
-                key_value = True
+                return True
             elif x == '0' or x == 'false' or x == 'f' or x == 'no' or x == 'n' or x == 'off':
-                key_value = False
+                return False
             else:
-                key_value = self._config_error( key, key_value, 'true/yes or false/no', make_note )
+                return self._config_error( key, key_value, 'true/yes or false/no', make_note )
+
+        return key_value
+    
+    def set_config(self, key, type = '', internal = True, make_note = True, section = 'DEFAULT' ):
+        key_value = self.config[section][key]
+
+        key_value = self.read_config( key, key_value, type, make_note )
 
         if make_note:
             Debug().note_config(key, key_value)
@@ -101,7 +126,7 @@ class ConfigList():
 
     def check_if_date( self, key_value: str ):
         if key_value == '':
-            return '', False
+            return False, False
         else:
             key_value = key_value.split()[0].split('/')
             try:
@@ -110,74 +135,76 @@ class ConfigList():
                 if year < 100:
                     year += 2000
 
-                #new_date = [int(key_value[0][:2]), int(key_value[1][:2]), year]
                 day = int(key_value[1][:2])
                 month = int(key_value[0][:2])
                 new_date = datetime( year, month, day )
                 return new_date, False
             
             except ValueError:
-                return '', ' did not have proper numbers for Day, Month, or Year.'
+                error = ' did not have proper numbers for Day, Month, or Year.'
+                return False, error
             except IndexError:
-                return '', ' was not a full date.'
+                return False, ' was not a full date.'
             
     def end_of_month( self, year, month ):
         year_mod = year + month // 12
         month_mod = month % 12 + 1
         next_mon = datetime( year_mod, month_mod, 1 )
         return next_mon - timedelta(seconds=1)
+    
+    def _read_relative_date( self, time_skip, time_frame ):
+        start: datetime = self.settings['Monthly Ticket Start Date']
+
+        if time_frame[:3] == 'yea':
+            end_date = datetime(start.year + time_skip, start.month, start.day)
+            return end_date, False
+
+        elif time_frame[:3] == 'mon':
+            new_month_calc = start.month + time_skip - 1
+            new_month = new_month_calc % 12 + 1
+            new_year = start.year + new_month_calc // 12
+
+            # Makes sure there isn't an error later because the 
+            #   time lapsed month has fewer days
+            last_day_of_month = (self.end_of_month( new_year, new_month )).day
+            new_day = min(start.day, last_day_of_month)
+            end_date = datetime(new_year, new_month, new_day)
+            return end_date, False
+
+        elif time_frame[:3] == 'day':
+            return start + timedelta(days = time_skip), False
+
+        else:
+            error = ' did not say whether time should elapse by '
+            error += 'days, months, or years.'
+            return '', error
 
     def set_date_config( self, key, make_note = True, section = 'DEFAULT' ):
         key_value = self.config[section][key].lower()
-        error = False
 
         # Checks to see if the format is 'MM/DD/YYYY'
-        date_check, error = self.check_if_date( key_value )
+        is_date, error = self.check_if_date( key_value )
 
-        # If a start date is not input, then set the start date to today
-        if key == 'Monthly Ticket Start Date':
-            if date_check == '':
-                # Fail-safe because you can't subtract offset-naive and offset-aware datetimes
-                key_value = datetime.now(ZoneInfo("America/New_York"))
-                year, month, day = key_value.year, key_value.month, key_value.day
-                key_value = datetime( year, month, day )
-            else:
-                key_value = date_check
+        if is_date:
+            key_value = is_date
+        
+        elif key == 'Monthly Ticket Start Date':
+            # If a start date is not input, then set the start date to today
+            # Fail-safe because you can't subtract offset-naive and offset-aware datetimes
+            key_value = datetime.now(ZoneInfo("America/New_York"))
+            year, month, day = key_value.year, key_value.month, key_value.day
+            key_value = datetime( year, month, day )
 
+        # If input is not in 'MM/DD/YYYY' format, check to see if it's in '# Day' format
+        # If it is in this format, end date is found by adding the time skip to the start date
         elif key_value != '':
-            # If input is not in 'MM/DD/YYYY' format, check to see if it's in '# Day' format
-            # If it is in this format, end date is found by adding the time skip to the start date
-            if date_check != '':
-                key_value = date_check
+            key_space_split = key_value.split()
+            try:
+                time_skip, time_frame = int(key_space_split[0]), key_space_split[1]
+            except ValueError:
+                key_value = ''
             else:
-                key_space_split = key_value.split()
-                try:
-                    time_skip, time_frame = int(key_space_split[0]), key_space_split[1]
-                except ValueError:
-                    key_value = ''
-                else:
-                    start: datetime = self.settings['Monthly Ticket Start Date']
-                    if time_frame[:3] == 'yea':
-                        error = False
-                        key_value = datetime(start.year + time_skip, start.month, start.day)
-
-                    elif time_frame[:3] == 'mon':
-                        error = False
-                        new_month_calc = start.month + time_skip - 1
-                        new_month = new_month_calc % 12 + 1
-                        new_year = start.year + new_month_calc // 12
-
-                        # Makes sure there isn't an error later because the time lapsed month has fewer days
-                        last_day_of_month = (self.end_of_month( new_year, new_month )).day
-                        key_value = datetime(new_year, new_month, min(start.day, last_day_of_month))
-
-                    elif time_frame[:3] == 'day':
-                        error = False
-                        key_value = start + timedelta(days = time_skip)
-
-                    else:
-                        error = ' did not say whether time should elapse by days, months, or years.'
-                        key_value = ''
+                key_value, error = self._read_relative_date( time_skip, time_frame )
         
         if error:
             Debug().warning( 'Configuration "' + key + error )
@@ -252,8 +279,8 @@ class ConfigList():
         self.set_date_config('Monthly Ticket Start Date')
         self.set_date_config('Monthly Ticket End Date')
 
-        #self.set_config('AP Saved', 'bool')
-        #self.set_config('Units', 'int')
+        self.set_config('AP Saved', 'bool')
+        self.set_config('Units', 'int')
         self.set_config('Stop Here')
         self.set_config('Goals File Name', 'goals')
         self.set_config('Output Files', 'bool')
@@ -339,21 +366,9 @@ class DataFiles:
         self.index_to_name = {}
         self.goals = []
         self._interpret_CSVs( goals_CSV, material_list_CSV )
-    
-    def _find_material_CSV_data( self, material_CSV ):
-        with open( material_CSV, newline = '', encoding = 'Latin1' ) as f:
-            reader = csv.reader(f)
 
-            mat_ID_list = next(reader)
-            while( mat_ID_list[0][0:2] != 'ID' ):
-                mat_ID_list = next(reader)
-
-            mat_name_list = next(reader)
-            f.close()
-
-            return mat_ID_list, mat_name_list
-
-    # Interpret the Materials one group at a time, using the gaps in the Mat ID List to keep track of groups.
+    # Interpret the Materials one group at a time, 
+    #   using the gaps in the Mat ID List to keep track of groups.
     # Now can use the first item to determine which group it is.
     def _interpret_group( self, reader, ID_list, name_list, csv_i, mat_i, gaps ):
         # Warn if the gaps between Material groups do not line up.
@@ -375,8 +390,8 @@ class DataFiles:
                 first_ID_check = 0
     
         if goals_CSV_row[0] != expected[gaps][0] or first_ID_check > 100:
-            Debug().warning( 'Does not seem to be the start of '+ expected[gaps][1] + 
-                                  '. GOALS and/or Material List CSVs may need to be updated.' )
+            Debug().warning('Does not seem to be the start of '+ expected[gaps][1] + 
+                            '. GOALS and/or Material List CSVs may need to be updated.' )
 
         while goals_CSV_row[0][0:2] != '!!':
             try:
@@ -439,8 +454,21 @@ class DataFiles:
         
         self.mat_index_total = mat_index_total
         self.csv_col_total = csv_i
+    
+    def _find_material_CSV_data( self, material_CSV ):
+        with open( material_CSV, newline = '', encoding = 'Latin1' ) as f:
+            reader = csv.reader(f)
 
-    # Creates three dictionaries: 'ID_to_index' maps a Material's ID to placement in the Drop Matrix, 
+            mat_ID_list = next(reader)
+            while( mat_ID_list[0][0:2] != 'ID' ):
+                mat_ID_list = next(reader)
+
+            mat_name_list = next(reader)
+            f.close()
+
+            return mat_ID_list, mat_name_list
+
+    # Creates 3 dictionaries: 'ID_to_index' maps a Material's ID to placement in the Drop Matrix,
     #   or notes that it should be skipped with an 'F' value.
     # 'index_to_name' maps placement in Drop Matrix to the corresponding Material's name.
     # 'skip_data_index' maps whether or not an entry in the Free Drop Matrix should be skipped.
@@ -456,8 +484,8 @@ class DataFiles:
             mat_i = 0
 
             for gaps in range(8):
-                reader, csv_i, mat_i = self._interpret_group( reader, ID_list, name_list, csv_i, 
-                                                                mat_i, gaps )
+                reader, csv_i, mat_i = self._interpret_group(reader, ID_list, name_list, 
+                                                             csv_i, mat_i, gaps)
             
             xp_data = {'Index Count': 14}
             if name_list[csv_i] == 'Saber Blaze':
@@ -467,8 +495,8 @@ class DataFiles:
 
             goals_csv_row = next(reader)
             if goals_csv_row[0] != 'Saber Blaze':
-                Debug().warning( 'Does not seem to be the start of XP.' + 
-                                      'GOALS and/or Material List CSVs may need to be updated.' )
+                Debug().warning('Does not seem to be the start of XP.' + 
+                                'GOALS and/or Material List CSVs may need to be updated.')
             
             try:
                 xp_data['Goal'] = int(goals_csv_row[1])

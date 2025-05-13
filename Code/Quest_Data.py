@@ -30,6 +30,7 @@ class QuestData:
         self.recorded_months = []
         self.first_monthly = {}
         self.last_monthly = {}
+        self.first_useful = False
 
     def assemble_matrix( self, add_matrix ):
         if add_matrix['Drop'] != []:
@@ -40,7 +41,7 @@ class QuestData:
                 self.AP_costs = np.vstack(( self.AP_costs, add_matrix['AP Cost'] ))
                 self.drop_matrix = np.vstack(( self.drop_matrix, add_matrix['Drop'] ))
 
-    def _prepare_data( self, matrix, name, AP_cost, drop_data, rbox = 'F' ):
+    def _add_data_row( self, matrix, name, AP_cost, drop_data, rbox = 'F' ):
         self.quest_names.append( name )
         matrix['AP Cost'].append( [AP_cost] )
         matrix['Drop'].append( drop_data )
@@ -48,6 +49,8 @@ class QuestData:
         self.runs_per_box.append(rbox)
         return matrix
     
+    
+    # Event Data section
     def _find_data_columns( self, reader ):
         data_col = {'ID':[], 'drop':[], 'rbox':176}
 
@@ -94,9 +97,14 @@ class QuestData:
                 end = csv_line.rfind(i)
                 break
 
-        return csv_line[start:end]
+        event_name = csv_line[start:end]
+        debug = Inter.Debug()
+        debug.note_event_list( event_name, 0, 2 )
+        debug.add_runcap_debug( event_name, 0, 6 )
+
+        return event_name
     
-    def _add_event_line( self, csv_line, data_col ):
+    def _read_event_row( self, csv_line, data_col ):
         event_drop_add = np.zeros( self.mat_index_total )
         ID_to_index = self.ID_to_index
 
@@ -112,7 +120,6 @@ class QuestData:
 
             # Skips adding Material if it has no assigned index
             if ID_to_index[mat_ID] == 'F':
-            #if self.ID_to_index[mat_ID] == 'F':
                 continue
 
             # Determines whether Material has one of the XP Hellfire IDs
@@ -122,22 +129,60 @@ class QuestData:
             # Allows certain negative IDs to input data for multiple Materials.
             if mat_ID < 0:
                 mat_ID = ID_to_index[mat_ID]
-                #mat_ID = self.ID_to_index[mat_ID]
             else:
                 mat_ID = [mat_ID]
 
             for j in mat_ID:
                 add_data = True
                 event_drop_add[ ID_to_index[j] ] += drop_rate
-                #event_drop_add[ self.ID_to_index[j] ] += drop_rate
         
         return event_drop_add, add_data
+    
+    # Interpretation of how this is supposed to read the Event Quest csv:
+    # If there is no AP assigned or no material assigned in the first slot, skip this line.
+    # If there is, assume the drops are part of a new node and start a new line of the Drop Matrix.
+    # Add drops to the last line made in the Drop Matrix.
+    def _read_event_data( self, reader, run_caps: Inter.RunCaps, matrix, group, event_name ):
+        event_lotto = False
+        data_col, reader = self._find_data_columns(reader)
 
-    def _add_event_drop( self, event_csv, run_caps: Inter.RunCaps ):
-        debug = Inter.Debug()
+        for csv_line in reader:
+            try:
+                first_ID_check = int( csv_line[ data_col['ID'][0] ] )
+                AP_cost = float(csv_line[ data_col['AP'] ])
+
+            except ValueError:
+                continue
+
+            name = event_name + ', ' + csv_line[ data_col['loc'] ]
+            cur_type = csv_line[ data_col['type'] ]
+
+            rbox = 'F'
+            try:
+                rbox_read = float(csv_line[ data_col['rbox'] ])
+                bonus = csv_line[ data_col['lotto'] ]
+
+                if cur_type[0:5] == 'Lotto':
+                    event_lotto = True
+                    rbox = rbox_read
+                    Inter.Debug().add_lotto_drop_bonus( name, bonus )
+                elif cur_type[0:5] == 'Pseud':
+                    Inter.Debug().add_lotto_drop_bonus( name, bonus )
+            except ValueError:
+                pass
+
+            drop_data, add_data = self._read_event_row( csv_line, data_col )
+
+            # Check if current Quest is part of the same group as the last, change Run Cap data accordingly
+            group = run_caps.add_group_info( add_data, cur_type, group )
+
+            if add_data:
+                self._add_data_row( matrix, name, AP_cost, drop_data, rbox )
+        
+        return group, event_lotto
+
+    def _add_event_drops( self, event_csv, run_caps: Inter.RunCaps ):
         event_name = self._find_event_name(event_csv)
-        debug.note_event_list( event_name, 0, 2 )
-        debug.add_runcap_debug( event_name, 0, 6 )
 
         with open( event_csv, newline = '', encoding = 'latin1' ) as f:
             reader = csv.reader(f)
@@ -152,52 +197,13 @@ class QuestData:
                     if csv_line[i+1] != '':
                         AP_buyback = True
                     break
-
-            data_col, reader = self._find_data_columns(reader)
             
             # Keeps track of Event groups to properly apply Run Caps ('Event', 'Raid', 'Lotto 2', etc).
             group = {'Quest': event_true_name, 'Type': False, 'Count': 0, 'Cap': event_caps}
 
             matrix = {'AP Cost': [], 'Drop': []}
-            event_lotto = False
 
-            # Interpretation of how this is supposed to read the Event Quest csv:
-            # If there is no AP assigned or no material assigned in the first slot, skip this line.
-            # If there is, assume the drops are part of a new node and start a new line of the Drop Matrix.
-            # Add drops to the last line made in the Drop Matrix.
-            for csv_line in reader:
-                try:
-                    first_ID_check = int( csv_line[ data_col['ID'][0] ] )
-                    AP_cost = float(csv_line[ data_col['AP'] ])
-
-                except ValueError:
-                    continue
-
-                name = event_name + ', ' + csv_line[ data_col['loc'] ]
-                cur_type = csv_line[ data_col['type'] ]
-
-                rbox = 'F'
-                try:
-                    rbox_read = float(csv_line[ data_col['rbox'] ])
-                    bonus = csv_line[ data_col['lotto'] ]
-
-                    if cur_type[0:5] == 'Lotto':
-                        event_lotto = True
-                        rbox = rbox_read
-                        debug.add_lotto_drop_bonus( name, bonus )
-                    elif cur_type[0:5] == 'Pseud':
-                        debug.add_lotto_drop_bonus( name, bonus )
-                except ValueError:
-                    pass
-
-                drop_data, add_data = self._add_event_line( csv_line, data_col )
-
-
-                # Check if current Quest is part of the same group as the last, change Run Cap data accordingly
-                group = run_caps.add_group_info( add_data, cur_type, group )
-
-                if add_data:
-                    matrix = self._prepare_data( matrix, name, AP_cost, drop_data, rbox )
+            group, event_lotto = self._read_event_data( reader, run_caps, matrix, group, event_name )
             f.close()
             
         # Event Lotto has its own logic check just in case more Types creep into the data at the end.
@@ -212,7 +218,27 @@ class QuestData:
         events_farm_folder = glob.glob( file_path, recursive=True )
 
         for event in events_farm_folder:
-            self._add_event_drop( event, run_caps )
+            self._add_event_drops( event, run_caps )
+
+
+    # Free Data section
+    def _set_free_columns( self, mat_start, blaze_start, mat_end ):
+        if mat_start == -1:
+            error = 'Sheet does not have a column labeled as referencing "Bronze" mats.'
+            Inter.Debug().warning(error)
+        
+        if blaze_start == -1:
+            blaze_start = mat_end
+            error = 'Sheet does not have a column labeled with "Monument" or "Blaze".'
+            Inter.Debug().warning(error)
+
+        # Might make the program faster to not have to repeat these calculations
+        for key in self.skip_data_index:
+            self.skip_data_shift[ key + mat_start ] = self.skip_data_index[key]
+        
+        self.start_to_blaze = range( mat_start, blaze_start )
+        self.blaze_to_end = range( blaze_start, mat_end )
+        self.hellfire_start = blaze_start + 6
 
     # Assumes first Material data point has a Header with "Bronze" in it, 
     #   and that "Saber Blaze" is 9 columns after the "Monuments"  start.
@@ -243,23 +269,10 @@ class QuestData:
             if mat_start >= -1:
                 mat_end = self.csv_col_total + mat_start
 
-        if mat_start == -1:
-            Inter.Debug().warning( 'Sheet does not have a column labeled as referencing "Bronze" mats.' )
-        if blaze_start == -1:
-            blaze_start = mat_end
-            Inter.Debug().warning( 'Sheet does not have a column labeled with "Monument" or "Blaze".' )
-
-        # Might make the program faster to not have to repeat these calculations
-        for key in self.skip_data_index:
-            self.skip_data_shift[ key + mat_start ] = self.skip_data_index[key]
-        
-        self.start_to_blaze = range( mat_start, blaze_start )
-        self.blaze_to_end = range( blaze_start, mat_end )
-        self.hellfire_start = blaze_start + 6
-
+        self._set_free_columns( mat_start, blaze_start, mat_end )
         return reader
     
-    def _add_free_line( self, csv_line, AP_cost ):
+    def _read_free_row( self, csv_line, AP_cost ):
         drop_data = []
         add_data = self.add_data_ini
 
@@ -286,11 +299,49 @@ class QuestData:
 
         return drop_data, add_data
     
-    def add_free_drop( self, free_csv, run_caps: Inter.RunCaps ):
+    # Interpretation of how this is supposed to read the APD csv:
+    # If the Singularity is further than the user wants to farm as defined in the config file, stop.
+    # If the line is filler because the google sheet copied the old Japanese formatting, skip it.
+    # Else, start a new line of drop rate data.
+    def _read_free_data( self, reader, run_caps: Inter.RunCaps, matrix, group ):
+        cut_AP = Inter.ConfigList.cut_AP
+        last_area = Inter.ConfigList.settings['Stop Here']
+
+        for csv_line in reader:
+            region = csv_line[0]
+            if region.startswith('Arch.'):
+                region = 'Archetype Inception'
+            
+            if region.find( last_area ) >= 0: 
+                break
+
+            try:
+                AP_cost = int(csv_line[2])
+                cur_type = csv_line[3]
+            except ValueError:
+                continue
+
+            drop_data, add_data = self._read_free_row( csv_line, AP_cost )
+            
+            group = run_caps.add_group_info( add_data, cur_type, group )
+
+            # Drop rate calculated from normal quest AP.
+            # Half AP effectively doubles drop rate when optimizing run counts.
+            # After the rest of the calculations in order to not cancel out the gain.
+            if cur_type == 'Daily' or cur_type == 'Bleach':
+                if cut_AP[cur_type] > 1:
+                    AP_cost = int( AP_cost / cut_AP[cur_type] )
+
+            if add_data:
+                quest_name = region + ', ' + csv_line[1]
+                self._add_data_row( matrix, quest_name, AP_cost, drop_data )
+        return group
+    
+    def add_free_drops( self, free_csv, run_caps: Inter.RunCaps ):
         with open( free_csv, newline = '', encoding = 'Latin1' ) as f:
             reader = csv.reader(f)
-            cut_AP = Inter.ConfigList.cut_AP
-            last_area = Inter.ConfigList.settings['Stop Here']
+            #cut_AP = Inter.ConfigList.cut_AP
+            #last_area = Inter.ConfigList.settings['Stop Here']
 
             reader = self._find_free_columns(reader)
 
@@ -300,43 +351,14 @@ class QuestData:
             group = {'Quest': 'Free Quests', 'Type': False, 'Count': 0, 'Cap': free_cap}
             matrix = {'AP Cost': [], 'Drop': []}
 
-            # Interpretation of how this is supposed to read the APD csv:
-            # If the Singularity is further than the user wants to farm as defined in the config file, stop.
-            # If the line is filler because the google sheet copied the old Japanese formatting, skip it.
-            # Else, start a new line of drop rate data.
-            for csv_line in reader:
-                region = csv_line[0]
-                if region.startswith('Arch.'):
-                    region = 'Archetype Inception'
-                
-                if region.find( last_area ) >= 0: 
-                    break
-
-                try:
-                    AP_cost = int(csv_line[2])
-                    cur_type = csv_line[3]
-                except ValueError:
-                    continue
-
-                drop_data, add_data = self._add_free_line( csv_line, AP_cost )
-                
-                group = run_caps.add_group_info( add_data, cur_type, group )
-
-                # Drop rate calculated from normal quest AP.
-                # Half AP effectively doubles drop rate when optimizing run counts.
-                # After the rest of the calculations in order to not cancel out the gain.
-                if cur_type == 'Daily' or cur_type == 'Bleach':
-                    if cut_AP[cur_type] > 1:
-                        AP_cost = int( AP_cost / cut_AP[cur_type] )
-
-                if add_data:
-                    quest_name = region + ', ' + csv_line[1]
-                    matrix = self._prepare_data( matrix, quest_name, AP_cost, drop_data )
+            group = self._read_free_data( reader, run_caps, matrix, group )
             f.close()
 
         run_caps.assemble_group_info( group )
         self.assemble_matrix( matrix )
+    
 
+    # Monthly Ticket Data section
     def _find_ticket_range( self, month_name, month, year ):
         self.recorded_months.append(month_name)
 
@@ -344,13 +366,13 @@ class QuestData:
         if first == {}:
             self.first_monthly = {'Month': month, 'Year': year, 'Date': month_name}
             self.last_monthly = {'Month': month, 'Year': year, 'Date': month_name}
+
+        elif (year < first['Year']) or (year == first['Year'] and month < first['Month']):
+            self.first_monthly = {'Month': month, 'Year': year, 'Date': month_name}
         else:
-            if (year < first['Year']) or (year == first['Year'] and month < first['Month']):
-                self.first_monthly = {'Month': month, 'Year': year, 'Date': month_name}
-            else:
-                last = self.last_monthly
-                if (year > last['Year']) or (year == last['Year'] and month > last['Month']):
-                    self.last_monthly = {'Month': month, 'Year': year, 'Date': month_name}
+            last = self.last_monthly
+            if (year > last['Year']) or (year == last['Year'] and month > last['Month']):
+                self.last_monthly = {'Month': month, 'Year': year, 'Date': month_name}
 
     def _find_month_ID( self, reader, month_name ):
         while True:
@@ -365,7 +387,7 @@ class QuestData:
                 if csv_line[i] == 'ID': 
                     return i, reader
     
-    def _add_month_choice( self, mat_ID ):
+    def _add_ticket_choice( self, mat_ID ):
         event_drop_add = np.zeros( self.mat_index_total )
 
         # If 0s are meant to be removed, only add data if desired Materials are dropped
@@ -394,16 +416,19 @@ class QuestData:
             except ValueError:
                 continue
 
-            drop_data, add_data = self._add_month_choice( mat_ID )
+            drop_data, add_data = self._add_ticket_choice( mat_ID )
 
             # Keeps count of the number of entries in the month and adds group data
             group = run_caps.add_group_info( add_data, 'Monthly', group )
 
             if add_data:
-                matrix = self._prepare_data( matrix, group['Quest'], 0, drop_data )
+                self._add_data_row( matrix, group['Quest'], 0, drop_data )
 
         run_caps.assemble_group_info( group )
         self.assemble_matrix( matrix )
+
+        if not self.first_useful and  (matrix['Drop'] != []):
+            self.first_useful = group['Quest']
     
     def _check_month( self, ticket_csv, run_caps: Inter.RunCaps ):
         with open( ticket_csv, newline = '', encoding = 'latin1' ) as f:
