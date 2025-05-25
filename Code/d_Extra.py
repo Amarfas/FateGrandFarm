@@ -172,7 +172,7 @@ class PrintText():
     
     def ini_debug_path( self ):
         debug = self.debug_path()
-        return os.path.join( debug, 'Goals', 'fgf_config_test.ini' )
+        return os.path.join( debug, 'fgf_config_test.ini' )
     
     def data_prefix( self, line_break = False ):
         if line_break:

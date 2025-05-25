@@ -3,8 +3,7 @@ OLD Files
 
 # Debug files for main
 Code/d_*.py
-Code/_debug/
-Code\_debug\Last_Test_Package.json
+#Code/_debug/
 Code/_debug/Last_Test_Package.json
 Code/_debug/Last_Time.json
 Code/_debug/Run_Cap_Matrix_Dimensions.txt
