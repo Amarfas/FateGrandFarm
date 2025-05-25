@@ -2,8 +2,12 @@
 OLD Files
 
 # Debug files for main
-#*d_*.py
-#*_debug/
+Code/d_*.py
+Code/_debug/
+Code\_debug\Last_Test_Package.json
+Code/_debug/Last_Test_Package.json
+Code/_debug/Last_Time.json
+Code/_debug/Run_Cap_Matrix_Dimensions.txt
 
 # Plans
 Config Notes.txt
@@ -16,7 +20,7 @@ FAILED_EXECUTION__Config Notes.txt
 .vscode
 
 # Ignore GOALSTest#.csv files
-GOALS_Per.csv
+GOALS_Per*.csv
 GOALSTest*.csv
 
 # Byte-compiled / optimized / DLL files
