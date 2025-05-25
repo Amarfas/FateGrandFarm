@@ -16,7 +16,7 @@ FAILED_EXECUTION__Config Notes.txt
 .vscode
 
 # Ignore GOALSTest#.csv files
-GOALS_Per.csv
+GOALS_Per*.csv
 GOALSTest*.csv
 
 # Byte-compiled / optimized / DLL files
