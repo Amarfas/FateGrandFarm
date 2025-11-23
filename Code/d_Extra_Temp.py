@@ -1,7 +1,7 @@
-import Planner as Plan
+import Planner as plan
 import numpy as np
 
-class Test_15(Plan.Planner):
+class Test_15(plan.Planner):
     valid = True
 
     def __init__(self, toolkit):
@@ -9,15 +9,15 @@ class Test_15(Plan.Planner):
         input_data = toolkit.input
         run_cap_matrix = toolkit.run_mat
 
-        plan = Plan.Planner( nodes, input_data, run_cap_matrix, 0 )
-        sol: Plan.Solution = plan.planner()
+        planner = plan.Planner( nodes, input_data, run_cap_matrix, 0 )
+        sol: plan.Solution = planner.planner()
 
-        self.drop_matrix = plan.drop_matrix
-        self.run_caps = plan.run_caps
-        self.AP_costs = plan.AP_costs
+        self.drop_matrix = planner.drop_matrix
+        self.run_caps = planner.run_caps
+        self.AP_costs = planner.ap_costs
 
-        if sol.status == 'optimal' and plan.run_size > 1:
-            self._calculate_AP_saved
+        if sol.status == 'optimal' and planner.run_size > 1:
+            self._calculate_ap_saved
     
     def check_matrix( self, m1, m2, index, axis = 0, mat = False ):
         if len(m1) == 0:
@@ -84,17 +84,17 @@ class Test_15(Plan.Planner):
         self.check_dict( run_caps, self.run_caps, index )
         self.check_matrix( costs, self.AP_costs, index, 1 )
 
-    def _cut_i_dict( self, matrix, index, monthly = True ):
+    def _cut_dict( self, matrix, index, monthly = True ):
         new_mat = {}
-        new_cut = self._cut_i_matrix( matrix['Matrix'], index, 1 )
+        new_cut = self._cut_matrix( matrix['Matrix'], index, 1 )
 
         if monthly:
             for i in range(len(matrix['Matrix'])):
                 if matrix['Matrix'][i][index[0]] > 0:
                     self.test = i
-                    new_mat['Event'] = self._cut_i_matrix( matrix['Event'], [i] )
-                    new_mat['List'] = self._cut_i_matrix( matrix['List'], [i] )
-                    new_mat['Matrix'] = self._cut_i_matrix( new_cut, [i] )
+                    new_mat['Event'] = self._cut_matrix( matrix['Event'], [i] )
+                    new_mat['List'] = self._cut_matrix( matrix['List'], [i] )
+                    new_mat['Matrix'] = self._cut_matrix( new_cut, [i] )
                     return new_mat
 
         new_mat['Event'] = np.copy( matrix['Event'] )
@@ -107,8 +107,8 @@ class Test_15(Plan.Planner):
             return 'F', index
         
         self.test = ''
-        new_drops = self._cut_i_matrix( self.drop_matrix, index, 1 )
-        new_run_caps = self._cut_i_dict( self.run_caps, index, monthly )
-        new_costs = self._cut_i_matrix( self.AP_costs, index, 1 )
+        new_drops = self._cut_matrix( self.drop_matrix, index, 1 )
+        new_run_caps = self._cut_dict( self.run_caps, index, monthly )
+        new_costs = self._cut_matrix( self.AP_costs, index, 1 )
 
         self.check( new_drops, new_run_caps, new_costs, index )

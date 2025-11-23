@@ -663,7 +663,7 @@ class Output:
             Output.text_written.append( [file_name, text.split('\n')] )
 
         if Output.not_test:
-            with open( file_name, 'w') as f:
+            with open( file_name, 'w', encoding='utf-8-sig' ) as f:
                 f.write(text)
                 f.close()
     
@@ -715,11 +715,11 @@ class Output:
         output = ''
         debug = Inter.Debug()
     
-        if debug.error[0] != '':
+        if debug.error[0]:
             output = '!! WARNING !!\n'
             output += debug.error[0] + '\n'
         
-        if debug.error[1] != '':
+        if debug.error[1]:
             output += debug.error[1] + '\n'
     
         output += self.make_report( debug.config_notes, 'Configurations:', 1 )

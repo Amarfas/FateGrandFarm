@@ -145,7 +145,7 @@ def planner( quest_data: QuestData, data_files: Inter.DataFiles, run_cap_mat = F
 
 class Output:
     text_written = []
-    not_test = True
+    is_test = False
 
     def __init__(self) -> None:
         pass
@@ -154,13 +154,13 @@ class Output:
         if main:
             Output.text_written.append( [file_name, text.split('\n')] )
 
-        if Output.not_test:
+        if not Output.is_test:
             with open( file_name, 'w') as f:
                 f.write(text)
                 f.close()
 
     def console_print( self, text, next_line = True ):
-        if Output.not_test:
+        if not Output.is_test:
             print( text )
         return text + '\n' * next_line
     
@@ -343,7 +343,7 @@ class Output:
         self.file_creation( plan_name, 'Config Notes.txt', output, True, failure )
 
     def create_debug():
-        if Output.not_test:
+        if not Output.is_test:
             print('FAILED EXECUTION')
         Output().create_note_file( 'FAILED_EXECUTION__', True )
 

@@ -1,3 +1,6 @@
+# Ignore programs used to help collect data
+Data Collection
+
 # Ignore 'OLD Files' folder
 OLD Files
 
@@ -7,6 +10,7 @@ Code/d_*.py
 Code/_debug/Last_Test_Package.json
 Code/_debug/Last_Time.json
 Code/_debug/Run_Cap_Matrix_Dimensions.txt
+Testing
 
 # Plans
 Config Notes.txt
@@ -15,12 +19,12 @@ Farming Plan.txt
 Former Plans/
 FAILED_EXECUTION__Config Notes.txt
 
-# Ignore .vscode configurations used for readability.
-.vscode
-
 # Ignore GOALSTest#.csv files
 GOALS_Per*.csv
 GOALSTest*.csv
+
+# Ignore .vscode configurations used for readability.
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
