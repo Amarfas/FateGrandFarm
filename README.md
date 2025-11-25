@@ -79,6 +79,8 @@ For any y/n (yes/no) question in the configurations, it will also read the follo
 
 **'AP Saved':** this feature is currently in beta. It will tell you how much AP was saved by each Quest being included in the Farming Plan. It accomplishes this by doing the following for each Free Quest, Event Quest, and Monthly Exchange Ticket in the original plan: it produces a new optimal Farming Plan where every configuration is the same, except that single Quest is removed. It then calculates how much more AP was required by the new plan. If an optimal Farming Plan is impossible without that Quest, it will instead display 'inf'. As you might expect, this may significantly increase how long the program takes to run.
 
+**Note on 'AP Saved' with Lotto Exchange Tickets:** when calculating the AP saved for Event Quests in Lotto Events with Exchange Tickets, the result will probably be close to 0. This is because FGF will instead shuffle around which runs are used for any specific ticket exchange. If you want to get a more realistic idea for the AP Saved, I would suggest removing that Ticket option's Event .csv file from the 'Events Farm' folder and rerunning the program.
+
 **'Units':** it only accepts 0, 1, and 2 as inputs. 
  * '0' means that the result will be measured by the 'total amount of AP saved' ('AP').
  * '1' means that it will instead be measured by the 'total amount of AP saved' divided by the 'number of runs for that Quest', or divided by the 'number of days for that Monthly Exchange Ticket' ('AP / run' or 'AP / day').
@@ -239,7 +241,7 @@ There are a few special Material IDs that FGF interprets as multiple different M
 
 # Acknowledgements
 
-Current Version: 1.5.0
+Current Version: 1.5.1
 
  * [pyinstaller](https://github.com/pyinstaller/pyinstaller) for making it easy to create an executable.
 
