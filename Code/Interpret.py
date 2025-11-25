@@ -303,7 +303,7 @@ class Debug():
         if message >= threshold:
             note = '!! ' + note
             if self.notifications:
-                print(note)
+                print('\n' + note)
             Debug.error[pos] += note + '\n'
 
     def note_config( self, key, key_value ):
@@ -365,7 +365,13 @@ class DataFiles:
         # Planner section
         self.index_to_name = {}
         self.goals = []
+        self.goals_total = 0
+
         self._interpret_CSVs( goals_CSV, material_list_CSV )
+
+    def goals_add(self, mat_goal):
+        self.goals.append([mat_goal])
+        self.goals_total += mat_goal
 
     # Interpret the Materials one group at a time, 
     #   using the gaps in the Mat ID List to keep track of groups.
@@ -409,7 +415,7 @@ class DataFiles:
             if skip:
                 self.ID_to_index.setdefault( int(ID_list[csv_i]), 'F' )
             else:
-                self.goals.append( [mat_goal] )
+                self.goals_add(mat_goal)
                 self.ID_to_index.setdefault( int(ID_list[csv_i]), mat_i )
                 self.index_to_name.setdefault( mat_i, name_list[csv_i] )
                 mat_i += 1
@@ -423,7 +429,7 @@ class DataFiles:
         self.skip_data_index[csv_i] = self.remove_zeros
         csv_i += 1
         if not self.remove_zeros and name_list[csv_i] != expected[gaps + 1][0]:
-            self.goals.append([0])
+            self.goals_add(0)
             self.index_to_name.setdefault( mat_i, '' )
             mat_i += 1
 
@@ -442,7 +448,7 @@ class DataFiles:
         if skip:
             mat_i = 'F'
         else:
-            self.goals.append( [xp_data['Goal']] )
+            self.goals_add(xp_data['Goal'])
             self.ID_to_index[-6] = [ int(mat_IDs[csv_i+1]) ]
             self.index_to_name.setdefault( mat_i, 'Class Blaze' )
             mat_index_total += 1
@@ -507,7 +513,7 @@ class DataFiles:
 
         self._interpret_XP_data( ID_list, csv_i, mat_i, xp_data )
 
-        if self.goals == []:
+        if self.goals_total == 0:
             Debug().warning("You have assigned no goals.")
         self.goals = np.array(self.goals)
 

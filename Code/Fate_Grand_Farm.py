@@ -43,7 +43,7 @@ def main():
     
     #  'Planner' produces a 'Solution' using matrices from 'QuestData', the interpreted
     # 'Goals' from DataFiles (as well as Mat naming information), and the Run Cap Matrices
-    if data_files.goals.size > 0:
+    if data_files.goals.size > 0 and data_files.goals_total > 0:
         plan = Plan.Planner( quest_data, data_files, run_cap_matrix )
         solution = plan.planner()
 

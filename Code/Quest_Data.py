@@ -184,7 +184,7 @@ class QuestData:
     def _add_event_drops( self, event_csv, run_caps: Inter.RunCaps ):
         event_name = self._find_event_name(event_csv)
 
-        with open( event_csv, newline = '', encoding = 'latin1' ) as f:
+        with open( event_csv, newline = '', encoding = 'utf-8-sig' ) as f:
             reader = csv.reader(f)
             csv_line = next(reader)
 
@@ -338,7 +338,7 @@ class QuestData:
         return group
     
     def add_free_drops( self, free_csv, run_caps: Inter.RunCaps ):
-        with open( free_csv, newline = '', encoding = 'Latin1' ) as f:
+        with open( free_csv, newline = '', encoding = 'utf-8-sig' ) as f:
             reader = csv.reader(f)
             #cut_AP = Inter.ConfigList.cut_AP
             #last_area = Inter.ConfigList.settings['Stop Here']
@@ -431,7 +431,7 @@ class QuestData:
             self.first_useful = group['Quest']
     
     def _check_month( self, ticket_csv, run_caps: Inter.RunCaps ):
-        with open( ticket_csv, newline = '', encoding = 'latin1' ) as f:
+        with open( ticket_csv, newline = '', encoding = 'utf-8-sig' ) as f:
             reader = csv.reader(f)
             csv_line = next(reader)
 

@@ -73,13 +73,18 @@ For any y/n (yes/no) question in the configurations, it will also read the follo
 
 **'Remove Zeros':** sometimes there are non-trivial differing solutions which fulfill the same goals for the same AP Cost. Consequently, sometimes an entirely different run plan will be made when 'remove_zeros' is toggled, as the technically different matrices causes the solver to reach its solution in a different way.
 
-**Monthly Exchange Ticket:** the 'Monthly Ticket Per Day' configuration caps at 4. The 'Monthly Ticket End Date' can be either a specific date or a time lapse relative to the starting date. If the starting date was 10/23/2024 and '2 months' was entered, the end date will be 12/23/2024. The program will accept relative time frames in 'days', 'months', or 'years'. Does not have to be plural ('day' will also be accepted).
+**Monthly Exchange Ticket:** the 'Monthly Ticket Per Day' configuration caps at 4. 'Monthly Ticket End Date' can be either a specific date or a time lapse relative to the Start Date. If the Start Date was 10/23/2024 and '2 months' was entered, the End Date will be 12/23/2024. The program will accept relative time frames in 'days', 'months', or 'years'. Does not have to be plural ('day' will also be accepted).
 
 **'Goals File Name':** the program will accept either a specific file name with '.csv' added on, or an extension of the word 'GOALS'. Examples: if you input 'Needs.csv' it will look for the file 'Needs.csv'. If you input 'GOALS_Per' it will look for 'GOALS_Per.csv'. If you input 'Per' it will look for 'GOALSPer.csv', 'GOALS Per.csv', and 'GOALS_Per.csv'.
 
-**'AP Saved':** this feature is currently in beta. It may significantly increase how long the program takes to run, because it is solving a new optimal farming plan for every Free Quest, Event Quest, and Monthly Exchange Ticket that was part of the original optimal farming plan.
+**'AP Saved':** this feature is currently in beta. It will tell you how much AP was saved by each Quest being included in the Farming Plan. It accomplishes this by doing the following for each Free Quest, Event Quest, and Monthly Exchange Ticket in the original plan: it produces a new optimal Farming Plan where every configuration is the same, except that single Quest is removed. It then calculates how much more AP was required by the new plan. If an optimal Farming Plan is impossible without that Quest, it will instead display 'inf'. As you might expect, this may significantly increase how long the program takes to run.
 
-**'Units':** it only accepts 0, 1, and 2 as inputs. '0' means that the result will be measured by the total amount of AP saved, including every run/ticket used ('AP'). '1' means that it will instead be measured by the amount of AP saved per run of that Quest, or per day for Monthly Exchange Tickets ('AP / run' or 'AP / day'). '2' means that it will instead be measured by the amount of AP saved for every AP spent on running that Quest, or for every Monthly Exchange Ticket used that month ('AP / AP' or "AP / ticket').
+**Note on 'AP Saved' with Lotto Exchange Tickets:** when calculating the AP saved for Event Quests in Lotto Events with Exchange Tickets, the result will probably be close to 0. This is because FGF will instead shuffle around which runs are used for any specific ticket exchange. If you want to get a more realistic idea for the AP Saved, I would suggest removing that Ticket option's Event .csv file from the 'Events Farm' folder and rerunning the program.
+
+**'Units':** it only accepts 0, 1, and 2 as inputs. 
+ * '0' means that the result will be measured by the 'total amount of AP saved' ('AP').
+ * '1' means that it will instead be measured by the 'total amount of AP saved' divided by the 'number of runs for that Quest', or divided by the 'number of days for that Monthly Exchange Ticket' ('AP / run' or 'AP / day').
+ * '2' means that it will instead be measured by the 'total amount of AP saved' divided by 'how much AP was spent running that Quest (including every run)', or divided by 'how many Monthly Exchange Tickets were used that month' ('AP / AP' or "AP / ticket').
 
 **'AP Saved':** this feature is currently in beta. It will tell you how much AP was saved by each Quest being included in the Farming Plan. It accomplishes this by doing the following for each Free Quest, Event Quest, and Monthly Exchange Ticket in the original plan: it produces a new optimal Farming Plan where every configuration is the same, except that single Quest is removed. It then calculates how much more AP was required by the new plan. If an optimal Farming Plan is impossible without that Quest, it will instead display 'inf'. As you might expect, this may significantly increase how long the program takes to run.
 
@@ -240,7 +245,7 @@ There are a few special Material IDs that FGF interprets as multiple different M
 
 # Acknowledgements
 
-Current Version: 1.5.0
+Current Version: 1.5.1
 
  * [pyinstaller](https://github.com/pyinstaller/pyinstaller) for making it easy to create an executable.
 
